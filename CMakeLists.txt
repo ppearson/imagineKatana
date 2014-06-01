@@ -74,7 +74,7 @@ ENDIF(${STAND_ALONE} MATCHES 0)
 ## katanaImagineRendererInfo
 FILE(GLOB_RECURSE katanaImagineRendererInfo_SOURCES "${CMAKE_SOURCE_DIR}/src/imagineRendererInfo/*.cpp")
 
-ADD_LIBRARY(katanaImagineRendererInfo SHARED "${katanaImagineRendererInfo_SOURCES}")
+ADD_LIBRARY(katanaImagineRendererInfo SHARED ${katanaImagineRendererInfo_SOURCES})
 
 IF(${STAND_ALONE} MATCHES 1)
 	ADD_DEPENDENCIES(katanaImagineRendererInfo katanaAPI)
@@ -89,17 +89,17 @@ ENDIF(${STAND_ALONE} MATCHES 1)
 
 ## katanaImagineRenderer
 
-FILE(GLOB_RECURSE katanaImagineRenderer_SOURCES "${CMAKE_SOURCE_DIR}/src/imagineRenderer/*.cpp")
+FILE(GLOB_RECURSE katanaImagineRender_SOURCES "${CMAKE_SOURCE_DIR}/src/imagineRender/*.cpp")
 
-ADD_LIBRARY(katanaImagineRenderer SHARED "${katanaImagineRenderer_SOURCES}")
+ADD_LIBRARY(katanaImagineRender SHARED ${katanaImagineRender_SOURCES})
 
 IF(${STAND_ALONE} MATCHES 1)
-	ADD_DEPENDENCIES(katanaImagineRenderer katanaAPI)
-	SET_TARGET_PROPERTIES(katanaImagineRenderer PROPERTIES PREFIX "")
-	TARGET_LINK_LIBRARIES(katanaImagineRenderer katanaAPI)
+	ADD_DEPENDENCIES(katanaImagineRender katanaAPI)
+	SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
+	TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI)
 ELSE(${STAND_ALONE} MATCHES 0)
-	ADD_DEPENDENCIES(katanaImagineRenderer katanaAPI imagineCore)
-	SET_TARGET_PROPERTIES(katanaImagineRenderer PROPERTIES PREFIX "")
-	TARGET_LINK_LIBRARIES(katanaImagineRenderer katanaAPI imagineCore)
+	ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
+	SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
+	TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore)
 ENDIF(${STAND_ALONE} MATCHES 1)
 

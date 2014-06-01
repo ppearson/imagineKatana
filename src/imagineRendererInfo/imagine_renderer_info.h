@@ -11,6 +11,11 @@ public:
 	ImagineRendererInfo();
 	virtual ~ImagineRendererInfo();
 
+	static Foundry::Katana::RendererInfo::RendererInfoBase* create();
+	static void flush();
+
+	virtual void configureBatchRenderMethod(Foundry::Katana::RendererInfo::DiskRenderMethod& batchRenderMethod) const;
+
 	virtual void fillRenderMethods(std::vector<Foundry::Katana::RendererInfo::RenderMethod*>& renderMethods) const;
 
 	virtual void fillRendererObjectTypes(std::vector<std::string>& renderObjectTypes, const std::string& type) const;
@@ -44,6 +49,14 @@ public:
 
 	virtual bool buildRendererObjectInfo(FnKat::GroupBuilder& rendererObjectInfo, const std::string& name, const std::string& type,
 													const FnKat::GroupAttribute inputAttr = NULL) const;
+
+
+	// Many functions in the Katana Render API are stupidly not static when they can be and often marked as protected,
+	// severely limiting how you can use them and thus organise the code. So provide accessors here that call them from
+	// a RendererInfoBase-derived class
+
+	void localAddRenderObjectParam(FnKat::GroupBuilder& renderObjectInfo, const std::string& name, int type, int arraySize,
+							  FnKat::Attribute defaultAttr, FnKat::Attribute hintsAttr, const EnumPairVector& enumValues) const;
 
 protected:
 

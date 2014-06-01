@@ -1,6 +1,9 @@
 
 #include "imagine_renderer_info.h"
 
+#include <algorithm>
+
+#include "render_object_info_helper.h"
 
 ImagineRendererInfo::ImagineRendererInfo()
 {
@@ -8,6 +11,21 @@ ImagineRendererInfo::ImagineRendererInfo()
 }
 
 ImagineRendererInfo::~ImagineRendererInfo()
+{
+
+}
+
+Foundry::Katana::RendererInfo::RendererInfoBase* ImagineRendererInfo::create()
+{
+	return new ImagineRendererInfo();
+}
+
+void ImagineRendererInfo::flush()
+{
+
+}
+
+void ImagineRendererInfo::configureBatchRenderMethod(Foundry::Katana::RendererInfo::DiskRenderMethod& batchRenderMethod) const
 {
 
 }
@@ -26,6 +44,7 @@ void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& rend
 	{
 		renderObjectTypes.push_back("surface");
 		renderObjectTypes.push_back("bump");
+		renderObjectTypes.push_back("medium");
 		renderObjectTypes.push_back("displacement");
 		renderObjectTypes.push_back("alpha");
 		renderObjectTypes.push_back("light");
@@ -92,7 +111,7 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 
 std::string ImagineRendererInfo::getRegisteredRendererName() const
 {
-	return "Imagine";
+	return "imagine";
 }
 
 std::string ImagineRendererInfo::getRegisteredRendererVersion() const
@@ -133,5 +152,29 @@ void ImagineRendererInfo::fillRendererShaderTypeTags(std::vector<std::string>& s
 bool ImagineRendererInfo::buildRendererObjectInfo(FnKat::GroupBuilder& rendererObjectInfo, const std::string& name, const std::string& type,
 												const FnKat::GroupAttribute inputAttr) const
 {
+	if (type == kFnRendererObjectTypeOutputChannel)
+	{
+		return RenderObjectInfoHelper::buildOutputChannel(*this, rendererObjectInfo, name);
+	}
 
+	if (type == kFnRendererObjectTypeRenderOutput)
+	{
+		return RenderObjectInfoHelper::buildRenderOutput(*this, rendererObjectInfo, name, inputAttr);
+	}
+}
+
+void ImagineRendererInfo::localAddRenderObjectParam(FnKat::GroupBuilder& renderObjectInfo, const std::string& name, int type, int arraySize,
+						  FnKat::Attribute defaultAttr, FnKat::Attribute hintsAttr, const EnumPairVector& enumValues) const
+{
+	addRenderObjectParam(renderObjectInfo, name, type, arraySize, defaultAttr, hintsAttr, enumValues);
+}
+
+namespace
+{
+	DEFINE_RENDERERINFO_PLUGIN(ImagineRendererInfo)
+}
+
+void registerPlugins()
+{
+	REGISTER_PLUGIN(ImagineRendererInfo, "ImagineRendererInfo", 0, 1);
 }

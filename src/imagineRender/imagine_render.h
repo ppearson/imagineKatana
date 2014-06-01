@@ -1,5 +1,5 @@
-#ifndef IMAGINERENDER_H
-#define IMAGINERENDER_H
+#ifndef IMAGINE_RENDER_H
+#define IMAGINE_RENDER_H
 
 #include <Render/RenderBase.h>
 
@@ -23,7 +23,25 @@ public:
 		return new ImagineRender(rootIterator, args);
 	}
 
+	static void flush()
+	{
+
+	}
+
 protected:
+
+	bool configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	bool configureRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+
+	void buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+
+	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+
+
+
+protected:
+
+	std::string			m_diskRenderOutputPath;
 };
 
-#endif // IMAGINERENDER_H
+#endif // IMAGINE_RENDER_H
