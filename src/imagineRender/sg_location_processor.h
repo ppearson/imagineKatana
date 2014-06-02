@@ -10,9 +10,17 @@ class SGLocationProcessor
 public:
 	SGLocationProcessor();
 
-	static void processSG(FnKat::FnScenegraphIterator rootIterator);
-	static void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
+	void processSG(FnKat::FnScenegraphIterator rootIterator);
+	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
+	void processLocationRecursive(FnKat::FnScenegraphIterator iterator);
+
+	void processGeometryPolymesh(FnKat::FnScenegraphIterator iterator);
+
+protected:
+	bool				m_applyMaterials;
+	bool				m_useTextures;
+	bool				m_enableSubd;
 
 };
 
