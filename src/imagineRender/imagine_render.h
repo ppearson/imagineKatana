@@ -6,6 +6,13 @@
 namespace FnKat = Foundry::Katana;
 namespace FnKatRender = FnKat::Render;
 
+#ifndef STAND_ALONE
+
+#include "scene.h"
+#include "utils/params.h"
+
+#endif
+
 class ImagineRender : public Foundry::Katana::Render::RenderBase
 {
 public:
@@ -31,6 +38,7 @@ public:
 protected:
 
 	bool configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	bool configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 	bool configureRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	void buildCamera(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator cameraIterator);
@@ -38,11 +46,21 @@ protected:
 
 	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
+	void startRenderer();
 
 
 protected:
 
+#ifndef STAND_ALONE
+	Scene				m_scene;
+	Params				m_renderSettings;
+
+#endif
+
 	std::string			m_diskRenderOutputPath;
+
+	unsigned int		m_renderWidth;
+	unsigned int		m_renderHeight;
 };
 
 #endif // IMAGINE_RENDER_H

@@ -6,11 +6,30 @@
 #include <RendererInfo/RenderMethod.h>
 #include <RenderOutputUtils/RenderOutputUtils.h>
 
+#ifndef STAND_ALONE
+// include any Imagine headers directly from the source directory...
+#include "objects/camera.h"
+#include "image/output_image.h"
+#include "io/image_writer.h"
+
+#include "raytracer/raytracer.h"
+
+#include "utils/file_helpers.h"
+
+#include "global_context.h"
+bool noGUI = true;
+#else
+bool noGUI = false;
+#endif
+
 #include "sg_location_processor.h"
 
+
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments)
+	RenderBase(rootIterator, arguments), m_scene(noGUI)
 {
+	m_renderWidth = 512;
+	m_renderHeight = 512;
 }
 
 int ImagineRender::start()
@@ -95,10 +114,15 @@ void ImagineRender::configureDiskRenderOutputProcess(FnKatRender::DiskRenderOutp
 
 bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
-	unsigned int renderWidth = settings.getResolutionX();
-	unsigned int renderHeight = settings.getResolutionY();
+	m_renderWidth = settings.getResolutionX();
+	m_renderHeight = settings.getResolutionY();
 
-	fprintf(stderr, "Render dimensions: %d, %d\n", renderWidth, renderHeight);
+	fprintf(stderr, "Render dimensions: %d, %d\n", m_renderWidth, m_renderHeight);
+
+#ifndef STAND_ALONE
+	m_renderSettings.add("width", m_renderWidth);
+	m_renderSettings.add("height", m_renderHeight);
+#endif
 
 	Foundry::Katana::StringAttribute cameraNameAttribute = rootIterator.getAttribute("renderSettings.cameraName");
 	std::string cameraName = cameraNameAttribute.getValue("/root/world/cam/camera", false);
@@ -111,6 +135,37 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 	}
 
 	buildCamera(settings, cameraIterator);
+
+	configureRenderSettings(settings, rootIterator);
+
+	return true;
+}
+
+bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+{
+	FnKat::GroupAttribute renderSettingsAttribute = rootIterator.getAttribute("imagineGlobalStatements");
+
+	FnKat::IntAttribute integratorTypeAttribute = renderSettingsAttribute.getChildByName("integrator");
+	unsigned int integratorType = 1;
+	if (integratorTypeAttribute.isValid())
+		integratorType = integratorTypeAttribute.getValue(1, false);
+
+	FnKat::IntAttribute samplesPerPixelAttribute = renderSettingsAttribute.getChildByName("spp");
+	unsigned int samplesPerPixel = 64;
+	if (samplesPerPixelAttribute.isValid())
+		samplesPerPixel = samplesPerPixelAttribute.getValue(64, false);
+
+
+
+#ifndef STAND_ALONE
+	m_renderSettings.add("integrator", 1);
+
+// for the moment, only do one iteration
+	m_renderSettings.add("Iterations", 1);
+	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
+
+	m_renderSettings.add("filter_type", 0);
+#endif
 
 	return true;
 }
@@ -187,12 +242,26 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	fprintf(stderr, "Camera Matrix:\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f\n", pMatrix[0], pMatrix[1], pMatrix[2], pMatrix[3],
 			pMatrix[4], pMatrix[5], pMatrix[6], pMatrix[7], pMatrix[8], pMatrix[9], pMatrix[10], pMatrix[11], pMatrix[12], pMatrix[13],
 			pMatrix[14], pMatrix[15]);
+
+#ifndef STAND_ALONE
+	Camera* pRenderCamera = new Camera();
+	pRenderCamera->setFOV(fovValue);
+	pRenderCamera->transform().setCachedMatrix(pMatrix);
+
+	m_scene.setDefaultCamera(pRenderCamera);
+
+#endif
 }
 
 void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
 	// force expand for the moment, instead of using lazy procedurals...
+
+#ifndef STAND_ALONE
+	SGLocationProcessor locProcessor(m_scene);
+#else
 	SGLocationProcessor locProcessor;
+#endif
 	locProcessor.processSGForceExpand(rootIterator);
 }
 
@@ -202,6 +271,59 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 		return;
 
 	fprintf(stderr, "Performing disk render to: %s\n", m_diskRenderOutputPath.c_str());
+
+	buildSceneGeometry(settings, rootIterator);
+
+	// assumes render settings have been set correctly before hand...
+
+	startRenderer();
+
+}
+
+void ImagineRender::startRenderer()
+{
+	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
+	unsigned int imageChannelWriteFlags = ImageWriter::ALL;
+
+	unsigned int writeFlags = 0;
+
+	// check that we'll be able to write the image before we actually render...
+
+	std::string directory = FileHelpers::getFileDirectory(m_diskRenderOutputPath);
+
+	if (!FileHelpers::doesDirectoryExist(directory))
+	{
+		fprintf(stderr, "Error: The specified output directory for the file does not exist.\n");
+		return;
+	}
+
+	std::string extension = FileHelpers::getFileExtension(m_diskRenderOutputPath);
+
+	ImageWriter* pWriter = FileIORegistry::instance().createImageWriterForExtension(extension);
+	if (!pWriter)
+	{
+		fprintf(stderr, "Error: The output file extension '%s' was not recognised.\n", extension.c_str());
+		return;
+	}
+
+	OutputImage renderImage(m_renderWidth, m_renderHeight, imageFlags);
+
+	unsigned int threads = GlobalContext::instance().getRenderThreads();
+
+	// we don't want progressive rendering...
+	Raytracer raytracer(m_scene, &renderImage, m_renderSettings, false, threads);
+//	raytracer.setHost(this);
+
+	renderImage.clearImage();
+
+	raytracer.renderScene(1.0f, NULL);
+
+	renderImage.normaliseProgressive();
+	renderImage.applyExposure(1.8f);
+
+	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
+
+	delete pWriter;
 }
 
 DEFINE_RENDER_PLUGIN(ImagineRender)

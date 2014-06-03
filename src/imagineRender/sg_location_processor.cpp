@@ -4,9 +4,15 @@
 
 #include <RenderOutputUtils/RenderOutputUtils.h>
 
+#ifndef STAND_ALONE
+SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_scene(scene), m_applyMaterials(true), m_useTextures(true), m_enableSubd(true)
+{
+}
+#else
 SGLocationProcessor::SGLocationProcessor() : m_applyMaterials(true), m_useTextures(true), m_enableSubd(true)
 {
 }
+#endif
 
 void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)
 {
@@ -15,7 +21,7 @@ void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)
 
 void SGLocationProcessor::processSGForceExpand(FnKat::FnScenegraphIterator rootIterator)
 {
-
+	processLocationRecursive(rootIterator);
 }
 
 void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator iterator)
@@ -28,9 +34,9 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		processLocationRecursive(child);
 	}
 
-	if (type == "polymesh" || type == "subd")
+	if (type == "polymesh" || type == "subdmesh")
 	{
-		// treat subd as polymesh for the moment...
+		// treat subdmesh as polymesh for the moment...
 
 		// TODO: use SG location delegates...
 

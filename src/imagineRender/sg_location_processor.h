@@ -4,11 +4,21 @@
 #include <FnAttribute/FnAttribute.h>
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
+#ifndef STAND_ALONE
+
+#include "scene.h"
+
+#endif
+
 
 class SGLocationProcessor
 {
 public:
+#ifndef STAND_ALONE
+	SGLocationProcessor(Scene& scene);
+#else
 	SGLocationProcessor();
+#endif
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
@@ -22,6 +32,7 @@ protected:
 	bool				m_useTextures;
 	bool				m_enableSubd;
 
+	Scene				m_scene;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H
