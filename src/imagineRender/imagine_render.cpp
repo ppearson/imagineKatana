@@ -10,23 +10,22 @@
 // include any Imagine headers directly from the source directory...
 #include "objects/camera.h"
 #include "image/output_image.h"
-#include "io/image_writer.h"
+#include "io/image/image_writer_exr.h"
+
+#include "lights/physical_sky.h"
 
 #include "raytracer/raytracer.h"
 
 #include "utils/file_helpers.h"
 
 #include "global_context.h"
-bool noGUI = true;
-#else
-bool noGUI = false;
+
 #endif
 
 #include "sg_location_processor.h"
 
-
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_scene(noGUI)
+	RenderBase(rootIterator, arguments), m_pScene(NULL)
 {
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -45,6 +44,9 @@ int ImagineRender::start()
 	}
 
 	float renderFrame = getRenderTime();
+
+	// create the scene
+	m_pScene = new Scene(false); // don't want a GUI with OpenGL...
 
 	FnKatRender::RenderSettings renderSettings(rootIterator);
 	FnKatRender::GlobalSettings globalSettings(rootIterator, "imagine");
@@ -155,7 +157,20 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (samplesPerPixelAttribute.isValid())
 		samplesPerPixel = samplesPerPixelAttribute.getValue(64, false);
 
+	FnKat::IntAttribute filterTypeAttribute = renderSettingsAttribute.getChildByName("reconstruction_filter");
+	unsigned int filterType = 3;
+	if (filterTypeAttribute.isValid())
+		filterType = filterTypeAttribute.getValue(3, false);
 
+	// ray depths
+
+	FnKat::IntAttribute maxDepthOverallAttribute = renderSettingsAttribute.getChildByName("max_depth_overall");
+	unsigned int maxDepthOverall = 4;
+	if (maxDepthOverallAttribute.isValid())
+		maxDepthOverall = maxDepthOverallAttribute.getValue(4, false);
+
+
+	//
 
 #ifndef STAND_ALONE
 	m_renderSettings.add("integrator", 1);
@@ -164,7 +179,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("Iterations", 1);
 	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
 
-	m_renderSettings.add("filter_type", 0);
+	m_renderSettings.add("filter_type", filterType);
+
+	m_renderSettings.add("rbOverall", maxDepthOverall);
 #endif
 
 	return true;
@@ -248,7 +265,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	pRenderCamera->setFOV(fovValue);
 	pRenderCamera->transform().setCachedMatrix(pMatrix);
 
-	m_scene.setDefaultCamera(pRenderCamera);
+	m_pScene->setDefaultCamera(pRenderCamera);
 
 #endif
 }
@@ -258,11 +275,16 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	// force expand for the moment, instead of using lazy procedurals...
 
 #ifndef STAND_ALONE
-	SGLocationProcessor locProcessor(m_scene);
+	SGLocationProcessor locProcessor(*m_pScene);
 #else
 	SGLocationProcessor locProcessor;
 #endif
 	locProcessor.processSGForceExpand(rootIterator);
+}
+
+ImageWriter* createImageWriterEXR()
+{
+	return new ImageWriterEXR();
 }
 
 void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
@@ -270,9 +292,24 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 	if (m_diskRenderOutputPath.empty())
 		return;
 
+	// this isn't great....
+
+	FileIORegistry::instance().registerImageWriter("exr", createImageWriterEXR);
+
 	fprintf(stderr, "Performing disk render to: %s\n", m_diskRenderOutputPath.c_str());
 
 	buildSceneGeometry(settings, rootIterator);
+
+
+	// if there's no light in the scene, add a physical sky...
+	if (m_pScene->getLightCount() == 0)
+	{
+		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
+
+		pPhysicalSkyLight->setRadius(1000.0f);
+
+		m_pScene->addObject(pPhysicalSkyLight, false, false);
+	}
 
 	// assumes render settings have been set correctly before hand...
 
@@ -309,9 +346,10 @@ void ImagineRender::startRenderer()
 	OutputImage renderImage(m_renderWidth, m_renderHeight, imageFlags);
 
 	unsigned int threads = GlobalContext::instance().getRenderThreads();
+	threads = 6;
 
 	// we don't want progressive rendering...
-	Raytracer raytracer(m_scene, &renderImage, m_renderSettings, false, threads);
+	Raytracer raytracer(*m_pScene, &renderImage, m_renderSettings, false, threads);
 //	raytracer.setHost(this);
 
 	renderImage.clearImage();

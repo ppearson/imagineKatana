@@ -32,7 +32,7 @@ protected:
 	bool				m_useTextures;
 	bool				m_enableSubd;
 
-	Scene				m_scene;
+	Scene&				m_scene;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H

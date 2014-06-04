@@ -52,7 +52,7 @@ protected:
 protected:
 
 #ifndef STAND_ALONE
-	Scene				m_scene;
+	Scene*				m_pScene;
 	Params				m_renderSettings;
 
 #endif
