@@ -170,7 +170,7 @@ void SGLocationProcessor::processGeometryPolymesh(FnKat::FnScenegraphIterator it
 
 	const double* pMatrix = xforms[0].getValues();
 
-	pNewMeshObject->transform().setCachedMatrix(pMatrix);
+	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
 	m_scene.addObject(pNewMeshObject, false, false);
 }

@@ -263,7 +263,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 #ifndef STAND_ALONE
 	Camera* pRenderCamera = new Camera();
 	pRenderCamera->setFOV(fovValue);
-	pRenderCamera->transform().setCachedMatrix(pMatrix);
+	pRenderCamera->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
 	m_pScene->setDefaultCamera(pRenderCamera);
 
