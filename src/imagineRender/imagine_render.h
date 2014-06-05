@@ -10,10 +10,11 @@ namespace FnKatRender = FnKat::Render;
 
 #include "scene.h"
 #include "utils/params.h"
+#include "raytracer/raytracer_common.h"
 
 #endif
 
-class ImagineRender : public Foundry::Katana::Render::RenderBase
+class ImagineRender : public Foundry::Katana::Render::RenderBase, RaytracerHost
 {
 public:
 	ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments);
@@ -34,6 +35,13 @@ public:
 	{
 
 	}
+
+
+	// progress back from renderer
+
+	virtual void progressChanged(float progress);
+
+	virtual void tileDone(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int threadID);
 
 protected:
 
@@ -61,6 +69,10 @@ protected:
 
 	unsigned int		m_renderWidth;
 	unsigned int		m_renderHeight;
+
+	int					m_renderThreads;
+
+	int					m_lastProgress;
 };
 
 #endif // IMAGINE_RENDER_H

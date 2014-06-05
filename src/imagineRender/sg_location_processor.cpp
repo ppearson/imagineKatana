@@ -148,7 +148,7 @@ void SGLocationProcessor::processGeometryPolymesh(FnKat::FnScenegraphIterator it
 
 	pNewMeshObject->setGeometryInstance(pNewGeoInstance);
 
-	// for the moment, assign default
+	// for the moment, assign default - TODO: instance materials based on hash of attributes..
 	StandardMaterial* pNewMat = new StandardMaterial();
 	pNewMeshObject->setMaterial(pNewMat);
 

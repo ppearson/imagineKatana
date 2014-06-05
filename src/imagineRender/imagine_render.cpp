@@ -7,7 +7,7 @@
 #include <RenderOutputUtils/RenderOutputUtils.h>
 
 #ifndef STAND_ALONE
-// include any Imagine headers directly from the source directory...
+// include any Imagine headers directly from the source directory as Imagine hasn't got an API yet...
 #include "objects/camera.h"
 #include "image/output_image.h"
 #include "io/image/image_writer_exr.h"
@@ -43,9 +43,11 @@ int ImagineRender::start()
 		renderMethodName = FnKat::RendererInfo::DiskRenderMethod::kDefaultName;
 	}
 
+	m_lastProgress = 0;
+
 	float renderFrame = getRenderTime();
 
-	// create the scene
+	// create the scene - this is going to leak for the moment...
 	m_pScene = new Scene(false); // don't want a GUI with OpenGL...
 
 	FnKatRender::RenderSettings renderSettings(rootIterator);
@@ -119,12 +121,16 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 	m_renderWidth = settings.getResolutionX();
 	m_renderHeight = settings.getResolutionY();
 
-	fprintf(stderr, "Render dimensions: %d, %d\n", m_renderWidth, m_renderHeight);
+//	fprintf(stderr, "Render dimensions: %d, %d\n", m_renderWidth, m_renderHeight);
 
 #ifndef STAND_ALONE
 	m_renderSettings.add("width", m_renderWidth);
 	m_renderSettings.add("height", m_renderHeight);
 #endif
+
+	// work out number of threads to use for rendering
+	settings.applyRenderThreads(m_renderThreads);
+	applyRenderThreadsOverride(m_renderThreads);
 
 	Foundry::Katana::StringAttribute cameraNameAttribute = rootIterator.getAttribute("renderSettings.cameraName");
 	std::string cameraName = cameraNameAttribute.getValue("/root/world/cam/camera", false);
@@ -173,9 +179,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	//
 
 #ifndef STAND_ALONE
-	m_renderSettings.add("integrator", 1);
+	m_renderSettings.add("integrator", integratorType);
 
-// for the moment, only do one iteration
+// for the moment, only do one iteration, at least for disk renders...
 	m_renderSettings.add("Iterations", 1);
 	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
 
@@ -234,7 +240,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	// TODO: get time samples for MB...
 	float fovValue = fovAttribute.getValue(45.0f, false);
 
-	fprintf(stderr, "Camera FOV: %f\n", fovValue);
+//	fprintf(stderr, "Camera FOV: %f\n", fovValue);
 
 	// TODO: other camera attribs
 
@@ -345,12 +351,14 @@ void ImagineRender::startRenderer()
 
 	OutputImage renderImage(m_renderWidth, m_renderHeight, imageFlags);
 
-	unsigned int threads = GlobalContext::instance().getRenderThreads();
-	threads = 6;
+	// for the moment, use the number of render threads for the number of worker threads to use.
+	// this affects things like parallel accel structure building, tesselation and reading of textures when in
+	// non-lazy mode...
+	GlobalContext::instance().setWorkerThreads(m_renderThreads);
 
 	// we don't want progressive rendering...
-	Raytracer raytracer(*m_pScene, &renderImage, m_renderSettings, false, threads);
-//	raytracer.setHost(this);
+	Raytracer raytracer(*m_pScene, &renderImage, m_renderSettings, false, m_renderThreads);
+	raytracer.setHost(this);
 
 	renderImage.clearImage();
 
@@ -362,6 +370,23 @@ void ImagineRender::startRenderer()
 	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
 
 	delete pWriter;
+}
+
+// progress back from the main renderer class
+void ImagineRender::progressChanged(float progress)
+{
+	int iProgress = (int)progress;
+
+	if (iProgress >= m_lastProgress + 5)
+	{
+		m_lastProgress = iProgress;
+		fprintf(stderr, "Render progress: %f%%\n", progress);
+	}
+}
+
+void ImagineRender::tileDone(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int threadID)
+{
+
 }
 
 DEFINE_RENDER_PLUGIN(ImagineRender)

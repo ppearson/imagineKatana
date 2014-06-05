@@ -135,7 +135,10 @@ void ImagineRendererInfo::fillShaderInputTags(std::vector<std::string>& shaderIn
 
 void ImagineRendererInfo::fillShaderOutputNames(std::vector<std::string>& shaderOutputNames, const std::string& shaderName) const
 {
+	if (shaderName == "Standard")
+	{
 
+	}
 }
 
 void ImagineRendererInfo::fillShaderOutputTags(std::vector<std::string>& shaderOutputTags, const std::string& shaderName,
