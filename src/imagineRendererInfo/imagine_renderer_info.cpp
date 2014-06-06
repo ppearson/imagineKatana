@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "render_object_info_helper.h"
+#include "shader_info_helper.h"
 
 ImagineRendererInfo::ImagineRendererInfo()
 {
@@ -76,6 +77,7 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 	{
 		// TODO: use MaterialFactory to get the full list...
 		bool isSurface = std::find(typeTags.begin(), typeTags.end(), "surface") != typeTags.end();
+		bool isLight = std::find(typeTags.begin(), typeTags.end(), "light") != typeTags.end();
 
 		if (isSurface)
 		{
@@ -88,6 +90,15 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 			rendererObjectNames.push_back("Luminous");
 			rendererObjectNames.push_back("Metallic Paint");
 			rendererObjectNames.push_back("Translucent");
+		}
+		else if (isLight)
+		{
+			rendererObjectNames.push_back("Point");
+			rendererObjectNames.push_back("Area");
+			rendererObjectNames.push_back("Distant");
+			rendererObjectNames.push_back("SkyDome");
+			rendererObjectNames.push_back("Environment");
+			rendererObjectNames.push_back("PhysicalSky");
 		}
 	}
 	else if (type == kFnRendererObjectTypeRenderOutput)
@@ -121,10 +132,7 @@ std::string ImagineRendererInfo::getRegisteredRendererVersion() const
 
 void ImagineRendererInfo::fillShaderInputNames(std::vector<std::string>& shaderInputNames, const std::string& shaderName) const
 {
-	if (shaderName == "Standard")
-	{
-
-	}
+	ShaderInfoHelper::fillShaderInputNames(shaderName, shaderInputNames);
 }
 
 void ImagineRendererInfo::fillShaderInputTags(std::vector<std::string>& shaderInputTags, const std::string& shaderName,
@@ -135,10 +143,7 @@ void ImagineRendererInfo::fillShaderInputTags(std::vector<std::string>& shaderIn
 
 void ImagineRendererInfo::fillShaderOutputNames(std::vector<std::string>& shaderOutputNames, const std::string& shaderName) const
 {
-	if (shaderName == "Standard")
-	{
 
-	}
 }
 
 void ImagineRendererInfo::fillShaderOutputTags(std::vector<std::string>& shaderOutputTags, const std::string& shaderName,
@@ -163,6 +168,11 @@ bool ImagineRendererInfo::buildRendererObjectInfo(FnKat::GroupBuilder& rendererO
 	if (type == kFnRendererObjectTypeRenderOutput)
 	{
 		return RenderObjectInfoHelper::buildRenderOutput(*this, rendererObjectInfo, name, inputAttr);
+	}
+
+	if (type == kFnRendererObjectTypeShader)
+	{
+		return ShaderInfoHelper::buildShaderInfo(*this, rendererObjectInfo, name, inputAttr);
 	}
 }
 

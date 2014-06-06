@@ -1,7 +1,7 @@
 <args format='1.0' scope='/root' fixedCEL='/root' >
 	<group name='imagineGlobalStatements' hideTitle='True' widget='pagedargs' closed='False' groupinherit='False'>
 		<page name='general'>
-			<int name="integrator" widget="mapper" = default="1">
+			<int name="integrator" widget="mapper" default="1">
 				<hintdict name='options'>
 					<int name="direct_illumination" value="0"/>
 					<int name="path" value="1"/>
@@ -9,7 +9,7 @@
 				</hintdict>
 			</int>
 			<int name="spp" default="64" help="The number of samples per pixel"/>
-			<int name="reconstruction_filter" widget="mapper" = default="0">
+			<int name="reconstruction_filter" widget="mapper" default="0">
 				<hintdict name='options'>
 					<int name="none" value="0"/>
 					<int name="triangle" value="1"/>
@@ -28,7 +28,10 @@
 			<int name="max_depth_reflection" default="5" help=""/>
 			<int name="max_depth_refraction" default="5" help=""/>
 		</page>
-
+		<page name='scene'>
+			<int name="bake_down_scene" default="1"/>
+			<float name="ray_epsilon" default="0.001"/>
+		</page>
 	</group>
 </args>
 

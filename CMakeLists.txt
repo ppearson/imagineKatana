@@ -25,6 +25,7 @@ ELSE()
 	SET(SSE_FLAGS "-msse -msse2 -msse3 -mssse3 -msse4")
 ENDIF(${MODERN_GCC} MATCHES "1")
 
+# -fvisibility-inlines-hidden -fvisibility=hidden
 
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")

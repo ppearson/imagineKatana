@@ -33,6 +33,8 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 
 int ImagineRender::start()
 {
+//	system("xmessage test1\n");
+
 	FnKat::FnScenegraphIterator rootIterator = getRootIterator();
 
 	std::string renderMethodName = getRenderMethodName();
@@ -153,6 +155,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 {
 	FnKat::GroupAttribute renderSettingsAttribute = rootIterator.getAttribute("imagineGlobalStatements");
 
+	// TODO: provide helper wrapper function to do all this isValue() and default value stuff.
+	//       It's rediculous that Katana doesn't provide this anyway...
+
 	FnKat::IntAttribute integratorTypeAttribute = renderSettingsAttribute.getChildByName("integrator");
 	unsigned int integratorType = 1;
 	if (integratorTypeAttribute.isValid())
@@ -175,8 +180,27 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (maxDepthOverallAttribute.isValid())
 		maxDepthOverall = maxDepthOverallAttribute.getValue(4, false);
 
+	FnKat::IntAttribute maxDepthDiffuseAttribute = renderSettingsAttribute.getChildByName("max_depth_diffuse");
+	unsigned int maxDepthDiffuse = 3;
+	if (maxDepthDiffuseAttribute.isValid())
+		maxDepthDiffuse = maxDepthDiffuseAttribute.getValue(3, false);
+
+	FnKat::IntAttribute maxDepthGlossyAttribute = renderSettingsAttribute.getChildByName("max_depth_glossy");
+	unsigned int maxDepthGlossy = 3;
+	if (maxDepthGlossyAttribute.isValid())
+		maxDepthGlossy = maxDepthGlossyAttribute.getValue(3, false);
+
+	FnKat::IntAttribute maxDepthRefractionAttribute = renderSettingsAttribute.getChildByName("max_depth_refraction");
+	unsigned int maxDepthRefraction = 5;
+	if (maxDepthRefractionAttribute.isValid())
+		maxDepthRefraction = maxDepthRefractionAttribute.getValue(5, false);
+
 
 	//
+	FnKat::IntAttribute bakeDownSceneAttribute = renderSettingsAttribute.getChildByName("bake_down_scene");
+	unsigned int bakeDownScene = 1;
+	if (bakeDownSceneAttribute.isValid())
+		bakeDownScene = bakeDownSceneAttribute.getValue(1, false);
 
 #ifndef STAND_ALONE
 	m_renderSettings.add("integrator", integratorType);
@@ -188,6 +212,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("filter_type", filterType);
 
 	m_renderSettings.add("rbOverall", maxDepthOverall);
+	m_renderSettings.add("rbDiffuse", maxDepthDiffuse);
+	m_renderSettings.add("rbGlossy", maxDepthDiffuse);
+	m_renderSettings.add("rbRefraction", maxDepthRefraction);
+
+	if (bakeDownScene == 1)
+	{
+		m_pScene->setBakeDownScene(true);
+	}
 #endif
 
 	return true;
@@ -262,9 +294,9 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 
 	const double* pMatrix = xforms[0].getValues();
 
-	fprintf(stderr, "Camera Matrix:\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f\n", pMatrix[0], pMatrix[1], pMatrix[2], pMatrix[3],
-			pMatrix[4], pMatrix[5], pMatrix[6], pMatrix[7], pMatrix[8], pMatrix[9], pMatrix[10], pMatrix[11], pMatrix[12], pMatrix[13],
-			pMatrix[14], pMatrix[15]);
+//	fprintf(stderr, "Camera Matrix:\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f\n", pMatrix[0], pMatrix[1], pMatrix[2], pMatrix[3],
+//			pMatrix[4], pMatrix[5], pMatrix[6], pMatrix[7], pMatrix[8], pMatrix[9], pMatrix[10], pMatrix[11], pMatrix[12], pMatrix[13],
+//			pMatrix[14], pMatrix[15]);
 
 #ifndef STAND_ALONE
 	Camera* pRenderCamera = new Camera();
@@ -380,7 +412,7 @@ void ImagineRender::progressChanged(float progress)
 	if (iProgress >= m_lastProgress + 5)
 	{
 		m_lastProgress = iProgress;
-		fprintf(stderr, "Render progress: %f%%\n", progress);
+		fprintf(stderr, "Render progress: %.0f%%\n", progress);
 	}
 }
 
