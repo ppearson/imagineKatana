@@ -56,7 +56,6 @@ protected:
 
 	void startRenderer();
 
-
 protected:
 
 #ifndef STAND_ALONE

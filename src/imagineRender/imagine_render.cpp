@@ -22,6 +22,8 @@
 
 #endif
 
+#include "utilities.h"
+
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
@@ -46,6 +48,8 @@ int ImagineRender::start()
 	}
 
 	m_lastProgress = 0;
+
+	Utilities::registerFileReaders();
 
 	float renderFrame = getRenderTime();
 
@@ -163,6 +167,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (integratorTypeAttribute.isValid())
 		integratorType = integratorTypeAttribute.getValue(1, false);
 
+	FnKat::IntAttribute volumetricsAttribute = renderSettingsAttribute.getChildByName("enable_volumetrics");
+	unsigned int volumetrics = 0;
+	if (volumetricsAttribute.isValid())
+		volumetrics = volumetricsAttribute.getValue(0, false);
+
 	FnKat::IntAttribute samplesPerPixelAttribute = renderSettingsAttribute.getChildByName("spp");
 	unsigned int samplesPerPixel = 64;
 	if (samplesPerPixelAttribute.isValid())
@@ -207,13 +216,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 // for the moment, only do one iteration, at least for disk renders...
 	m_renderSettings.add("Iterations", 1);
+	m_renderSettings.add("volumetric", volumetrics == 1); // this needs to be a bool...
 	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
 
 	m_renderSettings.add("filter_type", filterType);
 
 	m_renderSettings.add("rbOverall", maxDepthOverall);
 	m_renderSettings.add("rbDiffuse", maxDepthDiffuse);
-	m_renderSettings.add("rbGlossy", maxDepthDiffuse);
+	m_renderSettings.add("rbGlossy", maxDepthGlossy);
 	m_renderSettings.add("rbRefraction", maxDepthRefraction);
 
 	if (bakeDownScene == 1)
@@ -320,19 +330,10 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	locProcessor.processSGForceExpand(rootIterator);
 }
 
-ImageWriter* createImageWriterEXR()
-{
-	return new ImageWriterEXR();
-}
-
 void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
 	if (m_diskRenderOutputPath.empty())
 		return;
-
-	// this isn't great....
-
-	FileIORegistry::instance().registerImageWriter("exr", createImageWriterEXR);
 
 	fprintf(stderr, "Performing disk render to: %s\n", m_diskRenderOutputPath.c_str());
 
@@ -352,7 +353,6 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 	// assumes render settings have been set correctly before hand...
 
 	startRenderer();
-
 }
 
 void ImagineRender::startRenderer()
@@ -412,7 +412,7 @@ void ImagineRender::progressChanged(float progress)
 	if (iProgress >= m_lastProgress + 5)
 	{
 		m_lastProgress = iProgress;
-		fprintf(stderr, "Render progress: %.0f%%\n", progress);
+		fprintf(stderr, "Render progress: %d%%\n", iProgress);
 	}
 }
 

@@ -34,14 +34,21 @@ public:
 	// for builders
 
 	static void buildStandardShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildGlassShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildTranslucentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 
+
+	static void buildPhysicalSkyShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 
 
 	// for params
 
 	void addFloatParam(const std::string& name, float defaultValue);
 	void addColourParam(const std::string& name, Col3f defaultValue);
+	void addIntParam(const std::string& name, int defaultValue);
 	void addBoolParam(const std::string& name, bool defaultValue);
+	void addStringParam(const std::string& name);
 
 protected:
 	const ImagineRendererInfo&				m_iri;

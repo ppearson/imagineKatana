@@ -57,6 +57,39 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 		buildStandardShaderParams(iri, rendererObjectInfo);
 	}
+	else if (name == "Glass")
+	{
+		buildGlassShaderParams(iri, rendererObjectInfo);
+	}
+	else if (name == "Metal")
+	{
+		buildMetalShaderParams(iri, rendererObjectInfo);
+	}
+	else if (name == "Plastic")
+	{
+
+	}
+	else if (name == "Metallic Paint")
+	{
+
+	}
+	else if (name == "Translucent")
+	{
+		buildTranslucentShaderParams(iri, rendererObjectInfo);
+	}
+	// lights
+	else if (name == "Area")
+	{
+
+	}
+	else if (name == "Environment")
+	{
+
+	}
+	else if (name == "PhysicalSky")
+	{
+		buildPhysicalSkyShaderParams(iri, rendererObjectInfo);
+	}
 
 	return true;
 }
@@ -66,6 +99,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addColourParam("diffuse_col", Col3f(0.8f, 0.8f, 0.8f));
+	helper.addStringParam("diff_texture");
 	helper.addFloatParam("diff_roughness", 0.0f);
 	helper.addFloatParam("diff_backlit", 0.0f);
 
@@ -81,6 +115,58 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 
 	helper.addFloatParam("transparency", 0.0f);
 	helper.addFloatParam("transmission", 0.0f);
+}
+
+void ShaderInfoHelper::buildGlassShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(0.0f, 0.0f, 0.0f));
+	helper.addFloatParam("reflection", 1.0f);
+	helper.addFloatParam("gloss", 1.0f);
+	helper.addFloatParam("transparency", 1.0f);
+	helper.addFloatParam("transmittance", 1.0f);
+
+	helper.addFloatParam("refraction_index", 1.517f);
+
+	helper.addBoolParam("fresnel", true);
+	helper.addBoolParam("thin_volume", false);
+	helper.addBoolParam("ignore_trans_refraction", false);
+}
+
+void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(0.9f, 0.9f, 0.9f));
+	helper.addFloatParam("refraction_index", 1.39f);
+	helper.addFloatParam("k", 4.8f);
+	helper.addFloatParam("roughness", 0.01f);
+}
+
+void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("surface_col", Col3f(0.7f, 0.7f, 0.7f));
+	helper.addFloatParam("surface_roughness", 0.05f);
+
+	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
+	helper.addFloatParam("subsurface_density", 3.1f);
+	helper.addFloatParam("sampling_density", 0.35f);
+
+	helper.addFloatParam("transmittance", 0.6f);
+
+	helper.addFloatParam("absorption_ratio", 0.46f);
+}
+
+void ShaderInfoHelper::buildPhysicalSkyShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	// just these for the moment - need to think about exposing paired widget types in Katana...
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("time", 17.5f);
+	helper.addIntParam("day", 174);
 }
 
 void ShaderInfoHelper::addFloatParam(const std::string& name, float defaultValue)
@@ -119,6 +205,22 @@ void ShaderInfoHelper::addColourParam(const std::string& name, Col3f defaultValu
 	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeColor3, 0, defaultAttribute, hintsAttribute, enums);
 }
 
+void ShaderInfoHelper::addIntParam(const std::string& name, int defaultValue)
+{
+	EnumPairVector enums;
+
+	FnKat::IntBuilder ib(1);
+	ib.push_back(defaultValue);
+
+	FnKat::Attribute defaultAttribute = ib.build();
+	FnKat::GroupBuilder params;
+	params.set("isDynamicArray", FnKat::IntAttribute(0));
+
+	FnKat::Attribute hintsAttribute = params.build();
+
+	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeInt, 0, defaultAttribute, hintsAttribute, enums);
+}
+
 void ShaderInfoHelper::addBoolParam(const std::string& name, bool defaultValue)
 {
 	EnumPairVector enums;
@@ -133,4 +235,20 @@ void ShaderInfoHelper::addBoolParam(const std::string& name, bool defaultValue)
 	FnKat::Attribute hintsAttribute = params.build();
 
 	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeBoolean, 0, defaultAttribute, hintsAttribute, enums);
+}
+
+void ShaderInfoHelper::addStringParam(const std::string& name)
+{
+	EnumPairVector enums;
+
+	FnKat::StringBuilder sb(1);
+	sb.push_back("");
+
+	FnKat::Attribute defaultAttribute = sb.build();
+	FnKat::GroupBuilder params;
+	params.set("isDynamicArray", FnKat::IntAttribute(0));
+
+	FnKat::Attribute hintsAttribute = params.build();
+
+	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeString, 0, defaultAttribute, hintsAttribute, enums);
 }

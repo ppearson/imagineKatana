@@ -4,12 +4,13 @@
 #include <FnAttribute/FnAttribute.h>
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
+#include "material_helper.h"
+
 #ifndef STAND_ALONE
 
 #include "scene.h"
 
 #endif
-
 
 class SGLocationProcessor
 {
@@ -27,12 +28,18 @@ public:
 
 	void processGeometryPolymesh(FnKat::FnScenegraphIterator iterator);
 
+	void processSphere(FnKat::FnScenegraphIterator iterator);
+
+	void processLight(FnKat::FnScenegraphIterator iterator);
+
 protected:
 	bool				m_applyMaterials;
 	bool				m_useTextures;
 	bool				m_enableSubd;
 
 	Scene&				m_scene;
+
+	MaterialHelper		m_materialHelper;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H

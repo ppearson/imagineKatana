@@ -1,6 +1,6 @@
 <args format='1.0' scope='/root' fixedCEL='/root' >
 	<group name='imagineGlobalStatements' hideTitle='True' widget='pagedargs' closed='False' groupinherit='False'>
-		<page name='general'>
+		<page name='general' open="True">
 			<int name="integrator" widget="mapper" default="1">
 				<hintdict name='options'>
 					<int name="direct_illumination" value="0"/>
@@ -8,10 +8,11 @@
 					<int name="path_distributed" value="2"/>
 				</hintdict>
 			</int>
+			<int name="enable_volumetrics" default="0" widget="checkbox"/>
 			<int name="spp" default="64" help="The number of samples per pixel"/>
 			<int name="reconstruction_filter" widget="mapper" default="0">
 				<hintdict name='options'>
-					<int name="none" value="0"/>
+					<int name="box" value="0"/>
 					<int name="triangle" value="1"/>
 					<int name="gaussian" value="2"/>
 					<int name="mitchell_netravali" value="3"/>
@@ -21,15 +22,15 @@
 				</hintdict>
 			</int>
 		</page>
-		<page name='light_paths'>
+		<page name='light_paths' open="True">
 			<int name="max_depth_overall" default="4" help=""/>
 			<int name="max_depth_diffuse" default="3" help=""/>
 			<int name="max_depth_glossy" default="3" help=""/>
 			<int name="max_depth_reflection" default="5" help=""/>
 			<int name="max_depth_refraction" default="5" help=""/>
 		</page>
-		<page name='scene'>
-			<int name="bake_down_scene" default="1"/>
+		<page name='scene' open="True">
+			<int name="bake_down_scene" default="1" widget="checkbox"/>
 			<float name="ray_epsilon" default="0.001"/>
 		</page>
 	</group>

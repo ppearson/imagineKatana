@@ -68,6 +68,8 @@ std::string ImagineRendererInfo::getRendererObjectDefaultType(const std::string&
 	{
 		return "color";
 	}
+
+	return "";
 }
 
 void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rendererObjectNames, const std::string& type,
@@ -78,6 +80,8 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 		// TODO: use MaterialFactory to get the full list...
 		bool isSurface = std::find(typeTags.begin(), typeTags.end(), "surface") != typeTags.end();
 		bool isLight = std::find(typeTags.begin(), typeTags.end(), "light") != typeTags.end();
+		bool isBump = std::find(typeTags.begin(), typeTags.end(), "bump") != typeTags.end();
+		bool isAlpha = std::find(typeTags.begin(), typeTags.end(), "alpha") != typeTags.end();
 
 		if (isSurface)
 		{
@@ -99,6 +103,14 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 			rendererObjectNames.push_back("SkyDome");
 			rendererObjectNames.push_back("Environment");
 			rendererObjectNames.push_back("PhysicalSky");
+		}
+		else if (isBump)
+		{
+			rendererObjectNames.push_back("ImageTextureBump");
+		}
+		else if (isAlpha)
+		{
+			rendererObjectNames.push_back("ImageTextureAlpha");
 		}
 	}
 	else if (type == kFnRendererObjectTypeRenderOutput)
@@ -174,6 +186,8 @@ bool ImagineRendererInfo::buildRendererObjectInfo(FnKat::GroupBuilder& rendererO
 	{
 		return ShaderInfoHelper::buildShaderInfo(*this, rendererObjectInfo, name, inputAttr);
 	}
+
+	return false;
 }
 
 void ImagineRendererInfo::localAddRenderObjectParam(FnKat::GroupBuilder& renderObjectInfo, const std::string& name, int type, int arraySize,
