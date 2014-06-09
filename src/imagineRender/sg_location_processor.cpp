@@ -10,6 +10,8 @@
 
 #include "geometry/standard_geometry_operations.h"
 #include "geometry/standard_geometry_instance.h"
+
+#include "lights/light.h"
 #endif
 
 #ifndef STAND_ALONE
@@ -376,5 +378,28 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 {
 	FnKat::GroupAttribute lightMaterialAttrib = m_materialHelper.getMaterialForLocation(iterator);
 
+	Light* pNewLight = m_lightHelper.createLight(lightMaterialAttrib);
 
+	if (!pNewLight)
+		return;
+
+	FnKat::GroupAttribute xformAttr;
+	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+	std::set<float> sampleTimes;
+	sampleTimes.insert(0);
+	std::vector<float> relevantSampleTimes;
+	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
+
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+	const double* pMatrix = xforms[0].getValues();
+
+	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+
+	m_scene.addObject(pNewLight, false, false);
 }

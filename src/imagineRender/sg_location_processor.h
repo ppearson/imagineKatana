@@ -5,6 +5,7 @@
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
 #include "material_helper.h"
+#include "light_helpers.h"
 
 #ifndef STAND_ALONE
 
@@ -40,6 +41,7 @@ protected:
 	Scene&				m_scene;
 
 	MaterialHelper		m_materialHelper;
+	LightHelpers		m_lightHelper;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H

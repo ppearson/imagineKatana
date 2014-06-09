@@ -9,6 +9,8 @@
 #include "materials/translucent_material.h"
 #endif
 
+#include "katana_helpers.h"
+
 MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL)
 {
 	FnKat::StringBuilder tnBuilder;
@@ -97,36 +99,38 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 {
 	StandardMaterial* pNewStandardMaterial = new StandardMaterial();
 
-	Colour3f diffColour = getColourParam(shaderParamsAttr, "diffuse_col", Colour3f(0.8f, 0.8f, 0.8f));
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f diffColour = ah.getColourParam("diffuse_col", Colour3f(0.8f, 0.8f, 0.8f));
 	pNewStandardMaterial->setDiffuseColour(diffColour);
 
 	// diffuse texture overrides colour if available
-	std::string diffTexture = getStringParam(shaderParamsAttr, "diff_texture");
+	std::string diffTexture = ah.getStringParam("diff_texture");
 	if (!diffTexture.empty())
 	{
 		pNewStandardMaterial->setDiffuseTextureMapPath(diffTexture);
 	}
 
-	float diffuseRoughness = getFloatParam(shaderParamsAttr, "diff_roughness", 0.0f);
+	float diffuseRoughness = ah.getFloatParam("diff_roughness", 0.0f);
 	pNewStandardMaterial->setDiffuseRoughness(diffuseRoughness);
 
-	Colour3f specColour = getColourParam(shaderParamsAttr, "spec_col", Colour3f(0.1f, 0.1f, 0.1f));
+	Colour3f specColour = ah.getColourParam("spec_col", Colour3f(0.1f, 0.1f, 0.1f));
 	pNewStandardMaterial->setSpecularColour(specColour);
 
-	float specRoughness = getFloatParam(shaderParamsAttr, "spec_roughness", 0.9f);
+	float specRoughness = ah.getFloatParam("spec_roughness", 0.9f);
 	pNewStandardMaterial->setSpecularRoughness(specRoughness);
 
-	float reflection = getFloatParam(shaderParamsAttr, "reflection", 0.0f);
+	float reflection = ah.getFloatParam("reflection", 0.0f);
 	pNewStandardMaterial->setReflection(reflection);
 
-	float refractionIndex = getFloatParam(shaderParamsAttr, "refraction_index", 1.0f);
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.0f);
 
-	int fresnelEnabled = getIntParam(shaderParamsAttr, "fresnel", 0);
+	int fresnelEnabled = ah.getIntParam("fresnel", 0);
 	if (fresnelEnabled)
 	{
 		pNewStandardMaterial->setFresnelEnabled(true);
 
-		float fresnelCoefficient = getFloatParam(shaderParamsAttr, "fresnel_coef", 0.0f);
+		float fresnelCoefficient = ah.getFloatParam("fresnel_coef", 0.0f);
 		pNewStandardMaterial->setFresnelCoefficient(fresnelCoefficient);
 
 		if (refractionIndex == 1.0f)
@@ -135,7 +139,7 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	pNewStandardMaterial->setRefractionIndex(refractionIndex);
 
-	float transparency = getFloatParam(shaderParamsAttr, "transparency", 0.0f);
+	float transparency = ah.getFloatParam("transparency", 0.0f);
 	pNewStandardMaterial->setTransparancy(transparency);
 
 	return pNewStandardMaterial;
@@ -145,22 +149,24 @@ Material* MaterialHelper::createGlassMaterial(const FnKat::GroupAttribute& shade
 {
 	GlassMaterial* pNewMaterial = new GlassMaterial();
 
-	Colour3f colour = getColourParam(shaderParamsAttr, "colour", Colour3f(0.0f, 0.0f, 0.0f));
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.0f, 0.0f, 0.0f));
 	pNewMaterial->setColour(colour);
 
-	float reflection = getFloatParam(shaderParamsAttr, "reflection", 1.0f);
+	float reflection = ah.getFloatParam("reflection", 1.0f);
 	pNewMaterial->setReflection(reflection);
-	float gloss = getFloatParam(shaderParamsAttr, "gloss", 1.0f);
+	float gloss = ah.getFloatParam("gloss", 1.0f);
 	pNewMaterial->setGloss(gloss);
-	float transparency = getFloatParam(shaderParamsAttr, "transparency", 1.0f);
+	float transparency = ah.getFloatParam("transparency", 1.0f);
 	pNewMaterial->setTransparency(transparency);
-	float transmittance = getFloatParam(shaderParamsAttr, "transmittance", 1.0f);
+	float transmittance = ah.getFloatParam("transmittance", 1.0f);
 	pNewMaterial->setTransmittance(transmittance);
 
-	float refractionIndex = getFloatParam(shaderParamsAttr, "refraction_index", 1.517f);
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.517f);
 	pNewMaterial->setRefractionIndex(refractionIndex);
 
-	int fresnel = getIntParam(shaderParamsAttr, "fresnel", 1);
+	int fresnel = ah.getIntParam("fresnel", 1);
 	pNewMaterial->setFresnel((bool)fresnel);
 
 	return pNewMaterial;
@@ -170,14 +176,16 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 {
 	MetalMaterial* pNewMaterial = new MetalMaterial();
 
-	Colour3f colour = getColourParam(shaderParamsAttr, "colour", Colour3f(0.9f, 0.9f, 0.9f));
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.9f, 0.9f, 0.9f));
 	pNewMaterial->setColour(colour);
 
-	float refractionIndex = getFloatParam(shaderParamsAttr, "refraction_index", 1.39f);
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
 	pNewMaterial->setRefractionIndex(refractionIndex);
-	float k = getFloatParam(shaderParamsAttr, "k", 4.8f);
+	float k = ah.getFloatParam("k", 4.8f);
 	pNewMaterial->setK(k);
-	float roughness = getFloatParam(shaderParamsAttr, "roughness", 0.01f);
+	float roughness = ah.getFloatParam("roughness", 0.01f);
 	pNewMaterial->setRoughness(roughness);
 
 	return pNewMaterial;
@@ -187,74 +195,26 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 {
 	TranslucentMaterial* pNewMaterial = new TranslucentMaterial();
 
-	Colour3f surfaceColour = getColourParam(shaderParamsAttr, "surface_col", Colour3f(0.7f, 0.7f, 0.7f));
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.7f, 0.7f, 0.7f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
 
-	float surfaceRoughness = getFloatParam(shaderParamsAttr, "surface_roughness", 0.05f);
+	float surfaceRoughness = ah.getFloatParam("surface_roughness", 0.05f);
 	pNewMaterial->setSurfaceRoughness(surfaceRoughness);
 
-	Colour3f innerColour = getColourParam(shaderParamsAttr, "inner_col", Colour3f(0.4f, 0.4f, 0.4f));
+	Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
 	pNewMaterial->setInnerColour(innerColour);
 
-	float subsurfaceDensity = getFloatParam(shaderParamsAttr, "subsurface_density", 3.1f);
+	float subsurfaceDensity = ah.getFloatParam("subsurface_density", 3.1f);
 	pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
-	float samplingSensity = getFloatParam(shaderParamsAttr, "sampling_density", 0.35f);
+	float samplingSensity = ah.getFloatParam("sampling_density", 0.35f);
 	pNewMaterial->setSamplingDensity(samplingSensity);
-	float transmittance = getFloatParam(shaderParamsAttr, "transmittance", 0.6f);
+	float transmittance = ah.getFloatParam("transmittance", 0.6f);
 	pNewMaterial->setTransmittance(transmittance);
-	float absorption = getFloatParam(shaderParamsAttr, "absorption_ratio", 0.46f);
+	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);
 
 	return pNewMaterial;
 }
 
-
-float MaterialHelper::getFloatParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, float defaultValue)
-{
-	FnKat::FloatAttribute floatAttrib = shaderParamsAttr.getChildByName(name);
-
-	if (!floatAttrib.isValid())
-		return defaultValue;
-
-	return floatAttrib.getValue(defaultValue, false);
-}
-
-int MaterialHelper::getIntParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, int defaultValue)
-{
-	FnKat::IntAttribute intAttrib = shaderParamsAttr.getChildByName(name);
-
-	if (!intAttrib.isValid())
-		return defaultValue;
-
-	return intAttrib.getValue(defaultValue, false);
-}
-
-Colour3f MaterialHelper::getColourParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, const Colour3f& defaultValue)
-{
-	FnKat::FloatAttribute floatAttrib = shaderParamsAttr.getChildByName(name);
-
-	if (!floatAttrib.isValid())
-		return defaultValue;
-
-	if (floatAttrib.getTupleSize() != 3)
-		return defaultValue;
-
-	FnKat::FloatConstVector data = floatAttrib.getNearestSample(0);
-
-	Colour3f returnValue;
-	returnValue.r = data[0];
-	returnValue.g = data[1];
-	returnValue.b = data[2];
-
-	return returnValue;
-}
-
-std::string MaterialHelper::getStringParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name)
-{
-	FnKat::StringAttribute stringAttrib = shaderParamsAttr.getChildByName(name);
-
-	if (!stringAttrib.isValid())
-		return "";
-
-	return stringAttrib.getValue("", false);
-}

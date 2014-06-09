@@ -78,13 +78,21 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 		buildTranslucentShaderParams(iri, rendererObjectInfo);
 	}
 	// lights
+	else if (name == "Point")
+	{
+
+	}
 	else if (name == "Area")
 	{
 
 	}
+	else if (name == "Skydome")
+	{
+		buildSkydomeShaderParams(iri, rendererObjectInfo);
+	}
 	else if (name == "Environment")
 	{
-
+		buildEnvironmentShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "PhysicalSky")
 	{
@@ -160,12 +168,38 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatParam("absorption_ratio", 0.46f);
 }
 
-void ShaderInfoHelper::buildPhysicalSkyShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildSkydomeShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	// just these for the moment - need to think about exposing paired widget types in Katana...
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("time", 17.5f);
+	helper.addFloatParam("intensity", 1.0f);
+	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
+	helper.addIntParam("num_samples", 1);
+}
+
+void ShaderInfoHelper::buildEnvironmentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("intensity", 1.0f);
+	helper.addIntParam("num_samples", 1);
+	helper.addBoolParam("visible", true);
+
+	helper.addStringParam("env_map_path");
+}
+
+void ShaderInfoHelper::buildPhysicalSkyShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("overall_intensity", 1.0f);
+	helper.addIntParam("num_samples", 1);
+	helper.addBoolParam("visible", true);
+
+	helper.addFloatParam("sky_intensity", 1.0f);
+	helper.addFloatParam("sun_intensity", 1.0f);
+
+	helper.addFloatParam("time", 17.1f);
 	helper.addIntParam("day", 174);
 }
 

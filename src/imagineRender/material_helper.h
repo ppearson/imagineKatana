@@ -35,12 +35,6 @@ protected:
 	static Material* createMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 
-	// helpers to get attribs with fallback defaults easily
-	static float getFloatParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, float defaultValue);
-	static int getIntParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, int defaultValue);
-	static Colour3f getColourParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, const Colour3f& defaultValue);
-	static std::string getStringParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name);
-
 protected:
 	FnKat::StringAttribute m_terminatorNodes;
 
