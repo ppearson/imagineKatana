@@ -66,6 +66,8 @@ protected:
 
 	std::string			m_diskRenderOutputPath;
 
+	bool				m_useCompactGeometry;
+
 	unsigned int		m_renderWidth;
 	unsigned int		m_renderHeight;
 

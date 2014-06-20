@@ -17,6 +17,7 @@
 #include "raytracer/raytracer.h"
 
 #include "utils/file_helpers.h"
+#include "utils/memory.h"
 
 #include "global_context.h"
 
@@ -27,7 +28,7 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL)
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true)
 {
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -54,7 +55,7 @@ int ImagineRender::start()
 	float renderFrame = getRenderTime();
 
 	// create the scene - this is going to leak for the moment...
-	m_pScene = new Scene(false); // don't want a GUI with OpenGL...
+	m_pScene = new Scene(true); // don't want a GUI with OpenGL...
 
 	FnKatRender::RenderSettings renderSettings(rootIterator);
 	FnKatRender::GlobalSettings globalSettings(rootIterator, "imagine");
@@ -204,6 +205,30 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (maxDepthRefractionAttribute.isValid())
 		maxDepthRefraction = maxDepthRefractionAttribute.getValue(5, false);
 
+	FnKat::IntAttribute maxDepthReflectionAttribute = renderSettingsAttribute.getChildByName("max_depth_reflection");
+	unsigned int maxDepthReflection = 5;
+	if (maxDepthRefractionAttribute.isValid())
+		maxDepthReflection = maxDepthReflectionAttribute.getValue(5, false);
+
+
+	// PathDist stuff
+	if (integratorType == 2)
+	{
+		unsigned int diffuseMultipler = 3;
+		unsigned int glossyMultipler = 2;
+
+		FnKat::IntAttribute diffuseMultiplerAttribute = renderSettingsAttribute.getChildByName("path_dist_diffuse_multiplier");
+		if (diffuseMultiplerAttribute.isValid())
+			diffuseMultipler = diffuseMultiplerAttribute.getValue(3, false);
+
+		FnKat::IntAttribute glossyMultiplerAttribute = renderSettingsAttribute.getChildByName("path_dist_glossy_multiplier");
+		if (glossyMultiplerAttribute.isValid())
+			glossyMultipler = glossyMultiplerAttribute.getValue(2, false);
+
+		m_renderSettings.add("pathDistDiffuseMult", diffuseMultipler);
+		m_renderSettings.add("pathDistGlossyMult", glossyMultipler);
+	}
+
 
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = renderSettingsAttribute.getChildByName("bake_down_scene");
@@ -211,8 +236,21 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (bakeDownSceneAttribute.isValid())
 		bakeDownScene = bakeDownSceneAttribute.getValue(1, false);
 
+	FnKat::IntAttribute useCompactGeometryAttribute = renderSettingsAttribute.getChildByName("use_compact_geometry");
+	unsigned int useCompactGeometry = 1;
+	if (useCompactGeometryAttribute.isValid())
+		useCompactGeometry = useCompactGeometryAttribute.getValue(1, false);
+
+	FnKat::FloatAttribute rayEpsilonAttribute = renderSettingsAttribute.getChildByName("ray_epsilon");
+	float rayEpsilon = 0.001f;
+	if (rayEpsilonAttribute.isValid())
+		rayEpsilon = rayEpsilonAttribute.getValue(0.001f, false);
+
+	m_useCompactGeometry = (useCompactGeometry == 1);
+
 #ifndef STAND_ALONE
 	m_renderSettings.add("integrator", integratorType);
+	m_renderSettings.add("rayEpsilon", rayEpsilon);
 
 // for the moment, only do one iteration, at least for disk renders...
 	m_renderSettings.add("Iterations", 1);
@@ -225,6 +263,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("rbDiffuse", maxDepthDiffuse);
 	m_renderSettings.add("rbGlossy", maxDepthGlossy);
 	m_renderSettings.add("rbRefraction", maxDepthRefraction);
+	m_renderSettings.add("rbReflection", maxDepthReflection);
 
 	if (bakeDownScene == 1)
 	{
@@ -327,6 +366,9 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 #else
 	SGLocationProcessor locProcessor;
 #endif
+
+	locProcessor.setUseCompactGeometry(m_useCompactGeometry);
+
 	locProcessor.processSGForceExpand(rootIterator);
 }
 
@@ -339,7 +381,6 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 	buildSceneGeometry(settings, rootIterator);
 
-
 	// if there's no light in the scene, add a physical sky...
 	if (m_pScene->getLightCount() == 0)
 	{
@@ -349,6 +390,14 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 		m_pScene->addObject(pPhysicalSkyLight, false, false);
 	}
+
+	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
+	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
+	// fragmenting the heap quite a bit...
+
+	mallocTrim();
+
+	fprintf(stderr, "Scene setup complete - starting render.");
 
 	// assumes render settings have been set correctly before hand...
 

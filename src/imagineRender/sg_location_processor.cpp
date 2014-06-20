@@ -11,11 +11,15 @@
 #include "geometry/standard_geometry_operations.h"
 #include "geometry/standard_geometry_instance.h"
 
+#include "geometry/compact_geometry_instance.h"
+#include "geometry/compact_geometry_operations.h"
+
 #include "lights/light.h"
 #endif
 
 #ifndef STAND_ALONE
-SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_scene(scene), m_applyMaterials(true), m_useTextures(true), m_enableSubd(true)
+SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_scene(scene), m_applyMaterials(true), m_useTextures(true), m_enableSubd(true),
+	m_useCompactGeometry(true)
 {
 }
 #else
@@ -50,7 +54,14 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 		// TODO: use SG location delegates...
 
-		processGeometryPolymesh(iterator);
+		if (m_useCompactGeometry)
+		{
+			processGeometryPolymeshCompact(iterator);
+		}
+		else
+		{
+			processGeometryPolymeshStandard(iterator);
+		}
 	}
 	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
 	{
@@ -62,7 +73,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	}
 }
 
-void SGLocationProcessor::processGeometryPolymesh(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIterator iterator)
 {
 	// get the geometry attributes group
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -259,6 +270,230 @@ void SGLocationProcessor::processGeometryPolymesh(FnKat::FnScenegraphIterator it
 	}
 
 	StandardGeometryOperations::tesselateGeometryToTriangles(pNewGeoInstance, true);
+
+	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
+	if (boundAttr.isValid())
+	{
+		FnKat::DoubleConstVector doubleValues = boundAttr.getNearestSample(0.0f);
+		BoundaryBox bbox;
+		bbox.getMinimum() = Vector(doubleValues.at(0), doubleValues.at(2), doubleValues.at(4));
+		bbox.getMaximum() = Vector(doubleValues.at(1), doubleValues.at(3), doubleValues.at(5));
+		pNewGeoInstance->setBoundaryBox(bbox);
+	}
+	else
+	{
+		// strictly-speaking, this means that the attributes are wrong, so we should probably ignore it, but
+		// on the basis that we're force-expanding everything currently anyway...
+		pNewGeoInstance->calculateBoundaryBox();
+	}
+
+	Mesh* pNewMeshObject = new Mesh();
+
+	pNewMeshObject->setGeometryInstance(pNewGeoInstance);
+
+	FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
+	std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
+
+	// see if we've got it already
+	Material* pMaterial = m_materialHelper.getExistingMaterial(materialHash);
+
+	if (!pMaterial)
+	{
+		// create it
+		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+	}
+
+	pNewMeshObject->setMaterial(pMaterial);
+
+	// do transform
+
+	FnKat::GroupAttribute xformAttr;
+	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+	std::set<float> sampleTimes;
+	sampleTimes.insert(0);
+	std::vector<float> relevantSampleTimes;
+	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
+
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+	const double* pMatrix = xforms[0].getValues();
+
+	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+
+	m_scene.addObject(pNewMeshObject, false, false);
+}
+
+void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator)
+{
+	// get the geometry attributes group
+	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
+	if (!geometryAttribute.isValid())
+	{
+		std::string name = iterator.getFullName();
+		fprintf(stderr, "Warning: polymesh: %s does not have a geometry attribute...", name.c_str());
+		return;
+	}
+
+	CompactGeometryInstance* pNewGeoInstance = new CompactGeometryInstance();
+
+	std::vector<Point>& aPoints = pNewGeoInstance->getPoints();
+
+	// copy across the points...
+
+	FnKat::GroupAttribute pointAttribute = geometryAttribute.getChildByName("point");
+
+	// linear list of components of Vec3 points
+	FnKat::FloatAttribute pAttr = pointAttribute.getChildByName("P");
+
+	FnKat::FloatConstVector sampleData = pAttr.getNearestSample(0.0f);
+
+	unsigned int numItems = sampleData.size();
+
+	aPoints.reserve(numItems / 3);
+
+	// convert to Point items
+	for (unsigned int i = 0; i < numItems; i += 3)
+	{
+		float x = sampleData[i];
+		float y = sampleData[i + 1];
+		float z = sampleData[i + 2];
+
+		aPoints.push_back(Point(x, y, z));
+	}
+
+	FnKat::IntAttribute uvIndexAttribute;
+	bool hasUVs = false;
+	bool indexedUVs = false;
+	// copy any UVs
+	FnKat::GroupAttribute stAttribute = iterator.getAttribute("geometry.arbitrary.st", true);
+	if (stAttribute.isValid())
+	{
+		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
+
+		if (arbitraryAttribute.isValid())
+		{
+			FnKat::FloatAttribute uvItemAttribute;
+			if (arbitraryAttribute.hasIndexedValueAttr())
+			{
+				uvIndexAttribute = arbitraryAttribute.getIndexAttr(true);
+				uvItemAttribute = arbitraryAttribute.getIndexedValueAttr();
+				indexedUVs = true;
+			}
+			else
+			{
+				// otherwise, just build the list of vertices sequentially later
+				uvItemAttribute = arbitraryAttribute.getValueAttr();
+			}
+
+			if (uvItemAttribute.isValid())
+			{
+				hasUVs = true;
+				std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
+
+				FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
+				unsigned int numItems = uvlist.size();
+
+				aUVs.reserve(numItems / 2);
+
+				for (unsigned int i = 0; i < numItems; i += 2)
+				{
+					const float& u = uvlist[i];
+					const float& v = uvlist[i + 1];
+
+					aUVs.push_back(UV(u, v));
+				}
+			}
+		}
+	}
+
+	// set any UV indicies if necessary
+	if (hasUVs)
+	{
+		if (indexedUVs)
+		{
+			// if indexed, get hold the uv indicies list
+			FnKat::IntConstVector uvIndicesValue = uvIndexAttribute.getNearestSample(0.0f);
+
+			// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
+			// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
+			unsigned int numIndicies = uvIndicesValue.size();
+			std::vector<uint32_t> aUVIndicies;
+			aUVIndicies.reserve(numIndicies);
+			for (unsigned int i = 0; i < numIndicies; i++)
+			{
+				const int& value = uvIndicesValue[i];
+
+				aUVIndicies.push_back((uint32_t)value);
+			}
+
+			pNewGeoInstance->setUVIndicies(aUVIndicies);
+		}
+
+		// otherwise if we're not indexed, just set that we're using VertexUVs, and the overall Poly indicies will be used.
+
+		pNewGeoInstance->setHasPerVertexUVs(true);
+	}
+
+	// work out the faces...
+	FnKat::GroupAttribute polyAttribute = geometryAttribute.getChildByName("poly");
+	FnKat::IntAttribute polyStartIndexAttribute = polyAttribute.getChildByName("startIndex");
+	FnKat::IntAttribute vertexListAttribute = polyAttribute.getChildByName("vertexList");
+
+	unsigned int numFaces = polyStartIndexAttribute.getNumberOfTuples() - 1;
+	FnKat::IntConstVector polyStartIndexAttributeValue = polyStartIndexAttribute.getNearestSample(0.0f);
+	FnKat::IntConstVector vertexListAttributeValue = vertexListAttribute.getNearestSample(0.0f);
+
+	std::vector<uint32_t>& aPolyOffsets = pNewGeoInstance->getPolygonOffsets();
+
+	unsigned int lastOffset = 0;
+
+	// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
+	// specifies this and not the last one, so we need to ignore the first one, and add an extra on the end
+	for (unsigned int i = 0; i < numFaces; i++)
+	{
+		unsigned int numVertices;
+		if (i + 1 < numFaces)
+		{
+			numVertices = polyStartIndexAttributeValue[i + 1] - polyStartIndexAttributeValue[i];
+		}
+		else
+		{
+			// last one...
+			numVertices = vertexListAttribute.getNumberOfTuples() - polyStartIndexAttributeValue[i];
+		}
+
+		unsigned int polyOffset = lastOffset + numVertices;
+		aPolyOffsets.push_back(polyOffset);
+
+		lastOffset += numVertices;
+	}
+
+	// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
+	// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
+	std::vector<uint32_t>& aPolyIndicies = pNewGeoInstance->getPolygonIndicies();
+	unsigned int numIndicies = vertexListAttributeValue.size();
+	aPolyIndicies.reserve(numIndicies);
+	for (unsigned int i = 0; i < numIndicies; i++)
+	{
+		const int& value = vertexListAttributeValue[i];
+
+		aPolyIndicies.push_back((unsigned int)value);
+	}
+
+	// again, we should do things properly here, but this is a good start to get things going...
+	CompactGeometryOperations::calculateVertexNormals(pNewGeoInstance);
+
+	if (hasUVs)
+	{
+		pNewGeoInstance->setHasPerVertexUVs(true);
+	}
+
+	CompactGeometryOperations::tesselateGeometryToTriangles(pNewGeoInstance, true);
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
 	if (boundAttr.isValid())

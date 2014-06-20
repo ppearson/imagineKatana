@@ -22,12 +22,18 @@ public:
 	SGLocationProcessor();
 #endif
 
+	void setUseCompactGeometry(bool useCG)
+	{
+		m_useCompactGeometry = useCG;
+	}
+
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
 	void processLocationRecursive(FnKat::FnScenegraphIterator iterator);
 
-	void processGeometryPolymesh(FnKat::FnScenegraphIterator iterator);
+	void processGeometryPolymeshStandard(FnKat::FnScenegraphIterator iterator);
+	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator);
 
 	void processSphere(FnKat::FnScenegraphIterator iterator);
 
@@ -37,6 +43,7 @@ protected:
 	bool				m_applyMaterials;
 	bool				m_useTextures;
 	bool				m_enableSubd;
+	bool				m_useCompactGeometry;
 
 	Scene&				m_scene;
 

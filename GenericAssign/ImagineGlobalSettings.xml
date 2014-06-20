@@ -21,6 +21,9 @@
 					<int name="lanczos-sync" value="6"/>
 				</hintdict>
 			</int>
+
+			<int name="path_dist_diffuse_multiplier" default="3" help="Diffuse ray multiplier for the PathDistributed integrator"/>
+			<int name="path_dist_glossy_multiplier" default="2" help= "Glossy ray multiplier for the PathDistributed integrator"/>
 		</page>
 		<page name='light_paths' open="True">
 			<int name="max_depth_overall" default="4" help=""/>
@@ -31,7 +34,29 @@
 		</page>
 		<page name='scene' open="True">
 			<int name="bake_down_scene" default="1" widget="checkbox"/>
+			<int name="use_compact_geometry" default="1" widget="checkbox"/>
 			<float name="ray_epsilon" default="0.001"/>
+		</page>
+
+		<page name='advanced' open="False">
+			<int name="bucket_size" widget="mapper" default="16">
+				<hintdict name='options'>
+					<int name="16" value="16"/>
+					<int name="32" value="32"/>
+					<int name="48" value="48"/>
+					<int name="64" value="64"/>
+					<int name="96" value="96"/>
+				</hintdict>
+			</int>
+			<int name="bucket_order" widget="mapper" default="2">
+				<hintdict name='options'>
+					<int name="rows" value="0"/>
+					<int name="rows_bounce" value="1"/>
+					<int name="spiral" value="2"/>
+					<int name="spread" value="3"/>
+					<int name="hilbert" value="4"/>
+				</hintdict>
+			</int>
 		</page>
 	</group>
 </args>
