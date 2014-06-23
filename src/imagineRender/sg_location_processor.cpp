@@ -493,7 +493,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
 
-	CompactGeometryOperations::tesselateGeometryToTriangles(pNewGeoInstance, true);
+	CompactGeometryOperations::tesselateGeometryToTriangles(pNewGeoInstance, true, false);
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
 	if (boundAttr.isValid())

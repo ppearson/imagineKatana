@@ -18,6 +18,7 @@
 
 #include "utils/file_helpers.h"
 #include "utils/memory.h"
+#include "utils/string_helpers.h"
 
 #include "global_context.h"
 
@@ -28,7 +29,7 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true)
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_printStatistics(false)
 {
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -241,6 +242,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (useCompactGeometryAttribute.isValid())
 		useCompactGeometry = useCompactGeometryAttribute.getValue(1, false);
 
+	FnKat::IntAttribute printStatisticsAttribute = renderSettingsAttribute.getChildByName("print_statistics");
+	if (printStatisticsAttribute.isValid())
+		m_printStatistics = (printStatisticsAttribute.getValue(0, false) == 1);
+
 	FnKat::FloatAttribute rayEpsilonAttribute = renderSettingsAttribute.getChildByName("ray_epsilon");
 	float rayEpsilon = 0.001f;
 	if (rayEpsilonAttribute.isValid())
@@ -402,6 +407,8 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 	// assumes render settings have been set correctly before hand...
 
 	startRenderer();
+
+	renderFinished();
 }
 
 void ImagineRender::startRenderer()
@@ -433,7 +440,7 @@ void ImagineRender::startRenderer()
 	OutputImage renderImage(m_renderWidth, m_renderHeight, imageFlags);
 
 	// for the moment, use the number of render threads for the number of worker threads to use.
-	// this affects things like parallel accel structure building, tesselation and reading of textures when in
+	// this effects things like parallel accel structure building, tesselation and reading of textures when in
 	// non-lazy mode...
 	GlobalContext::instance().setWorkerThreads(m_renderThreads);
 
@@ -451,6 +458,40 @@ void ImagineRender::startRenderer()
 	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
 
 	delete pWriter;
+}
+
+void ImagineRender::renderFinished()
+{
+	fprintf(stderr, "Render complete.\n");
+
+	if (m_printStatistics)
+	{
+		// run through all objects in the scene, building up geometry info - this isn't really correct in a normal
+		// Imagine situation, as we should use renderableObjects to get only visible and final geometry (subdived and displaced).
+		// But in this case with integrating into Katana, it makes sense for the moment, and allows useful comparisons
+		// with other renderers.
+
+		unsigned int numObjects = m_pScene->getObjectCount();
+
+		GeometryInfo info;
+		for (unsigned int i = 0; i < numObjects; i++)
+		{
+			const Object* pObject = m_pScene->getObject(i);
+
+			const GeometryInstance* pGI = pObject->getGeometryInstance();
+
+			if (!pGI)
+				continue;
+
+			info.addInstance(pGI);
+		}
+
+		fprintf(stderr, "\nGeometry Statistics:\n");
+
+		std::string trianglesSize = formatSize(info.getTotalTrianglesSize());
+
+		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
+	}
 }
 
 // progress back from the main renderer class

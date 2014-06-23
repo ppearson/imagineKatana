@@ -1,6 +1,9 @@
 cmake_minimum_required (VERSION 2.6)
 project (imagineKatana)
 
+# TODO: all these different projects (KatanaAPIs, ImagineCore) should all be in different CMakeLists.txt files,
+#       as currently all the include dirs are getting added together creating a mess...
+
 include(ExternalProject)
 
 set(MODERN_GCC 1)
@@ -27,17 +30,50 @@ ENDIF(${MODERN_GCC} MATCHES "1")
 
 # -fvisibility-inlines-hidden -fvisibility=hidden
 
+# CFLAGS = -ffunction-sections
+# LDFLAGS = -Wl,-gc-sections
+
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 
 # Katana APIs
 SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api")
 
-FILE(GLOB_RECURSE katanaAPI_SOURCES "${KATANA_PLUGIN_API_PATH}/src/*.cpp")
-INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/")
-ADD_LIBRARY(katanaAPI ${katanaAPI_SOURCES})
-
 SET(STAND_ALONE 0) # set this to 1 to build without Imagine in proxy/stub mode
+
+SET(DISPLAY_DRIVER 0) # set this to 1 to build with zeromq support (and preview and liverender support) - this
+#					#   includes zeromq support (which is embedded as a separate project which gets built by this CMakeLists.txt),
+#					#   but also requires boost 1.42/1.43 support for threads and locks...
+
+# boost stuff (needed for display driver)
+SET(BOOST_CUST_PATH "/opt/boost_144/include")
+
+FILE(GLOB_RECURSE katanaAPI_SOURCES_ORIGINAL "${KATANA_PLUGIN_API_PATH}/src/*.cpp")
+SET(katanaAPI_SOURCES "")
+IF(${DISPLAY_DRIVER} MATCHES 1)
+	set(ZEROMQ_INCLUDE_DIRS "${PROJECT_BINARY_DIR}/external/dist/zeromq/include")
+	set(ZEROMQ_LIBRARY ${PROJECT_BINARY_DIR}/external/dist/zeromq/lib/libzeromq.a)
+	
+	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BOOST_CUST_PATH}")
+
+	FIND_PACKAGE(Boost 1.44)
+	
+	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${Boost_INCLUDE_DIRS}")
+	SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
+ELSE()
+	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/")
+	
+	# strip out display driver stuff from katanaAPI_SOURCES
+	FOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
+		STRING(REGEX MATCH "([/]FnDisplayDriver[/])" test1 ${file})
+		IF(test1)
+		ELSE(test1)
+			LIST(APPEND katanaAPI_SOURCES ${file})
+		ENDIF(test1)
+	ENDFOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
+ENDIF(${DISPLAY_DRIVER} MATCHES 1)
+
+ADD_LIBRARY(katanaAPI ${katanaAPI_SOURCES})
 
 IF(${STAND_ALONE} MATCHES 0)
 	SET(EXTERNAL_DEPENDS "OPENEXR_LOCAL")
@@ -103,12 +139,33 @@ IF(${STAND_ALONE} MATCHES 0)
 
 
 	#MESSAGE(${EXTERNAL_OPENEXR_LIBRARIES})
+	
+	
+	IF(${DISPLAY_DRIVER} MATCHES 1)
+		set(ZEROMQ_VERSION 3.2.4)
+		ExternalProject_Add(ZMQ_LOCAL
+			URL ${CMAKE_SOURCE_DIR}/external/zmq-${ZEROMQ_VERSION}.tar.bz2
+			BINARY_DIR external/build/zeromq/
+			INSTALL_DIR external/dist
+			CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/external/dist
+		)
+		
+		# This is a bit messy, as some stuff is done here, other stuff above for the KatanaAPI part...
+		
+		ADD_DEPENDENCIES(katanaAPI ZMQ_LOCAL)
+		TARGET_LINK_LIBRARIES(katanaAPI ${ZEROMQ_LIBRARY})
+	ELSE()
+		set(ZEROMQ_INCLUDE_DIRS "")
+		set(ZEROMQ_LIBRARY "")
+	ENDIF(${DISPLAY_DRIVER} MATCHES 1)
 
-	set(EXTERNAL_INCLUDE_DIRS ${ILMBASE_DIST}/include/OpenEXR ${OPENEXR_DIST}/include/OpenEXR)
+
+
+	set(EXTERNAL_INCLUDE_DIRS ${ILMBASE_DIST}/include/OpenEXR ${OPENEXR_DIST}/include/OpenEXR ${ZEROMQ_INCLUDE_DIRS})
 	set(EXTERNAL_COMPILE_FLAGS "")
 	set(EXTERNAL_LINK_FLAGS "")
 	set(EXTERNAL_LIBRARY_DIRS ${ILMBASE_DIST}/lib ${OPENEXR_DIST}/lib)
-	set(EXTERNAL_LIBRARIES ${EXTERNAL_OPENEXR_LIBRARIES})
+	set(EXTERNAL_LIBRARIES ${EXTERNAL_OPENEXR_LIBRARIES} ${ZEROMQ_LIBRARY})
 
 	# add libtiff if it was available
 	IF(${HAVE_LIBTIFF} MATCHES 1)
@@ -125,7 +182,7 @@ IF(${STAND_ALONE} MATCHES 0)
 	ADD_DEFINITIONS(-DIMAGINE_NO_GUI -DIMAGINE_EMBEDDED_MODE)
 
 	SET(IMAGINE_SRC_PATH "${CMAKE_SOURCE_DIR}/../imagine/src")
-	#SET(IMAGINE_SRC_PATH "/home/peter/coding/imagine/src")
+	#SET(IMAGINE_SRC_PATH "/home/peter/Coding/Imagine/src")
 	#SET(IMAGINE_SRC_PATH "/Users/peter/Documents/Coding/imagine/src")
 
 	FILE(GLOB_RECURSE imagine_SOURCES_ORIGINAL "${IMAGINE_SRC_PATH}/*.cpp")

@@ -39,6 +39,7 @@
 		</page>
 
 		<page name='advanced' open="False">
+			<int name="print_statistics" default="0" widget="checkbox"/>
 			<int name="bucket_size" widget="mapper" default="16">
 				<hintdict name='options'>
 					<int name="16" value="16"/>

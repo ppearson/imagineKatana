@@ -55,6 +55,7 @@ protected:
 	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	void startRenderer();
+	void renderFinished();
 
 protected:
 
@@ -67,6 +68,7 @@ protected:
 	std::string			m_diskRenderOutputPath;
 
 	bool				m_useCompactGeometry;
+	bool				m_printStatistics;
 
 	unsigned int		m_renderWidth;
 	unsigned int		m_renderHeight;
