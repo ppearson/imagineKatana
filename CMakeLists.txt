@@ -53,16 +53,16 @@ SET(katanaAPI_SOURCES "")
 IF(${DISPLAY_DRIVER} MATCHES 1)
 	set(ZEROMQ_INCLUDE_DIRS "${PROJECT_BINARY_DIR}/external/dist/zeromq/include")
 	set(ZEROMQ_LIBRARY ${PROJECT_BINARY_DIR}/external/dist/zeromq/lib/libzeromq.a)
-	
+
 	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BOOST_CUST_PATH}")
 
 	FIND_PACKAGE(Boost 1.44)
-	
+
 	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${Boost_INCLUDE_DIRS}")
 	SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
 ELSE()
 	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/")
-	
+
 	# strip out display driver stuff from katanaAPI_SOURCES
 	FOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
 		STRING(REGEX MATCH "([/]FnDisplayDriver[/])" test1 ${file})
@@ -139,8 +139,8 @@ IF(${STAND_ALONE} MATCHES 0)
 
 
 	#MESSAGE(${EXTERNAL_OPENEXR_LIBRARIES})
-	
-	
+
+
 	IF(${DISPLAY_DRIVER} MATCHES 1)
 		set(ZEROMQ_VERSION 3.2.4)
 		ExternalProject_Add(ZMQ_LOCAL
@@ -149,9 +149,9 @@ IF(${STAND_ALONE} MATCHES 0)
 			INSTALL_DIR external/dist
 			CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/external/dist
 		)
-		
+
 		# This is a bit messy, as some stuff is done here, other stuff above for the KatanaAPI part...
-		
+
 		ADD_DEPENDENCIES(katanaAPI ZMQ_LOCAL)
 		TARGET_LINK_LIBRARIES(katanaAPI ${ZEROMQ_LIBRARY})
 	ELSE()

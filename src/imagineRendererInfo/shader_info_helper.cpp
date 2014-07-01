@@ -86,7 +86,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 
 	}
-	else if (name == "Skydome")
+	else if (name == "SkyDome")
 	{
 		buildSkydomeShaderParams(iri, rendererObjectInfo);
 	}

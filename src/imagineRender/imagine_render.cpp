@@ -29,7 +29,7 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_printStatistics(false)
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_deduplicateVertexNormals(false), m_printStatistics(false)
 {
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -58,6 +58,10 @@ int ImagineRender::start()
 	// create the scene - this is going to leak for the moment...
 	m_pScene = new Scene(true); // don't want a GUI with OpenGL...
 
+	// we want to do things like bbox calculation, vertex normal calculation (for Subdiv approximations) and triangle tessellation
+	// in parallel across multiple threads
+	m_pScene->setParallelGeoBuild(true);
+
 	FnKatRender::RenderSettings renderSettings(rootIterator);
 	FnKatRender::GlobalSettings globalSettings(rootIterator, "imagine");
 
@@ -76,6 +80,12 @@ int ImagineRender::start()
 		}
 
 		performDiskRender(renderSettings, rootIterator);
+
+		return 0;
+	}
+	else if (renderMethodName == FnKat::RendererInfo::PreviewRenderMethod::kDefaultName)
+	{
+		performPreviewRender(renderSettings, rootIterator);
 
 		return 0;
 	}
@@ -242,9 +252,15 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (useCompactGeometryAttribute.isValid())
 		useCompactGeometry = useCompactGeometryAttribute.getValue(1, false);
 
+	FnKat::IntAttribute deduplicateVertexNormalsAttribute = renderSettingsAttribute.getChildByName("deduplicate_vertex_normals");
+	m_deduplicateVertexNormals = false;
+	if (deduplicateVertexNormalsAttribute.isValid())
+		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(0, false) == 1);
+
 	FnKat::IntAttribute printStatisticsAttribute = renderSettingsAttribute.getChildByName("print_statistics");
+	m_printStatistics = true;
 	if (printStatisticsAttribute.isValid())
-		m_printStatistics = (printStatisticsAttribute.getValue(0, false) == 1);
+		m_printStatistics = (printStatisticsAttribute.getValue(1, false) == 1);
 
 	FnKat::FloatAttribute rayEpsilonAttribute = renderSettingsAttribute.getChildByName("ray_epsilon");
 	float rayEpsilon = 0.001f;
@@ -373,6 +389,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 #endif
 
 	locProcessor.setUseCompactGeometry(m_useCompactGeometry);
+	locProcessor.setDeduplicateVertexNormals(m_deduplicateVertexNormals);
 
 	locProcessor.processSGForceExpand(rootIterator);
 }
@@ -402,13 +419,31 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 	mallocTrim();
 
-	fprintf(stderr, "Scene setup complete - starting render.");
+	fprintf(stderr, "Scene setup complete - starting render.\n");
 
 	// assumes render settings have been set correctly before hand...
 
 	startRenderer();
 
 	renderFinished();
+}
+
+void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+{
+	std::string katHost = getKatanaHost();
+
+	size_t portSep = katHost.find(":");
+
+	if (portSep == std::string::npos)
+	{
+		fprintf(stderr, "Error: Katana host and port not specified...\n");
+		return;
+	}
+
+	m_katanaHost = katHost.substr(0, portSep);
+	std::string strPort = katHost.substr(portSep + 1);
+
+	m_katanaPort = atol(strPort.c_str());
 }
 
 void ImagineRender::startRenderer()
@@ -486,11 +521,11 @@ void ImagineRender::renderFinished()
 			info.addInstance(pGI);
 		}
 
-		fprintf(stderr, "\nGeometry Statistics:\n");
+		fprintf(stderr, "\n\nGeometry Statistics:\n");
 
 		std::string trianglesSize = formatSize(info.getTotalTrianglesSize());
 
-		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
+		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
 	}
 }
 

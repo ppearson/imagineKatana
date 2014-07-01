@@ -3,6 +3,12 @@
 
 #include <Render/RenderBase.h>
 
+#define ENABLE_PREVIEW_RENDERS 0
+
+#if ENABLE_PREVIEW_RENDERS
+#include <FnDisplayDriver/FnKatanaDisplayDriver.h>
+#endif
+
 namespace FnKat = Foundry::Katana;
 namespace FnKatRender = FnKat::Render;
 
@@ -53,6 +59,7 @@ protected:
 	void buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	void performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	void startRenderer();
 	void renderFinished();
@@ -60,22 +67,34 @@ protected:
 protected:
 
 #ifndef STAND_ALONE
-	Scene*				m_pScene;
-	Params				m_renderSettings;
+	Scene*					m_pScene;
+	Params					m_renderSettings;
 
 #endif
 
-	std::string			m_diskRenderOutputPath;
+	std::string				m_diskRenderOutputPath;
 
-	bool				m_useCompactGeometry;
-	bool				m_printStatistics;
+	//
+	std::string				m_katanaHost;
+	unsigned long			m_katanaPort;
 
-	unsigned int		m_renderWidth;
-	unsigned int		m_renderHeight;
+#if ENABLE_PREVIEW_RENDERS
+	FnKat::KatanaPipe*		m_pDataPipe;
+	FnKat::NewChannelMessage* m_pChannel;
+#endif
 
-	int					m_renderThreads;
+	//
 
-	int					m_lastProgress;
+	bool					m_useCompactGeometry;
+	bool					m_deduplicateVertexNormals;
+	bool					m_printStatistics;
+
+	unsigned int			m_renderWidth;
+	unsigned int			m_renderHeight;
+
+	int						m_renderThreads;
+
+	int						m_lastProgress;
 };
 
 #endif // IMAGINE_RENDER_H

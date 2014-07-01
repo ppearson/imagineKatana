@@ -35,11 +35,12 @@
 		<page name='scene' open="True">
 			<int name="bake_down_scene" default="1" widget="checkbox"/>
 			<int name="use_compact_geometry" default="1" widget="checkbox"/>
+			<int name="deduplicate_vertex_normals" default="0" widget="checkbox"/>
 			<float name="ray_epsilon" default="0.001"/>
 		</page>
 
 		<page name='advanced' open="False">
-			<int name="print_statistics" default="0" widget="checkbox"/>
+			<int name="print_statistics" default="1" widget="checkbox"/>
 			<int name="bucket_size" widget="mapper" default="16">
 				<hintdict name='options'>
 					<int name="16" value="16"/>

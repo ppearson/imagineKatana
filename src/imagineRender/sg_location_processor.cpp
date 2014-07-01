@@ -80,7 +80,7 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 	if (!geometryAttribute.isValid())
 	{
 		std::string name = iterator.getFullName();
-		fprintf(stderr, "Warning: polymesh: %s does not have a geometry attribute...", name.c_str());
+		fprintf(stderr, "Warning: polymesh '%s' does not have a 'geometry' attribute...\n", name.c_str());
 		return;
 	}
 
@@ -328,6 +328,8 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 	m_scene.addObject(pNewMeshObject, false, false);
 }
 
+#define FAST 0
+
 void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator)
 {
 	// get the geometry attributes group
@@ -335,7 +337,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	if (!geometryAttribute.isValid())
 	{
 		std::string name = iterator.getFullName();
-		fprintf(stderr, "Warning: polymesh: %s does not have a geometry attribute...", name.c_str());
+		fprintf(stderr, "Warning: polymesh '%s' does not have a 'geometry' attribute...\n", name.c_str());
 		return;
 	}
 
@@ -354,8 +356,19 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 
 	unsigned int numItems = sampleData.size();
 
+#if FAST
+	aPoints.resize(numItems / 3);
+	// convert to Point items
+	unsigned int pointCount = 0;
+	for (unsigned int i = 0; i < numItems; i += 3)
+	{
+		Point& point = aPoints[pointCount++];
+		point.x = sampleData[i];
+		point.y = sampleData[i + 1];
+		point.z = sampleData[i + 2];
+	}
+#else
 	aPoints.reserve(numItems / 3);
-
 	// convert to Point items
 	for (unsigned int i = 0; i < numItems; i += 3)
 	{
@@ -365,6 +378,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 
 		aPoints.push_back(Point(x, y, z));
 	}
+#endif
 
 	FnKat::IntAttribute uvIndexAttribute;
 	bool hasUVs = false;
@@ -419,19 +433,28 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 			// if indexed, get hold the uv indicies list
 			FnKat::IntConstVector uvIndicesValue = uvIndexAttribute.getNearestSample(0.0f);
 
+#if FAST
+			// this isn't technically correct, but as long as we're only using 31 bits, will work...
+			unsigned int numIndices = uvIndicesValue.size();
+			uint32_t* pUVIndices = new uint32_t[numIndices];
+			memcpy(pUVIndices, uvIndicesValue.data(), numIndices * sizeof(uint32_t));
+
+			pNewGeoInstance->setUVIndicesRaw(pUVIndices, numIndices);
+#else
 			// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
 			// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
-			unsigned int numIndicies = uvIndicesValue.size();
-			std::vector<uint32_t> aUVIndicies;
-			aUVIndicies.reserve(numIndicies);
-			for (unsigned int i = 0; i < numIndicies; i++)
+			unsigned int numIndices = uvIndicesValue.size();
+			std::vector<uint32_t> aUVIndices;
+			aUVIndices.reserve(numIndices);
+			for (unsigned int i = 0; i < numIndices; i++)
 			{
 				const int& value = uvIndicesValue[i];
 
-				aUVIndicies.push_back((uint32_t)value);
+				aUVIndices.push_back((uint32_t)value);
 			}
 
-			pNewGeoInstance->setUVIndicies(aUVIndicies);
+			pNewGeoInstance->setUVIndices(aUVIndices);
+#endif
 		}
 
 		// otherwise if we're not indexed, just set that we're using VertexUVs, and the overall Poly indicies will be used.
@@ -451,6 +474,8 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	std::vector<uint32_t>& aPolyOffsets = pNewGeoInstance->getPolygonOffsets();
 
 	unsigned int lastOffset = 0;
+
+	aPolyOffsets.reserve(numFaces);
 
 	// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
 	// specifies this and not the last one, so we need to ignore the first one, and add an extra on the end
@@ -475,25 +500,33 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 
 	// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
 	// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
-	std::vector<uint32_t>& aPolyIndicies = pNewGeoInstance->getPolygonIndicies();
-	unsigned int numIndicies = vertexListAttributeValue.size();
-	aPolyIndicies.reserve(numIndicies);
-	for (unsigned int i = 0; i < numIndicies; i++)
+	std::vector<uint32_t>& aPolyIndices = pNewGeoInstance->getPolygonIndices();
+	unsigned int numIndices = vertexListAttributeValue.size();
+	aPolyIndices.reserve(numIndices);
+	for (unsigned int i = 0; i < numIndices; i++)
 	{
 		const int& value = vertexListAttributeValue[i];
 
-		aPolyIndicies.push_back((unsigned int)value);
+		aPolyIndices.push_back((unsigned int)value);
 	}
 
-	// again, we should do things properly here, but this is a good start to get things going...
-	CompactGeometryOperations::calculateVertexNormals(pNewGeoInstance);
+	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;
+
+	// TODO: pull in normals from poly geo if they exist...
+
+	if (m_deduplicateVertexNormals)
+	{
+		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS_DD;
+	}
+	else
+	{
+		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS;
+	}
 
 	if (hasUVs)
 	{
 		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
-
-	CompactGeometryOperations::tesselateGeometryToTriangles(pNewGeoInstance, true, false);
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
 	if (boundAttr.isValid())
@@ -508,8 +541,13 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	{
 		// strictly-speaking, this means that the attributes are wrong, so we should probably ignore it, but
 		// on the basis that we're force-expanding everything currently anyway...
-		pNewGeoInstance->calculateBoundaryBox();
+
+		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_BBOX;
 	}
+
+	geoBuildFlags |= GeometryInstance::GEO_BUILD_FREE_SOURCE_DATA;
+
+	pNewGeoInstance->setGeoBuildFlags(geoBuildFlags);
 
 	Mesh* pNewMeshObject = new Mesh();
 
@@ -559,7 +597,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 	if (!geometryAttribute.isValid())
 	{
 		std::string name = iterator.getFullName();
-		fprintf(stderr, "Warning: sphere: %s does not have a geometry attribute...", name.c_str());
+		fprintf(stderr, "Warning: sphere: %s does not have a geometry attribute...\n", name.c_str());
 		return;
 	}
 

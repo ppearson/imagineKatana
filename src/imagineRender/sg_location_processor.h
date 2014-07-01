@@ -27,6 +27,11 @@ public:
 		m_useCompactGeometry = useCG;
 	}
 
+	void setDeduplicateVertexNormals(bool ddVN)
+	{
+		m_deduplicateVertexNormals = ddVN;
+	}
+
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
@@ -44,6 +49,7 @@ protected:
 	bool				m_useTextures;
 	bool				m_enableSubd;
 	bool				m_useCompactGeometry;
+	bool				m_deduplicateVertexNormals;
 
 	Scene&				m_scene;
 
