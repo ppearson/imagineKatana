@@ -31,6 +31,13 @@
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
 	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_deduplicateVertexNormals(false), m_printStatistics(false)
 {
+#if ENABLE_PREVIEW_RENDERS
+	m_pOutputImage = NULL;
+	m_pDataPipe = NULL;
+	m_pFrame = NULL;
+	m_pChannel = NULL;
+#endif
+
 	m_renderWidth = 512;
 	m_renderHeight = 512;
 }
@@ -251,6 +258,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	unsigned int useCompactGeometry = 1;
 	if (useCompactGeometryAttribute.isValid())
 		useCompactGeometry = useCompactGeometryAttribute.getValue(1, false);
+	m_useCompactGeometry = (useCompactGeometry == 1);
 
 	FnKat::IntAttribute deduplicateVertexNormalsAttribute = renderSettingsAttribute.getChildByName("deduplicate_vertex_normals");
 	m_deduplicateVertexNormals = false;
@@ -267,7 +275,15 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (rayEpsilonAttribute.isValid())
 		rayEpsilon = rayEpsilonAttribute.getValue(0.001f, false);
 
-	m_useCompactGeometry = (useCompactGeometry == 1);
+	FnKat::IntAttribute bucketOrderAttribute = renderSettingsAttribute.getChildByName("bucket_order");
+	unsigned int bucketOrder = 2;
+	if (bucketOrderAttribute.isValid())
+		bucketOrder = bucketOrderAttribute.getValue(2, false);
+
+	FnKat::IntAttribute bucketSizeAttribute = renderSettingsAttribute.getChildByName("bucket_size");
+	unsigned int bucketSize = 32;
+	if (bucketSizeAttribute.isValid())
+		bucketSize = bucketSizeAttribute.getValue(32, false);
 
 #ifndef STAND_ALONE
 	m_renderSettings.add("integrator", integratorType);
@@ -285,6 +301,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("rbGlossy", maxDepthGlossy);
 	m_renderSettings.add("rbRefraction", maxDepthRefraction);
 	m_renderSettings.add("rbReflection", maxDepthReflection);
+
+	m_renderSettings.add("tile_order", bucketOrder);
+	m_renderSettings.add("tile_size", bucketSize);
 
 	if (bakeDownScene == 1)
 	{
@@ -423,7 +442,7 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 	// assumes render settings have been set correctly before hand...
 
-	startRenderer();
+	startDiskRenderer();
 
 	renderFinished();
 }
@@ -441,12 +460,97 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 	}
 
 	m_katanaHost = katHost.substr(0, portSep);
-	std::string strPort = katHost.substr(portSep + 1);
 
+	std::string strPort = katHost.substr(portSep + 1);
 	m_katanaPort = atol(strPort.c_str());
+
+	m_katanaPort += 100;
+
+	// perversely, Katana requires the port number retrieved above to be incremented by 100,
+	// despite the fact that KatanaPipe::connect() seems to handle doing that itself for the control
+	// port (which is +100 the data port). Not doing this causes Katana to segfault on the connect()
+	// call, leaving renderBoot orphaned doing the render in the background...
+
+	//
+#if ENABLE_PREVIEW_RENDERS
+	FnKat::Render::RenderSettings::ChannelBuffers interactiveRenderBuffers;
+	settings.getChannelBuffers(interactiveRenderBuffers);
+
+	FnKat::Render::RenderSettings::ChannelBuffers::const_iterator itBuffer = interactiveRenderBuffers.begin();
+	for (; itBuffer != interactiveRenderBuffers.end(); ++itBuffer)
+	{
+		const FnKat::Render::RenderSettings::ChannelBuffer& buffer = (*itBuffer).second;
+
+		m_frameID = atoi(buffer.bufferId.c_str());
+
+		m_channelName = buffer.channelName;
+
+		fprintf(stderr, "Buffers: %i, %s\n", m_frameID, m_channelName.c_str());
+	}
+
+
+	//
+
+	m_pDataPipe = FnKat::PipeSingleton::Instance(m_katanaHost, m_katanaPort);
+
+	// try and connect...
+	if (m_pDataPipe->connect() != 0)
+	{
+		fprintf(stderr, "Can't connect to Katana data socket: %s:%u\n", m_katanaHost.c_str(), m_katanaPort);
+		return;
+	}
+
+	m_pFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, 0, 0);
+
+	// set the name
+	std::string frameName;
+	FnKat::encodeLegacyName(m_channelName, m_frameID, frameName);
+	m_pFrame->setFrameName(frameName);
+
+	m_pDataPipe->send(*m_pFrame);
+
+	int channelID = 0;
+	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, 0, 0, 1.0f, 1.0f);
+
+	std::string channelName;
+	FnKat::encodeLegacyName(m_channelName, channelID, channelName);
+	m_pChannel->setChannelName(channelName);
+
+	// total size of a pixel for a single channel (RGBA * float) = 16
+	// this is used by Katana to work out how many Channels there are in the image...
+	m_pChannel->setDataSize(sizeof(float) * 4);
+
+	m_pDataPipe->send(*m_pChannel);
+#endif
+
+	buildSceneGeometry(settings, rootIterator);
+
+	// if there's no light in the scene, add a physical sky...
+	if (m_pScene->getLightCount() == 0)
+	{
+		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
+
+		pPhysicalSkyLight->setRadius(1000.0f);
+
+		m_pScene->addObject(pPhysicalSkyLight, false, false);
+	}
+
+	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
+	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
+	// fragmenting the heap quite a bit...
+
+	mallocTrim();
+
+	fprintf(stderr, "Scene setup complete - starting render.\n");
+
+	// assumes render settings have been set correctly before hand...
+
+	startInteractiveRenderer();
+
+	renderFinished();
 }
 
-void ImagineRender::startRenderer()
+void ImagineRender::startDiskRenderer()
 {
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
 	unsigned int imageChannelWriteFlags = ImageWriter::ALL;
@@ -495,6 +599,27 @@ void ImagineRender::startRenderer()
 	delete pWriter;
 }
 
+void ImagineRender::startInteractiveRenderer()
+{
+#if ENABLE_PREVIEW_RENDERS
+	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
+
+	m_pOutputImage = new OutputImage(m_renderWidth, m_renderHeight, imageFlags);
+	m_pOutputImage->clearImage();
+
+	// for the moment, use the number of render threads for the number of worker threads to use.
+	// this effects things like parallel accel structure building, tesselation and reading of textures when in
+	// non-lazy mode...
+	GlobalContext::instance().setWorkerThreads(m_renderThreads);
+
+	// we don't want progressive rendering...
+	Raytracer raytracer(*m_pScene, m_pOutputImage, m_renderSettings, false, m_renderThreads);
+	raytracer.setHost(this);
+
+	raytracer.renderScene(1.0f, NULL);
+#endif
+}
+
 void ImagineRender::renderFinished()
 {
 	fprintf(stderr, "Render complete.\n");
@@ -527,6 +652,15 @@ void ImagineRender::renderFinished()
 
 		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
 	}
+
+#if ENABLE_PREVIEW_RENDERS
+	if (m_pOutputImage)
+	{
+		delete m_pOutputImage;
+		m_pOutputImage = NULL;
+	}
+
+#endif
 }
 
 // progress back from the main renderer class
@@ -543,7 +677,59 @@ void ImagineRender::progressChanged(float progress)
 
 void ImagineRender::tileDone(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int threadID)
 {
+#if ENABLE_PREVIEW_RENDERS
+	if (m_pOutputImage)
+	{
+		OutputImage imageCopy(*m_pOutputImage);
 
+		imageCopy.normaliseProgressive();
+		imageCopy.applyExposure(1.8f);
+
+		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
+		pNewTileMessage->setStartCoordinates(x, y);
+		pNewTileMessage->setDataDimensions(width, height);
+
+		unsigned int skipSize = 4 * sizeof(float);
+		unsigned int dataSize = width * height * skipSize;
+		unsigned char* pData = new unsigned char[dataSize];
+
+		unsigned char* pDstRow = pData;
+
+		for (unsigned int i = 0; i < height; i++)
+		{
+			const Colour4f* pSrcRow = imageCopy.colourRowPtr(y + i);
+			const Colour4f* pSrcPixel = pSrcRow + x;
+
+			unsigned char* pDstPixel = pDstRow;
+
+			for (unsigned int j = 0; j < width; j++)
+			{
+				// copy each component manually, as we need to swap the A channel to be beginning for Katana...
+				memcpy(pDstPixel, &pSrcPixel->a, sizeof(float));
+				pDstPixel += sizeof(float);
+				memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
+				pDstPixel += sizeof(float);
+				memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
+				pDstPixel += sizeof(float);
+				memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
+				pDstPixel += sizeof(float);
+
+				pSrcPixel += 1;
+			}
+
+			pDstRow += width * skipSize;
+		}
+
+		pNewTileMessage->setData(pData, dataSize);
+		pNewTileMessage->setByteSkip(skipSize);
+
+		m_pDataPipe->send(*pNewTileMessage);
+
+		// we can now delete the data (but not the message)
+		delete [] pData;
+		pData = NULL;
+	}
+#endif
 }
 
 DEFINE_RENDER_PLUGIN(ImagineRender)

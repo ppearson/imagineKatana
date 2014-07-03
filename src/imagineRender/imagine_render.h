@@ -3,10 +3,11 @@
 
 #include <Render/RenderBase.h>
 
-#define ENABLE_PREVIEW_RENDERS 0
+#define ENABLE_PREVIEW_RENDERS 1
 
 #if ENABLE_PREVIEW_RENDERS
 #include <FnDisplayDriver/FnKatanaDisplayDriver.h>
+#include "image/output_image.h"
 #endif
 
 namespace FnKat = Foundry::Katana;
@@ -61,7 +62,9 @@ protected:
 	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 	void performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
-	void startRenderer();
+	void startDiskRenderer();
+	void startInteractiveRenderer();
+
 	void renderFinished();
 
 protected:
@@ -76,11 +79,16 @@ protected:
 
 	//
 	std::string				m_katanaHost;
-	unsigned long			m_katanaPort;
+	unsigned int			m_katanaPort;
 
 #if ENABLE_PREVIEW_RENDERS
+	OutputImage*			m_pOutputImage;
 	FnKat::KatanaPipe*		m_pDataPipe;
+	FnKat::NewFrameMessage* m_pFrame;
 	FnKat::NewChannelMessage* m_pChannel;
+
+	int						m_frameID;
+	std::string				m_channelName;
 #endif
 
 	//
