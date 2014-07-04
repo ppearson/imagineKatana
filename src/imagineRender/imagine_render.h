@@ -48,7 +48,7 @@ public:
 
 	virtual void progressChanged(float progress);
 
-	virtual void tileDone(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int threadID);
+	virtual void tileDone(const TileInfo& tileInfo, unsigned int threadID);
 
 protected:
 

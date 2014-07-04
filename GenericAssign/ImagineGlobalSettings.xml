@@ -8,7 +8,7 @@
 					<int name="path_distributed" value="2"/>
 				</hintdict>
 			</int>
-			<int name="enable_volumetrics" default="0" widget="checkbox"/>
+			<int name="enable_volumetrics" default="0" widget="checkBox"/>
 			<int name="spp" default="64" help="The number of samples per pixel"/>
 			<int name="reconstruction_filter" widget="mapper" default="0">
 				<hintdict name='options'>
@@ -33,15 +33,21 @@
 			<int name="max_depth_refraction" default="5" help=""/>
 		</page>
 		<page name='scene' open="True">
-			<int name="bake_down_scene" default="1" widget="checkbox"/>
-			<int name="use_compact_geometry" default="1" widget="checkbox"/>
-			<int name="deduplicate_vertex_normals" default="0" widget="checkbox"/>
+			<int name="bake_down_scene" default="0" widget="checkBox"/>
+			<int name="use_compact_geometry" default="1" widget="checkBox"/>
+			<int name="deduplicate_vertex_normals" default="1" widget="checkBox"/>
+			<int name="scene_accel_structure" widget="mapper" default="0">
+				<hintdict name='options'>
+					<int name="KDTree" value="0"/>
+					<int name="BVH" value="1"/>
+				</hintdict>
+			</int>
 			<float name="ray_epsilon" default="0.001"/>
 		</page>
 
 		<page name='advanced' open="False">
-			<int name="print_statistics" default="1" widget="checkbox"/>
-			<int name="bucket_size" widget="mapper" default="16">
+			<int name="print_statistics" default="1" widget="checkBox"/>
+			<int name="bucket_size" widget="mapper" default="32">
 				<hintdict name='options'>
 					<int name="16" value="16"/>
 					<int name="32" value="32"/>

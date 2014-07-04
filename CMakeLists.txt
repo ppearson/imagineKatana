@@ -41,12 +41,14 @@ SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api")
 
 SET(STAND_ALONE 0) # set this to 1 to build without Imagine in proxy/stub mode
 
-SET(DISPLAY_DRIVER 0) # set this to 1 to build with zeromq support (and preview and liverender support) - this
+SET(DISPLAY_DRIVER 1) # set this to 1 to build with zeromq support (and preview and liverender support) - this
 #					#   includes zeromq support (which is embedded as a separate project which gets built by this CMakeLists.txt),
 #					#   but also requires boost 1.42/1.43 support for threads and locks...
 
 # boost stuff (needed for display driver)
 SET(BOOST_CUST_PATH "/opt/boost_144/include")
+
+SET(BOOST_EXT_LIBS "")
 
 FILE(GLOB_RECURSE katanaAPI_SOURCES_ORIGINAL "${KATANA_PLUGIN_API_PATH}/src/*.cpp")
 SET(katanaAPI_SOURCES "")
@@ -56,7 +58,11 @@ IF(${DISPLAY_DRIVER} MATCHES 1)
 
 	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BOOST_CUST_PATH}")
 
-	FIND_PACKAGE(Boost 1.44)
+	SET(Boost_USE_STATIC_LIBS ON)
+	SET(Boost_USE_MULTITHREADED ON)
+	FIND_PACKAGE(Boost 1.44 COMPONENTS thread)
+
+	SET(BOOST_EXT_LIBS "${Boost_LIBRARIES}")
 
 	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${Boost_INCLUDE_DIRS}")
 	SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
@@ -247,6 +253,6 @@ IF(${STAND_ALONE} MATCHES 1)
 ELSE(${STAND_ALONE} MATCHES 0)
 	ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
 	SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
-	TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY})
+	TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY} ${BOOST_EXT_LIBS})
 ENDIF(${STAND_ALONE} MATCHES 1)
 

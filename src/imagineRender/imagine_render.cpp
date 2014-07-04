@@ -19,6 +19,7 @@
 #include "utils/file_helpers.h"
 #include "utils/memory.h"
 #include "utils/string_helpers.h"
+#include "utils/timer.h"
 
 #include "global_context.h"
 
@@ -265,6 +266,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (deduplicateVertexNormalsAttribute.isValid())
 		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(0, false) == 1);
 
+	FnKat::IntAttribute sceneAccelStructureAttribute = renderSettingsAttribute.getChildByName("scene_accel_structure");
+	unsigned int sceneAccelStructure = 0;
+	if (sceneAccelStructureAttribute.isValid())
+		sceneAccelStructure = sceneAccelStructureAttribute.getValue(0, false);
+
 	FnKat::IntAttribute printStatisticsAttribute = renderSettingsAttribute.getChildByName("print_statistics");
 	m_printStatistics = true;
 	if (printStatisticsAttribute.isValid())
@@ -304,6 +310,12 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	m_renderSettings.add("tile_order", bucketOrder);
 	m_renderSettings.add("tile_size", bucketSize);
+
+	if (sceneAccelStructure == 1)
+	{
+		// set to BVHSSE
+		m_pScene->getAccelerationStructureSettings().setType(2);
+	}
 
 	if (bakeDownScene == 1)
 	{
@@ -420,7 +432,10 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 	fprintf(stderr, "Performing disk render to: %s\n", m_diskRenderOutputPath.c_str());
 
-	buildSceneGeometry(settings, rootIterator);
+	{
+		Timer t1("Katana scene expansion");
+		buildSceneGeometry(settings, rootIterator);
+	}
 
 	// if there's no light in the scene, add a physical sky...
 	if (m_pScene->getLightCount() == 0)
@@ -485,9 +500,14 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 		m_channelName = buffer.channelName;
 
-		fprintf(stderr, "Buffers: %i, %s\n", m_frameID, m_channelName.c_str());
+//		fprintf(stderr, "Buffers: %i, %s\n", m_frameID, m_channelName.c_str());
 	}
 
+	// Katana expects the frame to be formatted like this, based on the ID pass frame...
+	// Without doing this, it can't identify frames and channels...
+	char szFN[128];
+	sprintf(szFN, "id_katana_%i", m_frameID);
+	std::string fFrameName(szFN);
 
 	//
 
@@ -504,7 +524,7 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 	// set the name
 	std::string frameName;
-	FnKat::encodeLegacyName(m_channelName, m_frameID, frameName);
+	FnKat::encodeLegacyName(fFrameName, m_frameID, frameName);
 	m_pFrame->setFrameName(frameName);
 
 	m_pDataPipe->send(*m_pFrame);
@@ -513,7 +533,7 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, 0, 0, 1.0f, 1.0f);
 
 	std::string channelName;
-	FnKat::encodeLegacyName(m_channelName, channelID, channelName);
+	FnKat::encodeLegacyName(fFrameName, m_frameID, channelName);
 	m_pChannel->setChannelName(channelName);
 
 	// total size of a pixel for a single channel (RGBA * float) = 16
@@ -523,7 +543,10 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 	m_pDataPipe->send(*m_pChannel);
 #endif
 
-	buildSceneGeometry(settings, rootIterator);
+	{
+		Timer t1("Katana scene expansion");
+		buildSceneGeometry(settings, rootIterator);
+	}
 
 	// if there's no light in the scene, add a physical sky...
 	if (m_pScene->getLightCount() == 0)
@@ -622,6 +645,64 @@ void ImagineRender::startInteractiveRenderer()
 
 void ImagineRender::renderFinished()
 {
+	//
+#if ENABLE_PREVIEW_RENDERS
+	if (m_pOutputImage)
+	{
+		// send through the entire image again...
+		OutputImage imageCopy(*m_pOutputImage);
+
+		const unsigned int origWidth = imageCopy.getWidth();
+		const unsigned int origHeight = imageCopy.getHeight();
+
+		imageCopy.normaliseProgressive();
+		imageCopy.applyExposure(1.8f);
+
+		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
+		pNewTileMessage->setStartCoordinates(0, 0);
+		pNewTileMessage->setDataDimensions(origWidth, origHeight);
+
+		unsigned int skipSize = 4 * sizeof(float);
+		unsigned int dataSize = origWidth * origHeight * skipSize;
+		unsigned char* pData = new unsigned char[dataSize];
+
+		unsigned char* pDstRow = pData;
+
+		for (unsigned int i = 0; i < origHeight; i++)
+		{
+			const Colour4f* pSrcRow = imageCopy.colourRowPtr(i);
+			const Colour4f* pSrcPixel = pSrcRow;
+
+			unsigned char* pDstPixel = pDstRow;
+
+			for (unsigned int j = 0; j < origWidth; j++)
+			{
+				// copy each component manually, as we need to swap the A channel to be beginning for Katana...
+				memcpy(pDstPixel, &pSrcPixel->a, sizeof(float));
+				pDstPixel += sizeof(float);
+				memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
+				pDstPixel += sizeof(float);
+				memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
+				pDstPixel += sizeof(float);
+				memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
+				pDstPixel += sizeof(float);
+
+				pSrcPixel += 1;
+			}
+
+			pDstRow += origWidth * skipSize;
+		}
+
+		pNewTileMessage->setData(pData, dataSize);
+		pNewTileMessage->setByteSkip(skipSize);
+
+		m_pDataPipe->send(*pNewTileMessage);
+
+		// we can now delete the data (but not the message)
+		delete [] pData;
+		pData = NULL;
+	}
+#endif
 	fprintf(stderr, "Render complete.\n");
 
 	if (m_printStatistics)
@@ -675,15 +756,45 @@ void ImagineRender::progressChanged(float progress)
 	}
 }
 
-void ImagineRender::tileDone(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned int threadID)
+void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 {
 #if ENABLE_PREVIEW_RENDERS
 	if (m_pOutputImage)
 	{
 		OutputImage imageCopy(*m_pOutputImage);
 
+		const unsigned int origWidth = imageCopy.getWidth();
+		const unsigned int origHeight = imageCopy.getHeight();
+
 		imageCopy.normaliseProgressive();
 		imageCopy.applyExposure(1.8f);
+
+		// take our own copies
+		unsigned int x = tileInfo.x;
+		unsigned int y = tileInfo.y;
+		unsigned int width = tileInfo.width;
+		unsigned int height = tileInfo.height;
+
+		// add a pixel border around the output tile apron to account for pixel filters...
+		const unsigned int tb = tileInfo.tileApronSize;
+		if (x >= tb)
+		{
+			x -= tb;
+			width += tb;
+		}
+		if (y >= tb)
+		{
+			y -= tb;
+			height += tb;
+		}
+		if (x + width + tb < origWidth)
+		{
+			width += tb;
+		}
+		if (y + height + tb < origHeight)
+		{
+			height += tb;
+		}
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
 		pNewTileMessage->setStartCoordinates(x, y);
