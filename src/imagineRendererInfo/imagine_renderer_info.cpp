@@ -35,6 +35,8 @@ void ImagineRendererInfo::fillRenderMethods(std::vector<Foundry::Katana::Rendere
 {
 	renderMethods.push_back(new Foundry::Katana::RendererInfo::DiskRenderMethod());
 	renderMethods.push_back(new Foundry::Katana::RendererInfo::PreviewRenderMethod());
+
+//	renderMethods.push_back(new Foundry::Katana::RendererInfo::LiveRenderMethod());
 }
 
 void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& renderObjectTypes, const std::string& type) const
@@ -55,6 +57,7 @@ void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& rend
 		renderObjectTypes.push_back(kFnRendererOutputTypeColor);
 		renderObjectTypes.push_back(kFnRendererOutputTypeRaw);
 		renderObjectTypes.push_back(kFnRendererOutputTypeDeep);
+		renderObjectTypes.push_back(kFnRendererOutputTypeForceNone);
 	}
 }
 

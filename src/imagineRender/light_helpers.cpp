@@ -83,13 +83,15 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
 	int numSamples = ah.getIntParam("num_samples", 1);
+	int isVisible = ah.getIntParam("visible", 1);
 
 	std::string envMapPath = ah.getStringParam("env_map_path");
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setEnvMapPath(envMapPath);
-	pNewLight->setRadius(1000.0f);
+	pNewLight->setRadius(2000.0f);
+	pNewLight->setVisible(isVisible == 1);
 
 	return pNewLight;
 }
@@ -102,6 +104,7 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
 	int numSamples = ah.getIntParam("num_samples", 1);
+	int isVisible = ah.getIntParam("visible", 1);
 
 	int dayOfYear = ah.getIntParam("day", 174);
 	float time = ah.getFloatParam("time", 17.1f);
@@ -111,7 +114,8 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setSamples(numSamples);
-	pNewLight->setRadius(1000.0f);
+	pNewLight->setRadius(2000.0f);
+	pNewLight->setVisible(isVisible == 1);
 
 	pNewLight->setDayOfYear(dayOfYear);
 	pNewLight->setTimeOfDay(time);

@@ -251,9 +251,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = renderSettingsAttribute.getChildByName("bake_down_scene");
-	unsigned int bakeDownScene = 1;
+	unsigned int bakeDownScene = 0;
 	if (bakeDownSceneAttribute.isValid())
-		bakeDownScene = bakeDownSceneAttribute.getValue(1, false);
+		bakeDownScene = bakeDownSceneAttribute.getValue(0, false);
 
 	FnKat::IntAttribute useCompactGeometryAttribute = renderSettingsAttribute.getChildByName("use_compact_geometry");
 	unsigned int useCompactGeometry = 1;
@@ -262,9 +262,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_useCompactGeometry = (useCompactGeometry == 1);
 
 	FnKat::IntAttribute deduplicateVertexNormalsAttribute = renderSettingsAttribute.getChildByName("deduplicate_vertex_normals");
-	m_deduplicateVertexNormals = false;
+	m_deduplicateVertexNormals = true;
 	if (deduplicateVertexNormalsAttribute.isValid())
-		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(0, false) == 1);
+		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
 
 	FnKat::IntAttribute sceneAccelStructureAttribute = renderSettingsAttribute.getChildByName("scene_accel_structure");
 	unsigned int sceneAccelStructure = 0;
@@ -707,17 +707,14 @@ void ImagineRender::renderFinished()
 
 	if (m_printStatistics)
 	{
-		// run through all objects in the scene, building up geometry info - this isn't really correct in a normal
-		// Imagine situation, as we should use renderableObjects to get only visible and final geometry (subdived and displaced).
-		// But in this case with integrating into Katana, it makes sense for the moment, and allows useful comparisons
-		// with other renderers.
-
-		unsigned int numObjects = m_pScene->getObjectCount();
+		// run through all objects in the scene, building up geometry info
 
 		GeometryInfo info;
-		for (unsigned int i = 0; i < numObjects; i++)
+
+		std::vector<Object*>::const_iterator itObject = m_pScene->renderableObjectItBegin();
+		for (; itObject != m_pScene->renderableObjectItEnd(); ++itObject)
 		{
-			const Object* pObject = m_pScene->getObject(i);
+			const Object* pObject = *itObject;
 
 			const GeometryInstance* pGI = pObject->getGeometryInstance();
 
@@ -729,9 +726,13 @@ void ImagineRender::renderFinished()
 
 		fprintf(stderr, "\n\nGeometry Statistics:\n");
 
+		std::string sourceGeoSize = formatSize(info.getTotalSourceSize());
 		std::string trianglesSize = formatSize(info.getTotalTrianglesSize());
+		std::string accelSize = formatSize(info.getAccelerationStructureSize());
 
-		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
+		fprintf(stderr, "Total source Geo memory size: %s\n", sourceGeoSize.c_str());
+		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
+		fprintf(stderr, "Total accel structure memory size: %s\n\n", accelSize.c_str());
 	}
 
 #if ENABLE_PREVIEW_RENDERS

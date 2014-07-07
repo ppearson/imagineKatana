@@ -18,7 +18,7 @@
 #endif
 
 #ifndef STAND_ALONE
-SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_scene(scene), m_applyMaterials(true), m_useTextures(true), m_enableSubd(true),
+SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_applyMaterials(true), m_scene(scene), m_useTextures(true), m_enableSubd(true),
 	m_useCompactGeometry(true)
 {
 }
@@ -42,12 +42,6 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 {
 	std::string type = iterator.getType();
 
-	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
-	for (; child.isValid(); child = child.getNextSibling())
-	{
-		processLocationRecursive(child);
-	}
-
 	if (type == "polymesh" || type == "subdmesh")
 	{
 		// treat subdmesh as polymesh for the moment...
@@ -62,14 +56,29 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		{
 			processGeometryPolymeshStandard(iterator);
 		}
+
+		return;
+	}
+
+	if (type == "instance")
+	{
+
 	}
 	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
 	{
 		processSphere(iterator);
+		return;
 	}
 	else if (type == "light")
 	{
 		processLight(iterator);
+		return;
+	}
+
+	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
+	for (; child.isValid(); child = child.getNextSibling())
+	{
+		processLocationRecursive(child);
 	}
 }
 
@@ -261,15 +270,14 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 		}
 	}
 
-	// again, we should do things properly here, but this is a good start to get things going...
-	StandardGeometryOperations::calculateVertexNormals(pNewGeoInstance);
+	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;
+
+	geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS;
 
 	if (hasUVs)
 	{
 		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
-
-	StandardGeometryOperations::tesselateGeometryToTriangles(pNewGeoInstance, true);
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
 	if (boundAttr.isValid())
@@ -284,8 +292,10 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 	{
 		// strictly-speaking, this means that the attributes are wrong, so we should probably ignore it, but
 		// on the basis that we're force-expanding everything currently anyway...
-		pNewGeoInstance->calculateBoundaryBox();
+		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_BBOX;
 	}
+
+	pNewGeoInstance->setGeoBuildFlags(geoBuildFlags);
 
 	Mesh* pNewMeshObject = new Mesh();
 
@@ -380,88 +390,6 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	}
 #endif
 
-	FnKat::IntAttribute uvIndexAttribute;
-	bool hasUVs = false;
-	bool indexedUVs = false;
-	// copy any UVs
-	FnKat::GroupAttribute stAttribute = iterator.getAttribute("geometry.arbitrary.st", true);
-	if (stAttribute.isValid())
-	{
-		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
-
-		if (arbitraryAttribute.isValid())
-		{
-			FnKat::FloatAttribute uvItemAttribute;
-			if (arbitraryAttribute.hasIndexedValueAttr())
-			{
-				uvIndexAttribute = arbitraryAttribute.getIndexAttr(true);
-				uvItemAttribute = arbitraryAttribute.getIndexedValueAttr();
-				indexedUVs = true;
-			}
-			else
-			{
-				// otherwise, just build the list of vertices sequentially later
-				uvItemAttribute = arbitraryAttribute.getValueAttr();
-			}
-
-			if (uvItemAttribute.isValid())
-			{
-				hasUVs = true;
-				std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
-
-				FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
-				unsigned int numItems = uvlist.size();
-
-				aUVs.reserve(numItems / 2);
-
-				for (unsigned int i = 0; i < numItems; i += 2)
-				{
-					const float& u = uvlist[i];
-					const float& v = uvlist[i + 1];
-
-					aUVs.push_back(UV(u, v));
-				}
-			}
-		}
-	}
-
-	// set any UV indicies if necessary
-	if (hasUVs)
-	{
-		if (indexedUVs)
-		{
-			// if indexed, get hold the uv indicies list
-			FnKat::IntConstVector uvIndicesValue = uvIndexAttribute.getNearestSample(0.0f);
-
-#if FAST
-			// this isn't technically correct, but as long as we're only using 31 bits, will work...
-			unsigned int numIndices = uvIndicesValue.size();
-			uint32_t* pUVIndices = new uint32_t[numIndices];
-			memcpy(pUVIndices, uvIndicesValue.data(), numIndices * sizeof(uint32_t));
-
-			pNewGeoInstance->setUVIndicesRaw(pUVIndices, numIndices);
-#else
-			// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
-			// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
-			unsigned int numIndices = uvIndicesValue.size();
-			std::vector<uint32_t> aUVIndices;
-			aUVIndices.reserve(numIndices);
-			for (unsigned int i = 0; i < numIndices; i++)
-			{
-				const int& value = uvIndicesValue[i];
-
-				aUVIndices.push_back((uint32_t)value);
-			}
-
-			pNewGeoInstance->setUVIndices(aUVIndices);
-#endif
-		}
-
-		// otherwise if we're not indexed, just set that we're using VertexUVs, and the overall Poly indicies will be used.
-
-		pNewGeoInstance->setHasPerVertexUVs(true);
-	}
-
 	// work out the faces...
 	FnKat::GroupAttribute polyAttribute = geometryAttribute.getChildByName("poly");
 	FnKat::IntAttribute polyStartIndexAttribute = polyAttribute.getChildByName("startIndex");
@@ -502,12 +430,117 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
 	std::vector<uint32_t>& aPolyIndices = pNewGeoInstance->getPolygonIndices();
 	unsigned int numIndices = vertexListAttributeValue.size();
-	aPolyIndices.reserve(numIndices);
+	aPolyIndices.resize(numIndices);
 	for (unsigned int i = 0; i < numIndices; i++)
 	{
 		const int& value = vertexListAttributeValue[i];
+		aPolyIndices[i] = (uint32_t)value;
+	}
 
-		aPolyIndices.push_back((unsigned int)value);
+	FnKat::IntAttribute uvIndexAttribute;
+	bool hasUVs = false;
+	bool indexedUVs = false;
+	// copy any UVs
+	FnKat::GroupAttribute stAttribute = iterator.getAttribute("geometry.arbitrary.st", true);
+	if (stAttribute.isValid())
+	{
+		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
+
+		if (arbitraryAttribute.isValid())
+		{
+			FnKat::FloatAttribute uvItemAttribute;
+			if (arbitraryAttribute.hasIndexedValueAttr())
+			{
+				uvIndexAttribute = arbitraryAttribute.getIndexAttr(true);
+				uvItemAttribute = arbitraryAttribute.getIndexedValueAttr();
+
+				indexedUVs = true;
+			}
+			else
+			{
+				// we'll generate them later...
+			}
+
+			if (uvItemAttribute.isValid())
+			{
+				hasUVs = true;
+				std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
+
+				FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
+				unsigned int numItems = uvlist.size();
+
+				aUVs.resize(numItems / 2);
+
+				std::vector<UV>::iterator itUV = aUVs.begin();
+				for (unsigned int i = 0; i < numItems; i += 2)
+				{
+					UV& uv = *itUV++;
+					uv.u = uvlist[i];
+					uv.v = uvlist[i + 1];
+				}
+			}
+		}
+	}
+
+	// set any UV indicies if necessary
+	if (hasUVs)
+	{
+		if (indexedUVs)
+		{
+			// if indexed, get hold the uv indicies list
+			FnKat::IntConstVector uvIndicesValue = uvIndexAttribute.getNearestSample(0.0f);
+
+#if FAST
+			// this isn't technically correct, but as long as we're only using 31 bits, will work...
+			unsigned int numUVIndices = uvIndicesValue.size();
+			uint32_t* pUVIndices = new uint32_t[numUVIndices];
+			memcpy(pUVIndices, uvIndicesValue.data(), numUVIndices * sizeof(uint32_t));
+
+			pNewGeoInstance->setUVIndicesRaw(pUVIndices, numUVIndices);
+#else
+			// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
+			// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
+			unsigned int numUVIndices = uvIndicesValue.size();
+			std::vector<uint32_t> aUVIndices;
+			aUVIndices.resize(numUVIndices);
+			for (unsigned int i = 0; i < numUVIndices; i++)
+			{
+				const int& value = uvIndicesValue[i];
+
+				aUVIndices[i] = (uint32_t)value;
+			}
+
+			pNewGeoInstance->setUVIndices(aUVIndices);
+#endif
+		}
+		else
+		{
+			// just make a sequential list of UV indices
+#if FAST
+			uint32_t* pUVIndices = new uint32_t[numIndices];
+
+			for (unsigned int i = 0; i < numIndices; i++)
+			{
+				pUVIndices[i] = i;
+			}
+
+			pNewGeoInstance->setUVIndicesRaw(pUVIndices, numIndices);
+#else
+			std::vector<uint32_t> aUVIndices;
+			aUVIndices.resize(numIndices);
+
+			for (unsigned int i = 0; i < numIndices; i++)
+			{
+				aUVIndices[i] = i;
+			}
+
+			pNewGeoInstance->setUVIndices(aUVIndices);
+#endif
+		}
+
+		// otherwise if we're not indexed, just set that we're using VertexUVs, and the overall Poly indicies will be used.
+
+		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
 
 	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;

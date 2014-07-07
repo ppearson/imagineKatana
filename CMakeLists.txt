@@ -165,8 +165,6 @@ IF(${STAND_ALONE} MATCHES 0)
 		set(ZEROMQ_LIBRARY "")
 	ENDIF(${DISPLAY_DRIVER} MATCHES 1)
 
-
-
 	set(EXTERNAL_INCLUDE_DIRS ${ILMBASE_DIST}/include/OpenEXR ${OPENEXR_DIST}/include/OpenEXR ${ZEROMQ_INCLUDE_DIRS})
 	set(EXTERNAL_COMPILE_FLAGS "")
 	set(EXTERNAL_LINK_FLAGS "")
@@ -199,9 +197,7 @@ IF(${STAND_ALONE} MATCHES 0)
 	# a modified copy
 	SET(imagine_SOURCES "")
 	FOREACH(file ${imagine_SOURCES_ORIGINAL})
-	#	STRING(REGEX MATCH "([/]ui[/]|[/]app[/]|abc|opengl)" test1 ${file})
 		STRING(REGEX MATCH "([/]ui[/]|[/]app[/]|[/]io[/]geometry[/]|[/]io[/]scene[/]|[/]scene_builders[/])" test1 ${file})
-	#	STRING(REGEX MATCH "([/]ui[/]|[/]app[/]|[/]io[/]|[/]scene_builders[/])" test1 ${file})
 		IF(test1)
 
 		ELSE(test1)
