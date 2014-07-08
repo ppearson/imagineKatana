@@ -197,6 +197,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (samplesPerPixelAttribute.isValid())
 		samplesPerPixel = samplesPerPixelAttribute.getValue(64, false);
 
+	FnKat::IntAttribute iterationsAttribute = renderSettingsAttribute.getChildByName("iterations");
+	unsigned int iterations = 1;
+	if (iterationsAttribute.isValid())
+		iterations = iterationsAttribute.getValue(1, false);
+
 	FnKat::IntAttribute filterTypeAttribute = renderSettingsAttribute.getChildByName("reconstruction_filter");
 	unsigned int filterType = 3;
 	if (filterTypeAttribute.isValid())
@@ -287,16 +292,16 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		bucketOrder = bucketOrderAttribute.getValue(2, false);
 
 	FnKat::IntAttribute bucketSizeAttribute = renderSettingsAttribute.getChildByName("bucket_size");
-	unsigned int bucketSize = 32;
+	unsigned int bucketSize = 48;
 	if (bucketSizeAttribute.isValid())
-		bucketSize = bucketSizeAttribute.getValue(32, false);
+		bucketSize = bucketSizeAttribute.getValue(48, false);
 
 #ifndef STAND_ALONE
 	m_renderSettings.add("integrator", integratorType);
 	m_renderSettings.add("rayEpsilon", rayEpsilon);
 
 // for the moment, only do one iteration, at least for disk renders...
-	m_renderSettings.add("Iterations", 1);
+	m_renderSettings.add("Iterations", (unsigned int)iterations);
 	m_renderSettings.add("volumetric", volumetrics == 1); // this needs to be a bool...
 	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
 

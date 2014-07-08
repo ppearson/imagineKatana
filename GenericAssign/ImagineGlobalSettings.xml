@@ -8,8 +8,9 @@
 					<int name="path_distributed" value="2"/>
 				</hintdict>
 			</int>
-			<int name="enable_volumetrics" default="0" widget="checkBox"/>
-			<int name="spp" default="64" help="The number of samples per pixel"/>
+			<int name="enable_volumetrics" default="0" widget="checkBox" help="enable the Volumetrics integrator. Needed for SSS and volumes."/>
+			<int name="spp" default="64" help="The overall number of samples per pixel. Perfect square numbers (49, 64, 144) will give slightly better sample stratification."/>
+			<int name="iterations" default="1" help="The number of iteration passes to split the above samples into"/>
 			<int name="reconstruction_filter" widget="mapper" default="3">
 				<hintdict name='options'>
 					<int name="box" value="0"/>
@@ -26,17 +27,17 @@
 			<int name="path_dist_glossy_multiplier" default="2" help= "Glossy ray multiplier for the PathDistributed integrator"/>
 		</page>
 		<page name='light_paths' open="True">
-			<int name="max_depth_overall" default="4" help=""/>
+			<int name="max_depth_overall" default="4" help="Maximum ray bounce count"/>
 			<int name="max_depth_diffuse" default="3" help=""/>
 			<int name="max_depth_glossy" default="3" help=""/>
 			<int name="max_depth_reflection" default="5" help=""/>
 			<int name="max_depth_refraction" default="5" help=""/>
 		</page>
 		<page name='scene' open="True">
-			<int name="bake_down_scene" default="0" widget="checkBox"/>
-			<int name="use_compact_geometry" default="1" widget="checkBox"/>
-			<int name="deduplicate_vertex_normals" default="1" widget="checkBox"/>
-			<int name="scene_accel_structure" widget="mapper" default="0">
+			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and uses more memory, and doesn't support instancing or transform motion blur, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
+			<int name="use_compact_geometry" default="1" widget="checkBox" help="Use a more compact representation of Geometry for both the source and tesselated geometry. This is generally 3-5x more memory efficient (for final memory usage), but doesn't currently support subdivision or displacement."/>
+			<int name="deduplicate_vertex_normals" default="1" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases"/>
+			<int name="scene_accel_structure" widget="mapper" default="0" help="Scene acceleration type to use. KDTree is generally faster for more sparse scenes with lots of empty space. For dense scenes with lots of overlapping objects, BVH can be significantly faster.">
 				<hintdict name='options'>
 					<int name="KDTree" value="0"/>
 					<int name="BVH" value="1"/>
@@ -47,7 +48,7 @@
 
 		<page name='advanced' open="False">
 			<int name="print_statistics" default="1" widget="checkBox"/>
-			<int name="bucket_size" widget="mapper" default="32">
+			<int name="bucket_size" widget="mapper" default="48">
 				<hintdict name='options'>
 					<int name="16" value="16"/>
 					<int name="32" value="32"/>
