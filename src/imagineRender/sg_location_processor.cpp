@@ -7,6 +7,8 @@
 #ifndef STAND_ALONE
 #include "objects/mesh.h"
 #include "objects/primitives/sphere.h"
+#include "objects/compound_object.h"
+#include "objects/compound_instance.h"
 
 #include "geometry/standard_geometry_operations.h"
 #include "geometry/standard_geometry_instance.h"
@@ -62,7 +64,12 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 	if (type == "instance")
 	{
-
+		processInstance(iterator);
+		return;
+	}
+	if (type == "instance source")
+	{
+		return;
 	}
 	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
 	{
@@ -351,6 +358,61 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		return;
 	}
 
+	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator);
+	if (!pNewGeoInstance)
+	{
+		return;
+	}
+
+	Mesh* pNewMeshObject = new Mesh();
+
+	pNewMeshObject->setGeometryInstance(pNewGeoInstance);
+
+	FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
+	std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
+
+	// see if we've got it already
+	Material* pMaterial = m_materialHelper.getExistingMaterial(materialHash);
+
+	if (!pMaterial)
+	{
+		// create it
+		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+	}
+
+	pNewMeshObject->setMaterial(pMaterial);
+
+	// do transform
+
+	FnKat::GroupAttribute xformAttr;
+	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+	std::set<float> sampleTimes;
+	sampleTimes.insert(0);
+	std::vector<float> relevantSampleTimes;
+	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
+
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+	const double* pMatrix = xforms[0].getValues();
+
+	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+
+	m_scene.addObject(pNewMeshObject, false, false);
+}
+
+CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator)
+{
+	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
+	if (!geometryAttribute.isValid())
+	{
+		return NULL;
+	}
+
 	CompactGeometryInstance* pNewGeoInstance = new CompactGeometryInstance();
 
 	std::vector<Point>& aPoints = pNewGeoInstance->getPoints();
@@ -582,9 +644,193 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 
 	pNewGeoInstance->setGeoBuildFlags(geoBuildFlags);
 
-	Mesh* pNewMeshObject = new Mesh();
+	return pNewGeoInstance;
+}
 
-	pNewMeshObject->setGeometryInstance(pNewGeoInstance);
+CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator)
+{
+	std::vector<Object*> aObjects;
+
+	createCompoundObjectFromLocationRecursive(iterator, aObjects);
+
+	CompoundObject* pNewCO = new CompoundObject();
+
+	std::vector<Object*>::iterator itObject = aObjects.begin();
+	for (; itObject != aObjects.end(); ++itObject)
+	{
+		Object* pObject = *itObject;
+
+		pNewCO->addObject(pObject);
+	}
+
+	pNewCO->setType(CompoundObject::eBaked);
+
+	return pNewCO;
+}
+
+void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects)
+{
+	std::string type = iterator.getType();
+
+	if (type == "polymesh" || type == "subdmesh")
+	{
+		// get the geometry attributes group
+		FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
+		if (!geometryAttribute.isValid())
+		{
+			std::string name = iterator.getFullName();
+			fprintf(stderr, "Warning: polymesh '%s' does not have a 'geometry' attribute...\n", name.c_str());
+			return;
+		}
+
+		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator);
+
+		if (!pNewGeoInstance)
+		{
+			return;
+		}
+
+		// do this here for now, but shouldn't really be needed...
+		// TODO: fix this...
+		unsigned int buildFlags = pNewGeoInstance->getGeoBuildFlags();
+		pNewGeoInstance->buildRawGeometryData(buildFlags);
+
+		Mesh* pNewMeshObject = new Mesh();
+
+		pNewMeshObject->setGeometryInstance(pNewGeoInstance);
+
+		FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
+		std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
+
+		// see if we've got it already
+		Material* pMaterial = m_materialHelper.getExistingMaterial(materialHash);
+
+		if (!pMaterial)
+		{
+			// create it
+			pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+		}
+
+		pNewMeshObject->setMaterial(pMaterial);
+
+		// do transform
+
+		FnKat::GroupAttribute xformAttr;
+		xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+		std::set<float> sampleTimes;
+		sampleTimes.insert(0);
+		std::vector<float> relevantSampleTimes;
+		std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
+
+		FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+		bool isAbsolute = false;
+		FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+													 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+		const double* pMatrix = xforms[0].getValues();
+
+		pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+
+		aObjects.push_back(pNewMeshObject);
+
+		return;
+	}
+
+	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
+	for (; child.isValid(); child = child.getNextSibling())
+	{
+		createCompoundObjectFromLocationRecursive(child, aObjects);
+	}
+}
+
+void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
+{
+	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
+	if (!instanceSourceAttribute.isValid())
+	{
+		return;
+	}
+
+	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
+	FnKat::FnScenegraphIterator itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
+	if (!itInstanceSource.isValid())
+	{
+		return;
+	}
+
+	// see if we've created the source already...
+	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
+
+	Object* pNewObject = NULL;
+
+	if (itFind != m_aInstances.end())
+	{
+		// just create the item pointing to it
+
+		const InstanceInfo& ii = (*itFind).second;
+
+		if (ii.m_compound)
+		{
+			CompoundInstance* pNewCI = new CompoundInstance(ii.pCompoundObject);
+
+			pNewObject = pNewCI;
+		}
+		else
+		{
+			Mesh* pNewMesh = new Mesh();
+
+			pNewMesh->setGeometryInstance(ii.pGeoInstance);
+
+			pNewObject = pNewMesh;
+		}
+	}
+	else
+	{
+		// if it's simply pointing to a mesh (so a leaf without a hierarchy)
+		std::string sourceType = itInstanceSource.getType();
+		if (sourceType == "polymesh" || sourceType == "subdmesh")
+		{
+			// just build the source geometry and link to it....
+
+			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource);
+
+			InstanceInfo ii;
+			ii.m_compound = false;
+			ii.pGeoInstance = pNewInstance;
+
+			m_aInstances[instanceSourcePath] = ii;
+
+			Mesh* pNewMesh = new Mesh();
+
+			pNewMesh->setGeometryInstance(pNewInstance);
+
+			pNewObject = pNewMesh;
+		}
+		else
+		{
+			// it's a full hierarchy, so we can specialise by building a compound object containing all the sub-objects
+
+			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource);
+
+			// this one is set to be hidden, but we need to add it to the scene...
+
+			InstanceInfo ii;
+			ii.m_compound = true;
+
+			ii.pCompoundObject = pCO;
+
+			m_aInstances[instanceSourcePath] = ii;
+
+			pNewObject = pCO;
+		}
+	}
+
+	if (!pNewObject)
+		return;
+
+	//
 
 	FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
 	std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
@@ -598,7 +844,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
 	}
 
-	pNewMeshObject->setMaterial(pMaterial);
+	pNewObject->setMaterial(pMaterial);
 
 	// do transform
 
@@ -618,9 +864,9 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 
 	const double* pMatrix = xforms[0].getValues();
 
-	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
-	m_scene.addObject(pNewMeshObject, false, false);
+	m_scene.addObject(pNewObject, false, false);
 }
 
 void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)

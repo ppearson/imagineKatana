@@ -4,6 +4,8 @@
 #include <FnAttribute/FnAttribute.h>
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
+#include <map>
+
 #include "material_helper.h"
 #include "light_helpers.h"
 
@@ -13,6 +15,9 @@
 
 #endif
 
+class CompactGeometryInstance;
+class CompoundObject;
+
 class SGLocationProcessor
 {
 public:
@@ -21,6 +26,17 @@ public:
 #else
 	SGLocationProcessor();
 #endif
+
+	struct InstanceInfo
+	{
+		bool		m_compound;
+
+		union
+		{
+			CompactGeometryInstance*	pGeoInstance;
+			CompoundObject*				pCompoundObject;
+		};
+	};
 
 	void setUseCompactGeometry(bool useCG)
 	{
@@ -40,6 +56,11 @@ public:
 	void processGeometryPolymeshStandard(FnKat::FnScenegraphIterator iterator);
 	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator);
 
+	CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator);
+	CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator);
+	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects);
+
+	void processInstance(FnKat::FnScenegraphIterator iterator);
 	void processSphere(FnKat::FnScenegraphIterator iterator);
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
@@ -55,6 +76,8 @@ protected:
 
 	MaterialHelper		m_materialHelper;
 	LightHelpers		m_lightHelper;
+
+	std::map<std::string, InstanceInfo>	m_aInstances;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H
