@@ -101,6 +101,7 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 		else if (isLight)
 		{
 			rendererObjectNames.push_back("Point");
+			rendererObjectNames.push_back("Spot");
 			rendererObjectNames.push_back("Area");
 			rendererObjectNames.push_back("Distant");
 			rendererObjectNames.push_back("SkyDome");

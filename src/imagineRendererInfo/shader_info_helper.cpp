@@ -80,23 +80,31 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	// lights
 	else if (name == "Point")
 	{
-
+		buildPointLightShaderParams(iri, rendererObjectInfo);
+	}
+	else if (name == "Spot")
+	{
+		buildSpotLightShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Area")
 	{
-
+		buildAreaLightShaderParams(iri, rendererObjectInfo);
+	}
+	else if (name == "Distant")
+	{
+		buildDistantLightShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "SkyDome")
 	{
-		buildSkydomeShaderParams(iri, rendererObjectInfo);
+		buildSkydomeLightShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Environment")
 	{
-		buildEnvironmentShaderParams(iri, rendererObjectInfo);
+		buildEnvironmentLightShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "PhysicalSky")
 	{
-		buildPhysicalSkyShaderParams(iri, rendererObjectInfo);
+		buildPhysicalSkyLightShaderParams(iri, rendererObjectInfo);
 	}
 
 	return true;
@@ -168,36 +176,99 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatParam("absorption_ratio", 0.46f);
 }
 
-void ShaderInfoHelper::buildSkydomeShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addFloatParam("intensity", 1.0f);
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
-	helper.addIntParam("num_samples", 1);
+
+	helper.addIntParam("shadow_type", 0);
 }
 
-void ShaderInfoHelper::buildEnvironmentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildSpotLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addFloatParam("intensity", 1.0f);
+	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
+	helper.addIntParam("shadow_type", 0);
+
+	helper.addIntParam("num_samples", 1);
+
+	helper.addFloatParam("cone_angle", 30.0f);
+	helper.addFloatParam("penumbra_angle", 5.0f);
+
+	helper.addBoolParam("is_area", true);
+}
+
+void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("intensity", 1.0f);
+	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
+	helper.addIntParam("shadow_type", 0);
+
+	helper.addIntParam("num_samples", 1);
+
+	helper.addBoolParam("visible", false);
+
+	helper.addFloatParam("width", 1.0f);
+	helper.addFloatParam("depth", 1.0f);
+
+	helper.addIntParam("shape_type", 0);
+
+	helper.addBoolParam("scale", true);
+	helper.addBoolParam("bi-directional", false);
+}
+
+void ShaderInfoHelper::buildDistantLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("intensity", 1.0f);
+	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
+	helper.addIntParam("shadow_type", 0);
+
+	helper.addFloatParam("spread_angle", 4.0f);
+}
+
+void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("intensity", 1.0f);
+	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
+	helper.addIntParam("shadow_type", 0);
+	helper.addIntParam("num_samples", 1);
+}
+
+void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addFloatParam("intensity", 1.0f);
+	helper.addIntParam("shadow_type", 0);
 	helper.addIntParam("num_samples", 1);
 	helper.addBoolParam("visible", true);
 
 	helper.addStringParam("env_map_path");
 }
 
-void ShaderInfoHelper::buildPhysicalSkyShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addFloatParam("overall_intensity", 1.0f);
+	helper.addIntParam("shadow_type", 0);
 	helper.addIntParam("num_samples", 1);
 	helper.addBoolParam("visible", true);
 
 	helper.addFloatParam("sky_intensity", 1.0f);
 	helper.addFloatParam("sun_intensity", 1.0f);
+
+	helper.addIntParam("hemisphere_extension", 0);
 
 	helper.addFloatParam("time", 17.1f);
 	helper.addIntParam("day", 174);

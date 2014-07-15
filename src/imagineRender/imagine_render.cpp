@@ -30,7 +30,8 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_deduplicateVertexNormals(false), m_printStatistics(false)
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_deduplicateVertexNormals(false), m_printStatistics(false),
+	m_ROIActive(false), m_specialiseAssembies(false)
 {
 #if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
@@ -170,66 +171,95 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 
 	buildCamera(settings, cameraIterator);
 
+	FnKat::GroupAttribute renderSettingsAttribute = rootIterator.getAttribute("renderSettings");
+
+	FnKat::IntAttribute regionOfInterestAttribute = renderSettingsAttribute.getChildByName("ROI");
+	if (regionOfInterestAttribute.isValid())
+	{
+		FnKat::IntConstVector roiValues = regionOfInterestAttribute.getNearestSample(0.0f);
+
+		// should be four of them...
+		fprintf(stderr, "ROI found: (%i, %i, %i, %i)\n", roiValues[0], roiValues[1], roiValues[2], roiValues[3]);
+
+		m_ROIActive = true;
+		m_ROIStartX = roiValues[0];
+		m_ROIStartY = roiValues[1];
+
+		// adjust how big our render backbuffer area is
+		m_ROIWidth = roiValues[2];
+		m_ROIHeight = roiValues[3];
+
+		m_renderSettings.add("renderCrop", true);
+		m_renderSettings.add("cropX", roiValues[0]);
+		m_renderSettings.add("cropY", roiValues[1]);
+		m_renderSettings.add("cropWidth", roiValues[2]);
+		m_renderSettings.add("cropHeight", roiValues[3]);
+	}
+
 	configureRenderSettings(settings, rootIterator);
 
 	return true;
 }
 
+// Imagine-specific settings
 bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
-	FnKat::GroupAttribute renderSettingsAttribute = rootIterator.getAttribute("imagineGlobalStatements");
+	FnKat::GroupAttribute imagineGSAttribute = rootIterator.getAttribute("imagineGlobalStatements");
 
 	// TODO: provide helper wrapper function to do all this isValue() and default value stuff.
 	//       It's rediculous that Katana doesn't provide this anyway...
 
-	FnKat::IntAttribute integratorTypeAttribute = renderSettingsAttribute.getChildByName("integrator");
+	FnKat::IntAttribute integratorTypeAttribute = imagineGSAttribute.getChildByName("integrator");
 	unsigned int integratorType = 1;
 	if (integratorTypeAttribute.isValid())
 		integratorType = integratorTypeAttribute.getValue(1, false);
 
-	FnKat::IntAttribute volumetricsAttribute = renderSettingsAttribute.getChildByName("enable_volumetrics");
+	FnKat::IntAttribute volumetricsAttribute = imagineGSAttribute.getChildByName("enable_volumetrics");
 	unsigned int volumetrics = 0;
 	if (volumetricsAttribute.isValid())
 		volumetrics = volumetricsAttribute.getValue(0, false);
 
-	FnKat::IntAttribute samplesPerPixelAttribute = renderSettingsAttribute.getChildByName("spp");
+	FnKat::IntAttribute samplesPerPixelAttribute = imagineGSAttribute.getChildByName("spp");
 	unsigned int samplesPerPixel = 64;
 	if (samplesPerPixelAttribute.isValid())
 		samplesPerPixel = samplesPerPixelAttribute.getValue(64, false);
 
-	FnKat::IntAttribute iterationsAttribute = renderSettingsAttribute.getChildByName("iterations");
+	FnKat::IntAttribute iterationsAttribute = imagineGSAttribute.getChildByName("iterations");
 	unsigned int iterations = 1;
 	if (iterationsAttribute.isValid())
+	{
 		iterations = iterationsAttribute.getValue(1, false);
+		samplesPerPixel /= iterations;
+	}
 
-	FnKat::IntAttribute filterTypeAttribute = renderSettingsAttribute.getChildByName("reconstruction_filter");
+	FnKat::IntAttribute filterTypeAttribute = imagineGSAttribute.getChildByName("reconstruction_filter");
 	unsigned int filterType = 3;
 	if (filterTypeAttribute.isValid())
 		filterType = filterTypeAttribute.getValue(3, false);
 
 	// ray depths
 
-	FnKat::IntAttribute maxDepthOverallAttribute = renderSettingsAttribute.getChildByName("max_depth_overall");
+	FnKat::IntAttribute maxDepthOverallAttribute = imagineGSAttribute.getChildByName("max_depth_overall");
 	unsigned int maxDepthOverall = 4;
 	if (maxDepthOverallAttribute.isValid())
 		maxDepthOverall = maxDepthOverallAttribute.getValue(4, false);
 
-	FnKat::IntAttribute maxDepthDiffuseAttribute = renderSettingsAttribute.getChildByName("max_depth_diffuse");
+	FnKat::IntAttribute maxDepthDiffuseAttribute = imagineGSAttribute.getChildByName("max_depth_diffuse");
 	unsigned int maxDepthDiffuse = 3;
 	if (maxDepthDiffuseAttribute.isValid())
 		maxDepthDiffuse = maxDepthDiffuseAttribute.getValue(3, false);
 
-	FnKat::IntAttribute maxDepthGlossyAttribute = renderSettingsAttribute.getChildByName("max_depth_glossy");
+	FnKat::IntAttribute maxDepthGlossyAttribute = imagineGSAttribute.getChildByName("max_depth_glossy");
 	unsigned int maxDepthGlossy = 3;
 	if (maxDepthGlossyAttribute.isValid())
 		maxDepthGlossy = maxDepthGlossyAttribute.getValue(3, false);
 
-	FnKat::IntAttribute maxDepthRefractionAttribute = renderSettingsAttribute.getChildByName("max_depth_refraction");
+	FnKat::IntAttribute maxDepthRefractionAttribute = imagineGSAttribute.getChildByName("max_depth_refraction");
 	unsigned int maxDepthRefraction = 5;
 	if (maxDepthRefractionAttribute.isValid())
 		maxDepthRefraction = maxDepthRefractionAttribute.getValue(5, false);
 
-	FnKat::IntAttribute maxDepthReflectionAttribute = renderSettingsAttribute.getChildByName("max_depth_reflection");
+	FnKat::IntAttribute maxDepthReflectionAttribute = imagineGSAttribute.getChildByName("max_depth_reflection");
 	unsigned int maxDepthReflection = 5;
 	if (maxDepthRefractionAttribute.isValid())
 		maxDepthReflection = maxDepthReflectionAttribute.getValue(5, false);
@@ -241,11 +271,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		unsigned int diffuseMultipler = 3;
 		unsigned int glossyMultipler = 2;
 
-		FnKat::IntAttribute diffuseMultiplerAttribute = renderSettingsAttribute.getChildByName("path_dist_diffuse_multiplier");
+		FnKat::IntAttribute diffuseMultiplerAttribute = imagineGSAttribute.getChildByName("path_dist_diffuse_multiplier");
 		if (diffuseMultiplerAttribute.isValid())
 			diffuseMultipler = diffuseMultiplerAttribute.getValue(3, false);
 
-		FnKat::IntAttribute glossyMultiplerAttribute = renderSettingsAttribute.getChildByName("path_dist_glossy_multiplier");
+		FnKat::IntAttribute glossyMultiplerAttribute = imagineGSAttribute.getChildByName("path_dist_glossy_multiplier");
 		if (glossyMultiplerAttribute.isValid())
 			glossyMultipler = glossyMultiplerAttribute.getValue(2, false);
 
@@ -253,45 +283,57 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_renderSettings.add("pathDistGlossyMult", glossyMultipler);
 	}
 
+	FnKat::IntAttribute depthOfFieldAttribute = imagineGSAttribute.getChildByName("depth_of_field");
+	unsigned int depthOfField = 0;
+	if (depthOfFieldAttribute.isValid())
+		depthOfField = depthOfFieldAttribute.getValue(0, false);
+
+	m_renderSettings.add("depthOfField", (depthOfField == 1)); // needs to be bool
+
 
 	//
-	FnKat::IntAttribute bakeDownSceneAttribute = renderSettingsAttribute.getChildByName("bake_down_scene");
+	FnKat::IntAttribute bakeDownSceneAttribute = imagineGSAttribute.getChildByName("bake_down_scene");
 	unsigned int bakeDownScene = 0;
 	if (bakeDownSceneAttribute.isValid())
 		bakeDownScene = bakeDownSceneAttribute.getValue(0, false);
 
-	FnKat::IntAttribute useCompactGeometryAttribute = renderSettingsAttribute.getChildByName("use_compact_geometry");
+	FnKat::IntAttribute useCompactGeometryAttribute = imagineGSAttribute.getChildByName("use_compact_geometry");
 	unsigned int useCompactGeometry = 1;
 	if (useCompactGeometryAttribute.isValid())
 		useCompactGeometry = useCompactGeometryAttribute.getValue(1, false);
 	m_useCompactGeometry = (useCompactGeometry == 1);
 
-	FnKat::IntAttribute deduplicateVertexNormalsAttribute = renderSettingsAttribute.getChildByName("deduplicate_vertex_normals");
+	FnKat::IntAttribute deduplicateVertexNormalsAttribute = imagineGSAttribute.getChildByName("deduplicate_vertex_normals");
 	m_deduplicateVertexNormals = true;
 	if (deduplicateVertexNormalsAttribute.isValid())
 		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
 
-	FnKat::IntAttribute sceneAccelStructureAttribute = renderSettingsAttribute.getChildByName("scene_accel_structure");
+	FnKat::IntAttribute specialiseAssembliesAttribute = imagineGSAttribute.getChildByName("specialise_assembly_types");
+	m_specialiseAssembies = false;
+	if (specialiseAssembliesAttribute.isValid())
+		m_specialiseAssembies = (specialiseAssembliesAttribute.getValue(1, false) == 1);
+
+	FnKat::IntAttribute sceneAccelStructureAttribute = imagineGSAttribute.getChildByName("scene_accel_structure");
 	unsigned int sceneAccelStructure = 0;
 	if (sceneAccelStructureAttribute.isValid())
 		sceneAccelStructure = sceneAccelStructureAttribute.getValue(0, false);
 
-	FnKat::IntAttribute printStatisticsAttribute = renderSettingsAttribute.getChildByName("print_statistics");
+	FnKat::IntAttribute printStatisticsAttribute = imagineGSAttribute.getChildByName("print_statistics");
 	m_printStatistics = true;
 	if (printStatisticsAttribute.isValid())
 		m_printStatistics = (printStatisticsAttribute.getValue(1, false) == 1);
 
-	FnKat::FloatAttribute rayEpsilonAttribute = renderSettingsAttribute.getChildByName("ray_epsilon");
+	FnKat::FloatAttribute rayEpsilonAttribute = imagineGSAttribute.getChildByName("ray_epsilon");
 	float rayEpsilon = 0.001f;
 	if (rayEpsilonAttribute.isValid())
 		rayEpsilon = rayEpsilonAttribute.getValue(0.001f, false);
 
-	FnKat::IntAttribute bucketOrderAttribute = renderSettingsAttribute.getChildByName("bucket_order");
+	FnKat::IntAttribute bucketOrderAttribute = imagineGSAttribute.getChildByName("bucket_order");
 	unsigned int bucketOrder = 2;
 	if (bucketOrderAttribute.isValid())
 		bucketOrder = bucketOrderAttribute.getValue(2, false);
 
-	FnKat::IntAttribute bucketSizeAttribute = renderSettingsAttribute.getChildByName("bucket_size");
+	FnKat::IntAttribute bucketSizeAttribute = imagineGSAttribute.getChildByName("bucket_size");
 	unsigned int bucketSize = 48;
 	if (bucketSizeAttribute.isValid())
 		bucketSize = bucketSizeAttribute.getValue(48, false);
@@ -375,10 +417,10 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 
 	FnKat::DoubleAttribute fovAttribute = cameraGeometryAttribute.getChildByName("fov");
 
-	// TODO: get time samples for MB...
 	float fovValue = fovAttribute.getValue(45.0f, false);
 
-//	fprintf(stderr, "Camera FOV: %f\n", fovValue);
+	FnKat::FloatAttribute focusDistanceAttribute = cameraGeometryAttribute.getChildByName("focus_distance");
+	FnKat::FloatAttribute apertureSizeAttribute = cameraGeometryAttribute.getChildByName("aperture_size");
 
 	// TODO: other camera attribs
 
@@ -409,6 +451,19 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	pRenderCamera->setFOV(fovValue);
 	pRenderCamera->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
+	if (focusDistanceAttribute.isValid())
+	{
+		float focusDistance = focusDistanceAttribute.getValue(0.0f, false);
+		// Imagine currently needs negative value...
+		pRenderCamera->setFocusDistance(-focusDistance);
+	}
+
+	if (apertureSizeAttribute.isValid())
+	{
+		float apertureSize = apertureSizeAttribute.getValue(0.0f, false);
+		pRenderCamera->setApertureRadius(apertureSize);
+	}
+
 	m_pScene->setDefaultCamera(pRenderCamera);
 
 #endif
@@ -426,6 +481,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 
 	locProcessor.setUseCompactGeometry(m_useCompactGeometry);
 	locProcessor.setDeduplicateVertexNormals(m_deduplicateVertexNormals);
+	locProcessor.setSpecialiseAssemblies(m_specialiseAssembies);
 
 	locProcessor.processSGForceExpand(rootIterator);
 }
@@ -525,7 +581,16 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 		return;
 	}
 
-	m_pFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, 0, 0);
+	unsigned int originX = 0;
+	unsigned int originY = 0;
+/*
+	if (m_ROIActive)
+	{
+		originX += m_ROIStartX;
+		originY += m_ROIStartY;
+	}
+*/
+	m_pFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, originX, originY);
 
 	// set the name
 	std::string frameName;
@@ -535,7 +600,7 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 	m_pDataPipe->send(*m_pFrame);
 
 	int channelID = 0;
-	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, 0, 0, 1.0f, 1.0f);
+	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
 
 	std::string channelName;
 	FnKat::encodeLegacyName(fFrameName, m_frameID, channelName);
@@ -620,7 +685,7 @@ void ImagineRender::startDiskRenderer()
 	raytracer.renderScene(1.0f, NULL);
 
 	renderImage.normaliseProgressive();
-	renderImage.applyExposure(1.8f);
+	renderImage.applyExposure(1.5f);
 
 	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
 
@@ -632,7 +697,14 @@ void ImagineRender::startInteractiveRenderer()
 #if ENABLE_PREVIEW_RENDERS
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
 
-	m_pOutputImage = new OutputImage(m_renderWidth, m_renderHeight, imageFlags);
+	if (!m_ROIActive)
+	{
+		m_pOutputImage = new OutputImage(m_renderWidth, m_renderHeight, imageFlags);
+	}
+	else
+	{
+		m_pOutputImage = new OutputImage(m_ROIWidth, m_ROIHeight, imageFlags);
+	}
 	m_pOutputImage->clearImage();
 
 	// for the moment, use the number of render threads for the number of worker threads to use.
@@ -652,7 +724,8 @@ void ImagineRender::renderFinished()
 {
 	//
 #if ENABLE_PREVIEW_RENDERS
-	if (m_pOutputImage)
+	bool doFinal = true;
+	if (doFinal && m_pOutputImage)
 	{
 		// send through the entire image again...
 		OutputImage imageCopy(*m_pOutputImage);
@@ -661,7 +734,7 @@ void ImagineRender::renderFinished()
 		const unsigned int origHeight = imageCopy.getHeight();
 
 		imageCopy.normaliseProgressive();
-		imageCopy.applyExposure(1.8f);
+		imageCopy.applyExposure(1.5f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
 		pNewTileMessage->setStartCoordinates(0, 0);
@@ -721,12 +794,7 @@ void ImagineRender::renderFinished()
 		{
 			const Object* pObject = *itObject;
 
-			const GeometryInstance* pGI = pObject->getGeometryInstance();
-
-			if (!pGI)
-				continue;
-
-			info.addInstance(pGI);
+			pObject->fillGeometryInfo(info);
 		}
 
 		fprintf(stderr, "\n\nGeometry Statistics:\n");
@@ -767,43 +835,66 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 #if ENABLE_PREVIEW_RENDERS
 	if (m_pOutputImage)
 	{
-		OutputImage imageCopy(*m_pOutputImage);
+		const unsigned int origWidth = m_pOutputImage->getWidth();
+		const unsigned int origHeight = m_pOutputImage->getHeight();
 
-		const unsigned int origWidth = imageCopy.getWidth();
-		const unsigned int origHeight = imageCopy.getHeight();
-
-		imageCopy.normaliseProgressive();
-		imageCopy.applyExposure(1.8f);
-
-		// take our own copies
 		unsigned int x = tileInfo.x;
 		unsigned int y = tileInfo.y;
 		unsigned int width = tileInfo.width;
 		unsigned int height = tileInfo.height;
 
-		// add a pixel border around the output tile apron to account for pixel filters...
-		const unsigned int tb = tileInfo.tileApronSize;
-		if (x >= tb)
+		const bool doAprons = true;
+		if (doAprons)
 		{
-			x -= tb;
-			width += tb;
-		}
-		if (y >= tb)
-		{
-			y -= tb;
-			height += tb;
-		}
-		if (x + width + tb < origWidth)
-		{
-			width += tb;
-		}
-		if (y + height + tb < origHeight)
-		{
-			height += tb;
+			// add a pixel border around the output tile apron to account for pixel filters...
+			const unsigned int tb = tileInfo.tileApronSize;
+			if (x >= tb)
+			{
+				x -= tb;
+				width += tb;
+			}
+			if (y >= tb)
+			{
+				y -= tb;
+				height += tb;
+			}
+			if (x + width + tb < origWidth)
+			{
+				width += tb;
+			}
+			if (y + height + tb < origHeight)
+			{
+				height += tb;
+			}
 		}
 
+		// the TileInfo x/y coordinates aren't in local subimage space for crop renders, so we need to offset them
+		// back into the OutputImage's space
+		unsigned int localSrcX = x;
+		unsigned int localSrcY = y;
+		if (m_ROIActive)
+		{
+			localSrcX -= m_ROIStartX;
+			localSrcY -= m_ROIStartY;
+		}
+
+		// take our own copy of a sub-set of the current final output image, containing just our tile area
+		OutputImage imageCopy(*m_pOutputImage, localSrcX, localSrcY, width, height);
+		imageCopy.normaliseProgressive();
+		imageCopy.applyExposure(1.5f);
+
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
-		pNewTileMessage->setStartCoordinates(x, y);
+		if (m_ROIActive)
+		{
+			// if ROI rendering is enabled, we annoyingly seem to have to handle offsetting this into the full
+			// image format for Katana...
+//			pNewTileMessage->setStartCoordinates(x + m_ROIStartX, y + m_ROIStartY);
+			pNewTileMessage->setStartCoordinates(x, y);
+		}
+		else
+		{
+			pNewTileMessage->setStartCoordinates(x, y);
+		}
 		pNewTileMessage->setDataDimensions(width, height);
 
 		unsigned int skipSize = 4 * sizeof(float);
@@ -811,6 +902,10 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		unsigned char* pData = new unsigned char[dataSize];
 
 		unsigned char* pDstRow = pData;
+
+		//
+		x = 0;
+		y = 0;
 
 		for (unsigned int i = 0; i < height; i++)
 		{

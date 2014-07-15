@@ -2,6 +2,7 @@
 
 #include "lights/point_light.h"
 #include "lights/area_light.h"
+#include "lights/spot_light.h"
 #include "lights/sky_dome.h"
 #include "lights/physical_sky.h"
 #include "lights/environment_light.h"
@@ -33,6 +34,14 @@ Light* LightHelpers::createLight(const FnKat::GroupAttribute& lightMaterialAttr)
 	{
 		pNewLight = createPointLight(shaderParamsAttr);
 	}
+	else if (shaderName == "Spot")
+	{
+		pNewLight = createSpotLight(shaderParamsAttr);
+	}
+	else if (shaderName == "Area")
+	{
+		pNewLight = createAreaLight(shaderParamsAttr);
+	}
 	else if (shaderName == "SkyDome")
 	{
 		pNewLight = createSkydomeLight(shaderParamsAttr);
@@ -55,6 +64,73 @@ Light* LightHelpers::createPointLight(const FnKat::GroupAttribute& shaderParamsA
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
+	float intensity = ah.getFloatParam("intensity", 1.0f);
+	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
+	int shadowType = ah.getIntParam("shadow_type", 0);
+
+	pNewLight->setIntensity(intensity);
+	pNewLight->setColour(colour);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
+
+	return pNewLight;
+}
+
+Light* LightHelpers::createSpotLight(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	SpotLight* pNewLight = new SpotLight();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	float intensity = ah.getFloatParam("intensity", 1.0f);
+	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
+	int shadowType = ah.getIntParam("shadow_type", 0);
+	int numSamples = ah.getIntParam("num_samples", 1);
+
+	float coneAngle = ah.getFloatParam("cone_angle", 30.0f);
+	float penumbraAngle = ah.getFloatParam("penumbra_angle", 5.0f);
+	bool isArea = ah.getIntParam("is_area", 1) == 1;
+
+	pNewLight->setIntensity(intensity);
+	pNewLight->setColour(colour);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setSamples(numSamples);
+
+	pNewLight->setConeAngle(coneAngle);
+	pNewLight->setPenumbraAngle(penumbraAngle);
+	pNewLight->setIsArea(isArea);
+
+	return pNewLight;
+}
+
+Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	AreaLight* pNewLight = new AreaLight();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	float intensity = ah.getFloatParam("intensity", 1.0f);
+	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
+	int shadowType = ah.getIntParam("shadow_type", 0);
+	int numSamples = ah.getIntParam("num_samples", 1);
+
+	float width = ah.getFloatParam("width", 1.0f);
+	float depth = ah.getFloatParam("depth", 1.0f);
+
+	int shapeType = ah.getFloatParam("shape_type", 0);
+
+	bool isScale = ah.getIntParam("scale", 1) == 1;
+	bool isVisible = ah.getIntParam("visible", 1) == 1;
+
+	pNewLight->setIntensity(intensity);
+	pNewLight->setColour(colour);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setSamples(numSamples);
+	pNewLight->setVisible(isVisible);
+	pNewLight->setDimensions(width, depth);
+	pNewLight->setScale(isScale);
+
+	pNewLight->setShapeType((AreaLight::ShapeType)shapeType);
+
 	return pNewLight;
 }
 
@@ -66,11 +142,14 @@ Light* LightHelpers::createSkydomeLight(const FnKat::GroupAttribute& shaderParam
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
+	int shadowType = ah.getIntParam("shadow_type", 0);
 	int numSamples = ah.getIntParam("num_samples", 1);
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setColour(colour);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
 	pNewLight->setSamples(numSamples);
+	pNewLight->setRadius(2000.0f);
 
 	return pNewLight;
 }
@@ -82,12 +161,14 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	int shadowType = ah.getIntParam("shadow_type", 0);
 	int numSamples = ah.getIntParam("num_samples", 1);
 	int isVisible = ah.getIntParam("visible", 1);
 
 	std::string envMapPath = ah.getStringParam("env_map_path");
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setEnvMapPath(envMapPath);
 	pNewLight->setRadius(2000.0f);
@@ -103,6 +184,7 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	int shadowType = ah.getIntParam("shadow_type", 0);
 	int numSamples = ah.getIntParam("num_samples", 1);
 	int isVisible = ah.getIntParam("visible", 1);
 
@@ -113,6 +195,7 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	float sunIntensity = ah.getFloatParam("sun_intensity", 1.0f);
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
 	pNewLight->setVisible(isVisible == 1);

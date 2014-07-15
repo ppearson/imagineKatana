@@ -21,7 +21,7 @@
 
 #ifndef STAND_ALONE
 SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_applyMaterials(true), m_scene(scene), m_useTextures(true), m_enableSubd(true),
-	m_useCompactGeometry(true)
+	m_useCompactGeometry(true), m_specialiseAssemblies(true)
 {
 }
 #else
@@ -71,12 +71,16 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	{
 		return;
 	}
-	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
+	if (m_specialiseAssemblies && type == "assembly")
+	{
+
+	}
+/*	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
 	{
 		processSphere(iterator);
 		return;
 	}
-	else if (type == "light")
+*/	else if (type == "light")
 	{
 		processLight(iterator);
 		return;
@@ -324,8 +328,7 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 
 	// do transform
 
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
 	sampleTimes.insert(0);
@@ -383,9 +386,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	pNewMeshObject->setMaterial(pMaterial);
 
 	// do transform
-
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
 	sampleTimes.insert(0);
@@ -403,6 +404,32 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
 	m_scene.addObject(pNewMeshObject, false, false);
+}
+
+void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator)
+{
+	// TODO: we don't really want inherited transforms here...
+	CompoundObject* pCO = createCompoundObjectFromLocation(iterator);
+
+	// do transform
+	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+	std::set<float> sampleTimes;
+	sampleTimes.insert(0);
+	std::vector<float> relevantSampleTimes;
+	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
+
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+	const double* pMatrix = xforms[0].getValues();
+
+	pCO->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+
+	m_scene.addObject(pCO, false, false);
 }
 
 CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator)
@@ -504,13 +531,13 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	bool indexedUVs = false;
 	// copy any UVs
 	FnKat::GroupAttribute stAttribute = iterator.getAttribute("geometry.arbitrary.st", true);
+	FnKat::FloatAttribute uvItemAttribute;
 	if (stAttribute.isValid())
 	{
 		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
 
 		if (arbitraryAttribute.isValid())
 		{
-			FnKat::FloatAttribute uvItemAttribute;
 			if (arbitraryAttribute.hasIndexedValueAttr())
 			{
 				uvIndexAttribute = arbitraryAttribute.getIndexAttr(true);
@@ -520,36 +547,62 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			}
 			else
 			{
+				uvItemAttribute = arbitraryAttribute.getValueAttr();
 				// we'll generate them later...
-			}
-
-			if (uvItemAttribute.isValid())
-			{
-				hasUVs = true;
-				std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
-
-				FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
-				unsigned int numItems = uvlist.size();
-
-				aUVs.resize(numItems / 2);
-
-				std::vector<UV>::iterator itUV = aUVs.begin();
-				for (unsigned int i = 0; i < numItems; i += 2)
-				{
-					UV& uv = *itUV++;
-					uv.u = uvlist[i];
-					uv.v = uvlist[i + 1];
-				}
 			}
 		}
 	}
 
-	// set any UV indicies if necessary
+	// we didn't find them in general place, so try and look for them in other locations...
+	if (!uvItemAttribute.isValid())
+	{
+		uvItemAttribute = iterator.getAttribute("geometry.vertex.uv");
+
+		if (!uvItemAttribute.isValid())
+		{
+			uvItemAttribute = iterator.getAttribute("geometry.point.uv");
+		}
+	}
+
+	unsigned int numUVValues;
+
+	if (uvItemAttribute.isValid())
+	{
+		hasUVs = true;
+		std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
+
+		FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
+		unsigned int numItems = uvlist.size();
+
+		numUVValues = numItems / 2;
+
+		aUVs.resize(numUVValues);
+
+		std::vector<UV>::iterator itUV = aUVs.begin();
+		for (unsigned int i = 0; i < numItems; i += 2)
+		{
+			UV& uv = *itUV++;
+			uv.u = uvlist[i];
+			uv.v = uvlist[i + 1];
+		}
+	}
+
+	// set any UV indices if necessary
 	if (hasUVs)
 	{
+		// first of all, do a sanity check on whether the number of UVs is per vertex
+		bool haveUVValuesForPerVertex = (numUVValues == aPolyIndices.size());
+
+		// if so, we can possibly (optionally?) assume that we're not actually dealing with indexed UVs despite
+		// what Katana tells us (at least in the case of the PrimitiveCreate's poly sphere and poly torus geometry)
+		if (indexedUVs && haveUVValuesForPerVertex)
+		{
+			indexedUVs = false;
+		}
+
 		if (indexedUVs)
 		{
-			// if indexed, get hold the uv indicies list
+			// if indexed, get hold the uv indices list
 			FnKat::IntConstVector uvIndicesValue = uvIndexAttribute.getNearestSample(0.0f);
 
 #if FAST
@@ -577,7 +630,9 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		}
 		else
 		{
-			// just make a sequential list of UV indices
+			// just make a sequential list of UV indices - TODO: this is pretty silly having to do this: we should swap what no UV
+			// indices means so that *this* is the default, which would use less memory (temporarily) and is much more common than
+			// poly indices...
 #if FAST
 			uint32_t* pUVIndices = new uint32_t[numIndices];
 
@@ -600,7 +655,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 #endif
 		}
 
-		// otherwise if we're not indexed, just set that we're using VertexUVs, and the overall Poly indicies will be used.
+		// otherwise if we're not indexed, just set that we're using VertexUVs, and the overall Poly indices will be used.
 
 		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
@@ -690,11 +745,6 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			return;
 		}
 
-		// do this here for now, but shouldn't really be needed...
-		// TODO: fix this...
-		unsigned int buildFlags = pNewGeoInstance->getGeoBuildFlags();
-		pNewGeoInstance->buildRawGeometryData(buildFlags);
-
 		Mesh* pNewMeshObject = new Mesh();
 
 		pNewMeshObject->setGeometryInstance(pNewGeoInstance);
@@ -715,8 +765,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 
 		// do transform
 
-		FnKat::GroupAttribute xformAttr;
-		xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+		FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 		std::set<float> sampleTimes;
 		sampleTimes.insert(0);
@@ -760,6 +809,8 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		return;
 	}
 
+	bool isCompound = false;
+
 	// see if we've created the source already...
 	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
 
@@ -776,6 +827,8 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 			CompoundInstance* pNewCI = new CompoundInstance(ii.pCompoundObject);
 
 			pNewObject = pNewCI;
+
+			isCompound = true;
 		}
 		else
 		{
@@ -788,9 +841,11 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	}
 	else
 	{
+		bool isLeaf = !itInstanceSource.getFirstChild().isValid();
+		// check two levels down, as that's more conventional...
+		bool hasSubLeaf = isLeaf && (itInstanceSource.getFirstChild().getFirstChild().isValid());
 		// if it's simply pointing to a mesh (so a leaf without a hierarchy)
-		std::string sourceType = itInstanceSource.getType();
-		if (sourceType == "polymesh" || sourceType == "subdmesh")
+		if (isLeaf)
 		{
 			// just build the source geometry and link to it....
 
@@ -824,6 +879,8 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 			m_aInstances[instanceSourcePath] = ii;
 
 			pNewObject = pCO;
+
+			isCompound = true;
 		}
 	}
 
@@ -832,24 +889,27 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 	//
 
-	FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
-	std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
-
-	// see if we've got it already
-	Material* pMaterial = m_materialHelper.getExistingMaterial(materialHash);
-
-	if (!pMaterial)
+	// if it's not a compound object, we can assign a material to it, so look for one...
+	if (!isCompound)
 	{
-		// create it
-		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
-	}
+		FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
+		std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
 
-	pNewObject->setMaterial(pMaterial);
+		// see if we've got it already
+		Material* pMaterial = m_materialHelper.getExistingMaterial(materialHash);
+
+		if (!pMaterial)
+		{
+			// create it
+			pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+		}
+
+		pNewObject->setMaterial(pMaterial);
+	}
 
 	// do transform
 
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
 	sampleTimes.insert(0);
@@ -905,8 +965,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 
 	// do transform
 
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
 	sampleTimes.insert(0);
@@ -935,8 +994,7 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	if (!pNewLight)
 		return;
 
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
 	sampleTimes.insert(0);

@@ -48,6 +48,11 @@ public:
 		m_deduplicateVertexNormals = ddVN;
 	}
 
+	void setSpecialiseAssemblies(bool sa)
+	{
+		m_specialiseAssemblies = sa;
+	}
+
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
@@ -55,6 +60,8 @@ public:
 
 	void processGeometryPolymeshStandard(FnKat::FnScenegraphIterator iterator);
 	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator);
+
+	void processAssembly(FnKat::FnScenegraphIterator iterator);
 
 	CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator);
 	CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator);
@@ -71,6 +78,7 @@ protected:
 	bool				m_enableSubd;
 	bool				m_useCompactGeometry;
 	bool				m_deduplicateVertexNormals;
+	bool				m_specialiseAssemblies;
 
 	Scene&				m_scene;
 

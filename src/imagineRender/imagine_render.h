@@ -96,6 +96,13 @@ protected:
 	bool					m_useCompactGeometry;
 	bool					m_deduplicateVertexNormals;
 	bool					m_printStatistics;
+	bool					m_specialiseAssembies;
+
+	bool					m_ROIActive;
+	unsigned int			m_ROIStartX;
+	unsigned int			m_ROIStartY;
+	unsigned int			m_ROIWidth;
+	unsigned int			m_ROIHeight;
 
 	unsigned int			m_renderWidth;
 	unsigned int			m_renderHeight;

@@ -1,0 +1,18 @@
+<args format='1.0' scope='/root/world//* /root/world'>
+	<group name='imagineStatements' hideTitle='True' closed='False'>
+		<page name="Geometry">
+
+
+		</page>
+
+
+		<page name="Visibility">
+			<int name="object_visibility_camera" default="1" widget='checkBox'/>
+			<int name="object_visibility_shadow" default="1" widget='checkBox'/>
+			<int name="object_visibility_diffuse" default="1" widget='checkBox'/>
+			<int name="object_visibility_glossy" default="1" widget='checkBox'/>
+			<int name="object_visibility_reflection" default="1" widget='checkBox'/>
+			<int name="object_visibility_refraction" default="1" widget='checkBox'/>
+		</page>
+	</group>
+</args>

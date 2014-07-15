@@ -25,6 +25,9 @@
 
 			<int name="path_dist_diffuse_multiplier" default="3" help="Diffuse ray multiplier for the PathDistributed integrator"/>
 			<int name="path_dist_glossy_multiplier" default="2" help= "Glossy ray multiplier for the PathDistributed integrator"/>
+
+			<int name="depth_of_field" default="0" widget="checkBox"/>
+			<int name="motion_blur" default="0" widget="checkBox"/>
 		</page>
 		<page name='light_paths' open="True">
 			<int name="max_depth_overall" default="4" help="Maximum ray bounce count"/>
@@ -35,6 +38,7 @@
 		</page>
 		<page name='scene' open="True">
 			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and uses more memory, and doesn't support instancing or transform motion blur, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
+			<int name="specialise_assembly_types" default="0" widget="checkBox" help="Detect locations of assembly type and interpret them as Compound Objects."/>
 			<int name="use_compact_geometry" default="1" widget="checkBox" help="Use a more compact representation of Geometry for both the source and tesselated geometry. This is generally 3-5x more memory efficient (for final memory usage), but doesn't currently support subdivision or displacement."/>
 			<int name="deduplicate_vertex_normals" default="1" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases"/>
 			<int name="scene_accel_structure" widget="mapper" default="0" help="Scene acceleration type to use. KDTree is generally faster for more sparse scenes with lots of empty space. For dense scenes with lots of overlapping objects, BVH can be significantly faster.">
