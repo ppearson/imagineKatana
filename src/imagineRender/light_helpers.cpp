@@ -194,6 +194,8 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	float skyIntensity = ah.getFloatParam("sky_intensity", 1.0f);
 	float sunIntensity = ah.getFloatParam("sun_intensity", 1.0f);
 
+	int hemisphereExtend = ah.getIntParam("hemisphere_extension", 0);
+
 	pNewLight->setIntensity(intensity);
 	pNewLight->setShadowType((Light::ShadowType)shadowType);
 	pNewLight->setSamples(numSamples);
@@ -204,6 +206,8 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setTimeOfDay(time);
 
 	pNewLight->setIntensityScales(skyIntensity, sunIntensity);
+
+	pNewLight->setHemiExtend((unsigned char)hemisphereExtend);
 
 	return pNewLight;
 }

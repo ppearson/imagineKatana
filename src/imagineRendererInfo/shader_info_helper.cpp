@@ -260,7 +260,7 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("overall_intensity", 1.0f);
+	helper.addFloatParam("intensity", 1.0f);
 	helper.addIntParam("shadow_type", 0);
 	helper.addIntParam("num_samples", 1);
 	helper.addBoolParam("visible", true);

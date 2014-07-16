@@ -73,7 +73,8 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	}
 	if (m_specialiseAssemblies && type == "assembly")
 	{
-
+		processAssembly(iterator);
+		return;
 	}
 /*	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
 	{
