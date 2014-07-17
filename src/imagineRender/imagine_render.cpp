@@ -776,9 +776,10 @@ void ImagineRender::renderFinished()
 
 		m_pDataPipe->send(*pNewTileMessage);
 
-		// we can now delete the data (but not the message)
 		delete [] pData;
 		pData = NULL;
+
+		delete pNewTileMessage;
 	}
 #endif
 	fprintf(stderr, "Render complete.\n");
@@ -884,6 +885,10 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		imageCopy.applyExposure(1.5f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
+
+		if (!pNewTileMessage)
+			return;
+
 		if (m_ROIActive)
 		{
 			// if ROI rendering is enabled, we annoyingly seem to have to handle offsetting this into the full
@@ -937,9 +942,10 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 
 		m_pDataPipe->send(*pNewTileMessage);
 
-		// we can now delete the data (but not the message)
 		delete [] pData;
 		pData = NULL;
+
+		delete pNewTileMessage;
 	}
 #endif
 }
