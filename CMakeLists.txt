@@ -240,8 +240,13 @@ IF(${STAND_ALONE} MATCHES 0)
 
 	# remove some other stuff
 	LIST(REMOVE_ITEM imagine_SOURCES ${IMAGINE_SRC_PATH}/io/geo_reader.cpp ${IMAGINE_SRC_PATH}/io/geometry/geo_reader_abc.cpp
-			 ${IMAGINE_SRC_PATH}/io/image/image_reader_jpeg.cpp ${IMAGINE_SRC_PATH}/io/image/image_reader_tiff.cpp
-				${IMAGINE_SRC_PATH}/io/image/image_reader_png.cpp ${IMAGINE_SRC_PATH}/io/image/image_writer_png.cpp ${IMAGINE_SRC_PATH}/objects/primitives/ocean.cpp)
+			 ${IMAGINE_SRC_PATH}/io/image/image_reader_jpeg.cpp ${IMAGINE_SRC_PATH}/io/image/image_reader_png.cpp
+			${IMAGINE_SRC_PATH}/io/image/image_writer_png.cpp ${IMAGINE_SRC_PATH}/objects/primitives/ocean.cpp
+			${IMAGINE_SRC_PATH}/io/geo_helper_obj.cpp)
+
+	IF(${HAVE_LIBTIFF} MATCHES 0)
+		LIST(REMOVE_ITEM imagine_SOURCES ${IMAGINE_SRC_PATH}/io/image/image_reader_tiff.cpp)
+	ENDIF(${HAVE_LIBTIFF} MATCHES 0)
 
 #	MESSAGE( "${imagine_SOURCES}" )
 
@@ -275,11 +280,16 @@ FILE(GLOB_RECURSE katanaImagineRender_SOURCES "${CMAKE_SOURCE_DIR}/src/imagineRe
 
 ADD_LIBRARY(katanaImagineRender SHARED ${katanaImagineRender_SOURCES})
 
+IF(${HAVE_LIBTIFF} MATCHES 1)
+	ADD_DEFINITIONS(-DHAVE_TIFF_SUPPORT)
+ENDIF(${HAVE_LIBTIFF} MATCHES 1)
+
 IF(${STAND_ALONE} MATCHES 1)
 	ADD_DEPENDENCIES(katanaImagineRender katanaAPI)
 	SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
 	TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI)
 ELSE(${STAND_ALONE} MATCHES 0)
+
 	ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
 	SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
 	TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY} ${BOOST_EXT_LIBS})

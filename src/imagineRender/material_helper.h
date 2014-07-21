@@ -2,6 +2,7 @@
 #define MATERIAL_HELPER_H
 
 #include <map>
+#include <vector>
 #include <string>
 
 #include <FnAttribute/FnAttribute.h>
@@ -29,6 +30,8 @@ public:
 	// this adds to the instances map itself
 	Material* createNewMaterial(const std::string& hash, const FnKat::GroupAttribute& attribute);
 
+	std::vector<Material*>& getMaterialsVector() { return m_aMaterials; }
+
 protected:
 	static Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createGlassMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
@@ -38,7 +41,8 @@ protected:
 protected:
 	FnKat::StringAttribute m_terminatorNodes;
 
-	std::map<std::string, Material*>	m_aMaterialInstances;
+	std::map<std::string, Material*>	m_aMaterialInstances; // all materials with hashes
+	std::vector<Material*>				m_aMaterials; // all material instances in std::vector
 
 	Material*		m_pDefaultMaterial;
 };

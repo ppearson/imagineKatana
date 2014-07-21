@@ -49,6 +49,8 @@ Material* MaterialHelper::getExistingMaterial(const std::string& hash) const
 void MaterialHelper::addMaterialInstance(const std::string& hash, Material* pMaterial)
 {
 	m_aMaterialInstances[hash] = pMaterial;
+
+	m_aMaterials.push_back(pMaterial);
 }
 
 Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat::GroupAttribute& attribute)
@@ -108,7 +110,13 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	std::string diffTexture = ah.getStringParam("diff_texture");
 	if (!diffTexture.empty())
 	{
-		pNewStandardMaterial->setDiffuseTextureMapPath(diffTexture);
+		pNewStandardMaterial->setDiffuseTextureMapPath(diffTexture, true); // lazy load texture when needed
+	}
+
+	int diffTextureFlags = ah.getIntParam("diff_texture_flags", 0);
+	if (diffTextureFlags)
+	{
+		pNewStandardMaterial->setDiffuseTextureCustomFlags(diffTextureFlags);
 	}
 
 	float diffuseRoughness = ah.getFloatParam("diff_roughness", 0.0f);

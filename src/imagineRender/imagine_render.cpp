@@ -71,6 +71,9 @@ int ImagineRender::start()
 	// in parallel across multiple threads
 	m_pScene->setParallelGeoBuild(true);
 
+	// set lazy mode
+	m_pScene->setLazy(true);
+
 	FnKatRender::RenderSettings renderSettings(rootIterator);
 	FnKatRender::GlobalSettings globalSettings(rootIterator, "imagine");
 
@@ -309,14 +312,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
 
 	FnKat::IntAttribute specialiseAssembliesAttribute = imagineGSAttribute.getChildByName("specialise_assembly_types");
-	m_specialiseAssembies = false;
+	m_specialiseAssembies = true;
 	if (specialiseAssembliesAttribute.isValid())
 		m_specialiseAssembies = (specialiseAssembliesAttribute.getValue(1, false) == 1);
 
 	FnKat::IntAttribute sceneAccelStructureAttribute = imagineGSAttribute.getChildByName("scene_accel_structure");
-	unsigned int sceneAccelStructure = 0;
+	unsigned int sceneAccelStructure = 1;
 	if (sceneAccelStructureAttribute.isValid())
-		sceneAccelStructure = sceneAccelStructureAttribute.getValue(0, false);
+		sceneAccelStructure = sceneAccelStructureAttribute.getValue(1, false);
 
 	FnKat::IntAttribute printStatisticsAttribute = imagineGSAttribute.getChildByName("print_statistics");
 	m_printStatistics = true;
@@ -324,9 +327,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_printStatistics = (printStatisticsAttribute.getValue(1, false) == 1);
 
 	FnKat::FloatAttribute rayEpsilonAttribute = imagineGSAttribute.getChildByName("ray_epsilon");
-	float rayEpsilon = 0.001f;
+	float rayEpsilon = 0.0001f;
 	if (rayEpsilonAttribute.isValid())
-		rayEpsilon = rayEpsilonAttribute.getValue(0.001f, false);
+		rayEpsilon = rayEpsilonAttribute.getValue(0.0001f, false);
 
 	FnKat::IntAttribute bucketOrderAttribute = imagineGSAttribute.getChildByName("bucket_order");
 	unsigned int bucketOrder = 2;
@@ -484,6 +487,14 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	locProcessor.setSpecialiseAssemblies(m_specialiseAssembies);
 
 	locProcessor.processSGForceExpand(rootIterator);
+
+	// add materials lazily
+	std::vector<Material*> aMaterials;
+	locProcessor.getFinalMaterials(aMaterials);
+
+	MaterialManager& mm = m_pScene->getMaterialManager();
+
+	mm.addMaterialsLazy(aMaterials);
 }
 
 void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
@@ -707,6 +718,9 @@ void ImagineRender::startInteractiveRenderer()
 	}
 	m_pOutputImage->clearImage();
 
+	// ?
+	FnKat::RenderOutputUtils::flushProceduralDsoCaches();
+
 	// for the moment, use the number of render threads for the number of worker threads to use.
 	// this effects things like parallel accel structure building, tesselation and reading of textures when in
 	// non-lazy mode...
@@ -734,7 +748,7 @@ void ImagineRender::renderFinished()
 		const unsigned int origHeight = imageCopy.getHeight();
 
 		imageCopy.normaliseProgressive();
-		imageCopy.applyExposure(1.5f);
+		imageCopy.applyExposure(1.1f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
 		pNewTileMessage->setStartCoordinates(0, 0);
@@ -780,9 +794,18 @@ void ImagineRender::renderFinished()
 		pData = NULL;
 
 		delete pNewTileMessage;
+
+		m_pDataPipe->flushPipe(*m_pChannel);
+		m_pDataPipe->closeChannel(*m_pChannel);
 	}
 #endif
 	fprintf(stderr, "Render complete.\n");
+
+	if (m_pOutputImage)
+	{
+		delete m_pOutputImage;
+		m_pOutputImage = NULL;
+	}
 
 	if (m_printStatistics)
 	{
@@ -882,7 +905,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		// take our own copy of a sub-set of the current final output image, containing just our tile area
 		OutputImage imageCopy(*m_pOutputImage, localSrcX, localSrcY, width, height);
 		imageCopy.normaliseProgressive();
-		imageCopy.applyExposure(1.5f);
+		imageCopy.applyExposure(1.1f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
 

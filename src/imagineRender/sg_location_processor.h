@@ -5,12 +5,14 @@
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
 #include <map>
+#include <vector>
 
 #include "material_helper.h"
 #include "light_helpers.h"
 
 #ifndef STAND_ALONE
 
+#include "materials/material.h"
 #include "scene.h"
 
 #endif
@@ -71,6 +73,8 @@ public:
 	void processSphere(FnKat::FnScenegraphIterator iterator);
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
+
+	void getFinalMaterials(std::vector<Material*>& aMaterials);
 
 protected:
 	bool				m_applyMaterials;

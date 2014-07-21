@@ -83,6 +83,15 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	}
 */	else if (type == "light")
 	{
+		// see if it's muted...
+		FnKat::IntAttribute mutedAttribute = iterator.getAttribute("mute");
+		if (mutedAttribute.isValid())
+		{
+			int mutedValue = mutedAttribute.getValue(0, false);
+			if (mutedValue == 1)
+				return;
+		}
+
 		processLight(iterator);
 		return;
 	}
@@ -323,6 +332,8 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 	{
 		// create it
 		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+
+		m_materialHelper.addMaterialInstance(materialHash, pMaterial);
 	}
 
 	pNewMeshObject->setMaterial(pMaterial);
@@ -382,6 +393,8 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	{
 		// create it
 		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+
+		m_materialHelper.addMaterialInstance(materialHash, pMaterial);
 	}
 
 	pNewMeshObject->setMaterial(pMaterial);
@@ -760,9 +773,19 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		{
 			// create it
 			pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+
+			m_materialHelper.addMaterialInstance(materialHash, pMaterial);
 		}
 
-		pNewMeshObject->setMaterial(pMaterial);
+		if (pMaterial)
+		{
+			pNewMeshObject->setMaterial(pMaterial);
+		}
+		else
+		{
+			// otherwise, set default
+			pNewMeshObject->setDefaultMaterial();
+		}
 
 		// do transform
 
@@ -1013,4 +1036,9 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
 	m_scene.addObject(pNewLight, false, false);
+}
+
+void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
+{
+	aMaterials = m_materialHelper.getMaterialsVector();
 }

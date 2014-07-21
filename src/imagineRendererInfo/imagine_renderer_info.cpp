@@ -46,17 +46,17 @@ void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& rend
 	if (type == kFnRendererObjectTypeShader)
 	{
 		renderObjectTypes.push_back("surface");
-		renderObjectTypes.push_back("bump");
-		renderObjectTypes.push_back("medium");
-		renderObjectTypes.push_back("displacement");
-		renderObjectTypes.push_back("alpha");
+//		renderObjectTypes.push_back("bump");
+//		renderObjectTypes.push_back("medium");
+//		renderObjectTypes.push_back("displacement");
+//		renderObjectTypes.push_back("alpha");
 		renderObjectTypes.push_back("light");
 	}
 	else if (type == kFnRendererObjectTypeRenderOutput)
 	{
 		renderObjectTypes.push_back(kFnRendererOutputTypeColor);
-		renderObjectTypes.push_back(kFnRendererOutputTypeRaw);
-		renderObjectTypes.push_back(kFnRendererOutputTypeDeep);
+//		renderObjectTypes.push_back(kFnRendererOutputTypeRaw);
+//		renderObjectTypes.push_back(kFnRendererOutputTypeDeep);
 		renderObjectTypes.push_back(kFnRendererOutputTypeForceNone);
 	}
 }
@@ -143,7 +143,7 @@ std::string ImagineRendererInfo::getRegisteredRendererName() const
 
 std::string ImagineRendererInfo::getRegisteredRendererVersion() const
 {
-	return "0.92";
+	return "0.94";
 }
 
 void ImagineRendererInfo::fillShaderInputNames(std::vector<std::string>& shaderInputNames, const std::string& shaderName) const

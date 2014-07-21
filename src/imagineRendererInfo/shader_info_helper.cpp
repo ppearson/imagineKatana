@@ -67,11 +67,11 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	}
 	else if (name == "Plastic")
 	{
-
+		return false;
 	}
 	else if (name == "Metallic Paint")
 	{
-
+		return false;
 	}
 	else if (name == "Translucent")
 	{
@@ -116,6 +116,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 
 	helper.addColourParam("diffuse_col", Col3f(0.8f, 0.8f, 0.8f));
 	helper.addStringParam("diff_texture");
+	helper.addIntParam("diff_texture_flags", 0);
 	helper.addFloatParam("diff_roughness", 0.0f);
 	helper.addFloatParam("diff_backlit", 0.0f);
 
