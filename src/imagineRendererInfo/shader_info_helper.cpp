@@ -67,11 +67,15 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	}
 	else if (name == "Plastic")
 	{
-		return false;
+
+	}
+	else if (name == "Brushed Metal")
+	{
+		buildBrushedMetalShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Metallic Paint")
 	{
-		return false;
+		buildBrushedMetalShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Translucent")
 	{
@@ -121,6 +125,8 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	helper.addFloatParam("diff_backlit", 0.0f);
 
 	helper.addColourParam("spec_col", Col3f(0.1f, 0.1f, 0.1f));
+	helper.addStringParam("spec_texture");
+	helper.addIntParam("spec_texture_flags", 0);
 	helper.addFloatParam("spec_roughness", 0.9f);
 
 	helper.addFloatParam("reflection", 0.0f);
@@ -132,6 +138,8 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 
 	helper.addFloatParam("transparency", 0.0f);
 	helper.addFloatParam("transmission", 0.0f);
+
+	helper.addBoolParam("double_sided", 0);
 }
 
 void ShaderInfoHelper::buildGlassShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -159,6 +167,33 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addFloatParam("refraction_index", 1.39f);
 	helper.addFloatParam("k", 4.8f);
 	helper.addFloatParam("roughness", 0.01f);
+}
+
+void ShaderInfoHelper::buildBrushedMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(0.9f, 0.9f, 0.9f));
+	helper.addFloatParam("refraction_index", 1.39f);
+	helper.addFloatParam("k", 4.8f);
+	helper.addFloatParam("roughness_x", 0.1f);
+	helper.addFloatParam("roughness_y", 0.02f);
+
+	helper.addBoolParam("double_sided", 0);
+}
+
+void ShaderInfoHelper::buildMetalicPaintShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(0.29f, 0.016f, 0.19f));
+	helper.addColourParam("flake_colour", Col3f(0.39, 0.016f, 0.19f));
+	helper.addFloatParam("flake_spread", 0.32f);
+	helper.addFloatParam("flake_mix", 0.38f);
+	helper.addFloatParam("refraction_index", 1.39f);
+
+	helper.addFloatParam("reflection", 1.0f);
+	helper.addFloatParam("fresnel_coef", 0.0f);
 }
 
 void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

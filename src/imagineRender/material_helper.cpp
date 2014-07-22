@@ -7,6 +7,8 @@
 #include "materials/glass_material.h"
 #include "materials/metal_material.h"
 #include "materials/translucent_material.h"
+#include "materials/brushed_metal_material.h"
+#include "materials/metalic_paint_material.h"
 #endif
 
 #include "katana_helpers.h"
@@ -86,6 +88,14 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	{
 		pNewMaterial = createMetalMaterial(shaderParamsAttr);
 	}
+	else if (shaderName == "Brushed Metal")
+	{
+		pNewMaterial = createBrushedMetalMaterial(shaderParamsAttr);
+	}
+	else if (shaderName == "Metalic Paint")
+	{
+		pNewMaterial = createMetalicPaintMaterial(shaderParamsAttr);
+	}
 	else if (shaderName == "Translucent")
 	{
 		pNewMaterial = createTranslucentMaterial(shaderParamsAttr);
@@ -111,12 +121,20 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	if (!diffTexture.empty())
 	{
 		pNewStandardMaterial->setDiffuseTextureMapPath(diffTexture, true); // lazy load texture when needed
-	}
 
-	int diffTextureFlags = ah.getIntParam("diff_texture_flags", 0);
-	if (diffTextureFlags)
-	{
-		pNewStandardMaterial->setDiffuseTextureCustomFlags(diffTextureFlags);
+		int diffTextureFlags = ah.getIntParam("diff_texture_flags", 0);
+		if (diffTextureFlags)
+		{
+			// hack mip-map bias for the moment
+			if (diffTextureFlags == 1)
+			{
+				pNewStandardMaterial->setDiffuseTextureCustomFlags(1 << 15);
+			}
+			else if (diffTextureFlags == 2)
+			{
+				pNewStandardMaterial->setDiffuseTextureCustomFlags(1 << 16);
+			}
+		}
 	}
 
 	float diffuseRoughness = ah.getFloatParam("diff_roughness", 0.0f);
@@ -124,6 +142,27 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	Colour3f specColour = ah.getColourParam("spec_col", Colour3f(0.1f, 0.1f, 0.1f));
 	pNewStandardMaterial->setSpecularColour(specColour);
+
+	// specular texture overrides colour if available
+	std::string specTexture = ah.getStringParam("spec_texture");
+	if (!specTexture.empty())
+	{
+		pNewStandardMaterial->setSpecularTextureMapPath(specTexture, true); // lazy load texture when needed
+
+		int specTextureFlags = ah.getIntParam("spec_texture_flags", 0);
+		if (specTextureFlags)
+		{
+			// hack mip-map bias for the moment
+			if (specTextureFlags == 1)
+			{
+				pNewStandardMaterial->setSpecularTextureCustomFlags(1 << 15);
+			}
+			else if (specTextureFlags == 2)
+			{
+				pNewStandardMaterial->setSpecularTextureCustomFlags(1 << 16);
+			}
+		}
+	}
 
 	float specRoughness = ah.getFloatParam("spec_roughness", 0.9f);
 	pNewStandardMaterial->setSpecularRoughness(specRoughness);
@@ -149,6 +188,12 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	float transparency = ah.getFloatParam("transparency", 0.0f);
 	pNewStandardMaterial->setTransparancy(transparency);
+
+	int doubleSided = ah.getIntParam("double_sided", 0);
+	if (doubleSided == 1)
+	{
+		pNewStandardMaterial->setDoubleSided(true);
+	}
 
 	return pNewStandardMaterial;
 }
@@ -196,6 +241,46 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	float roughness = ah.getFloatParam("roughness", 0.01f);
 	pNewMaterial->setRoughness(roughness);
 
+	return pNewMaterial;
+}
+
+Material* MaterialHelper::createBrushedMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	BrushedMetalMaterial* pNewMaterial = new BrushedMetalMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.9f, 0.9f, 0.9f));
+//	pNewMaterial->setColour(colour);
+
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
+//	pNewMaterial->setRefractionIndex(refractionIndex);
+	float k = ah.getFloatParam("k", 4.8f);
+//	pNewMaterial->setK(k);
+	float roughnessX = ah.getFloatParam("roughness_x", 0.1f);
+	pNewMaterial->setRoughnessX(roughnessX);
+	float roughnessY = ah.getFloatParam("roughness_y", 0.02f);
+	pNewMaterial->setRoughnessY(roughnessY);
+
+	return pNewMaterial;
+}
+
+Material* MaterialHelper::createMetalicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	MetalicPaintMaterial* pNewMaterial = new MetalicPaintMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+/*
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.9f, 0.9f, 0.9f));
+	pNewMaterial->setColour(colour);
+
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
+	pNewMaterial->setRefractionIndex(refractionIndex);
+	float k = ah.getFloatParam("k", 4.8f);
+	pNewMaterial->setK(k);
+	float roughness = ah.getFloatParam("roughness", 0.01f);
+	pNewMaterial->setRoughness(roughness);
+*/
 	return pNewMaterial;
 }
 
