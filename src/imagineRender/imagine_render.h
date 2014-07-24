@@ -97,6 +97,8 @@ protected:
 	bool					m_deduplicateVertexNormals;
 	bool					m_printStatistics;
 	bool					m_specialiseAssembies;
+	bool					m_flipT;
+	bool					m_enableSubdivision;
 
 	bool					m_ROIActive;
 	unsigned int			m_ROIStartX;

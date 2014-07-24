@@ -37,7 +37,7 @@ protected:
 	static Material* createGlassMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createBrushedMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
-	static Material* createMetalicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
+	static Material* createMetallicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 
 protected:

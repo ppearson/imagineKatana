@@ -111,6 +111,17 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 		buildPhysicalSkyLightShaderParams(iri, rendererObjectInfo);
 	}
 
+
+	//
+	else if (name == "ImageTextureBump")
+	{
+		buildBumpTextureShaderParams(iri, rendererObjectInfo);
+	}
+	else if (name == "ImageTextureAlpha")
+	{
+		buildAlphaTextureShaderParams(iri, rendererObjectInfo);
+	}
+
 	return true;
 }
 
@@ -167,6 +178,8 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addFloatParam("refraction_index", 1.39f);
 	helper.addFloatParam("k", 4.8f);
 	helper.addFloatParam("roughness", 0.01f);
+
+	helper.addBoolParam("double_sided", 0);
 }
 
 void ShaderInfoHelper::buildBrushedMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -182,7 +195,7 @@ void ShaderInfoHelper::buildBrushedMetalShaderParams(const ImagineRendererInfo& 
 	helper.addBoolParam("double_sided", 0);
 }
 
-void ShaderInfoHelper::buildMetalicPaintShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildMetallicPaintShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
@@ -309,6 +322,23 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 	helper.addFloatParam("time", 17.1f);
 	helper.addIntParam("day", 174);
 }
+
+void ShaderInfoHelper::buildBumpTextureShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addStringParam("bump_texture_path");
+	helper.addFloatParam("bump_texture_intensity", 0.8f);
+}
+
+void ShaderInfoHelper::buildAlphaTextureShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addStringParam("alpha_texture_path");
+}
+
+//
 
 void ShaderInfoHelper::addFloatParam(const std::string& name, float defaultValue)
 {

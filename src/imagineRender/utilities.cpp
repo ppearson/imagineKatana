@@ -5,6 +5,8 @@
 // this stuff is needed as we can't use the static global initialiser trick that Imagine does,
 // as that only works with executables, not libraries...
 
+#include "colour/colour_space.h"
+
 #include "io/image/image_reader_hdr.h"
 #include "io/image/image_reader_exr.h"
 #if HAVE_TIFF_SUPPORT
@@ -40,6 +42,10 @@ ImageWriter* Utilities::createImageWriterEXR()
 
 void Utilities::registerFileReaders()
 {
+	// needed for LUTs for 8-bit images
+	ColourSpace::initLUTs();
+
+	// register the file readers manually...
 	FileIORegistry::instance().registerImageReader("hdr", createImageReaderHDR);
 	FileIORegistry::instance().registerImageReader("exr", createImageReaderEXR);
 #if HAVE_TIFF_SUPPORT

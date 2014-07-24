@@ -21,7 +21,7 @@
 
 #ifndef STAND_ALONE
 SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_applyMaterials(true), m_scene(scene), m_useTextures(true), m_enableSubd(true),
-	m_useCompactGeometry(true), m_specialiseAssemblies(true)
+	m_useCompactGeometry(true), m_specialiseAssemblies(true), m_flipT(false)
 {
 }
 #else
@@ -44,22 +44,45 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 {
 	std::string type = iterator.getType();
 
-	if (type == "polymesh" || type == "subdmesh")
+	if (m_enableSubd)
 	{
-		// treat subdmesh as polymesh for the moment...
-
-		// TODO: use SG location delegates...
-
-		if (m_useCompactGeometry)
+		if (type == "polymesh")
 		{
-			processGeometryPolymeshCompact(iterator);
-		}
-		else
-		{
-			processGeometryPolymeshStandard(iterator);
-		}
+			// TODO: use SG location delegates...
 
-		return;
+			if (m_useCompactGeometry)
+			{
+				processGeometryPolymeshCompact(iterator, false);
+			}
+			else
+			{
+				processGeometryPolymeshStandard(iterator);
+			}
+
+			return;
+		}
+		else if (type == "subdmesh")
+		{
+			processGeometryPolymeshCompact(iterator, true);
+		}
+	}
+	else
+	{
+		if (type == "polymesh" || type == "subdmesh")
+		{
+			// TODO: use SG location delegates...
+
+			if (m_useCompactGeometry)
+			{
+				processGeometryPolymeshCompact(iterator, false);
+			}
+			else
+			{
+				processGeometryPolymeshStandard(iterator);
+			}
+
+			return;
+		}
 	}
 
 	if (type == "instance")
@@ -362,7 +385,7 @@ void SGLocationProcessor::processGeometryPolymeshStandard(FnKat::FnScenegraphIte
 
 #define FAST 0
 
-void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD)
 {
 	// get the geometry attributes group
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -373,7 +396,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		return;
 	}
 
-	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator);
+	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD);
 	if (!pNewGeoInstance)
 	{
 		return;
@@ -446,7 +469,7 @@ void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator)
 	m_scene.addObject(pCO, false, false);
 }
 
-CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator)
+CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD)
 {
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
 	if (!geometryAttribute.isValid())
@@ -593,11 +616,43 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		aUVs.resize(numUVValues);
 
 		std::vector<UV>::iterator itUV = aUVs.begin();
-		for (unsigned int i = 0; i < numItems; i += 2)
+
+		if (!m_flipT)
 		{
-			UV& uv = *itUV++;
-			uv.u = uvlist[i];
-			uv.v = uvlist[i + 1];
+			for (unsigned int i = 0; i < numItems; i += 2)
+			{
+				UV& uv = *itUV++;
+				uv.u = uvlist[i];
+				uv.v = uvlist[i + 1];
+			}
+		}
+		else
+		{
+			// flip the T (V) value over.
+			// because of using UDIMs, we can't just flip it directly with 1.0, we need to make sure we
+			// get the local space, flip it, then add it back again...
+
+			for (unsigned int i = 0; i < numItems; i += 2)
+			{
+				UV& uv = *itUV++;
+				uv.u = uvlist[i];
+				float tempV = uvlist[i + 1];
+
+				float majorValue = 0.0f;
+				float minorValue = modff(tempV, &majorValue);
+
+				// hack for whole values...
+				if (minorValue == 0.0f && majorValue > 0.0f)
+				{
+					majorValue -= 1.0f;
+					minorValue += 1.0f;
+				}
+
+				float finalValue = 1.0f - minorValue;
+				finalValue += majorValue;
+
+				uv.v = finalValue;
+			}
 		}
 	}
 
@@ -676,6 +731,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;
 
+	if (asSubD)
+	{
+		geoBuildFlags |= GeometryInstance::GEO_BUILD_SUBDIVIDE;
+	}
+
 	// TODO: pull in normals from poly geo if they exist...
 
 	if (m_deduplicateVertexNormals)
@@ -741,7 +801,20 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 {
 	std::string type = iterator.getType();
 
-	if (type == "polymesh" || type == "subdmesh")
+	bool isGeo = false;
+	bool isSubD = false;
+
+	if (type == "polymesh")
+	{
+		isGeo = true;
+	}
+	else if (type == "subdmesh")
+	{
+		isGeo = true;
+		isSubD = m_enableSubd;
+	}
+
+	if (isGeo)
 	{
 		// get the geometry attributes group
 		FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -752,7 +825,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			return;
 		}
 
-		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator);
+		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD);
 
 		if (!pNewGeoInstance)
 		{
@@ -873,7 +946,9 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		{
 			// just build the source geometry and link to it....
 
-			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource);
+			bool isSubD = m_enableSubd && itInstanceSource.getType() == "subdmesh";
+
+			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD);
 
 			InstanceInfo ii;
 			ii.m_compound = false;

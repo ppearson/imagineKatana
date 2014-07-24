@@ -31,7 +31,7 @@
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
 	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_deduplicateVertexNormals(false), m_printStatistics(false),
-	m_ROIActive(false), m_specialiseAssembies(false)
+	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false)
 {
 #if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
@@ -294,6 +294,17 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("depthOfField", (depthOfField == 1)); // needs to be bool
 
 
+	FnKat::IntAttribute flipTAttribute = imagineGSAttribute.getChildByName("flip_t");
+	m_flipT = false;
+	if (flipTAttribute.isValid())
+		m_flipT = (flipTAttribute.getValue(0, false) == 1);
+
+	FnKat::IntAttribute enableSubDAttribute = imagineGSAttribute.getChildByName("enable_subdivision");
+	m_enableSubdivision = false;
+	if (enableSubDAttribute.isValid())
+		m_enableSubdivision = (enableSubDAttribute.getValue(0, false) == 1);
+
+
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = imagineGSAttribute.getChildByName("bake_down_scene");
 	unsigned int bakeDownScene = 0;
@@ -482,9 +493,11 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	SGLocationProcessor locProcessor;
 #endif
 
+	locProcessor.setEnableSubD(m_enableSubdivision);
 	locProcessor.setUseCompactGeometry(m_useCompactGeometry);
 	locProcessor.setDeduplicateVertexNormals(m_deduplicateVertexNormals);
 	locProcessor.setSpecialiseAssemblies(m_specialiseAssembies);
+	locProcessor.setFlipT(m_flipT);
 
 	locProcessor.processSGForceExpand(rootIterator);
 
@@ -696,7 +709,7 @@ void ImagineRender::startDiskRenderer()
 	raytracer.renderScene(1.0f, NULL);
 
 	renderImage.normaliseProgressive();
-	renderImage.applyExposure(1.5f);
+	renderImage.applyExposure(1.1f);
 
 	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
 

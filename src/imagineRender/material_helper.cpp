@@ -92,9 +92,9 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	{
 		pNewMaterial = createBrushedMetalMaterial(shaderParamsAttr);
 	}
-	else if (shaderName == "Metalic Paint")
+	else if (shaderName == "Metallic Paint")
 	{
-		pNewMaterial = createMetalicPaintMaterial(shaderParamsAttr);
+		pNewMaterial = createMetallicPaintMaterial(shaderParamsAttr);
 	}
 	else if (shaderName == "Translucent")
 	{
@@ -195,6 +195,18 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 		pNewStandardMaterial->setDoubleSided(true);
 	}
 
+	std::string bumpTexture = ah.getStringParam("bump_texture_path");
+	if (!bumpTexture.empty())
+	{
+		pNewStandardMaterial->setBumpTextureMapPath(bumpTexture, true);
+	}
+
+	std::string alphaTexture = ah.getStringParam("alpha_texture_path");
+	if (!alphaTexture.empty())
+	{
+		pNewStandardMaterial->setAlphaTextureMapPath(bumpTexture, true);
+	}
+
 	return pNewStandardMaterial;
 }
 
@@ -241,6 +253,12 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	float roughness = ah.getFloatParam("roughness", 0.01f);
 	pNewMaterial->setRoughness(roughness);
 
+	int doubleSided = ah.getIntParam("double_sided", 0);
+	if (doubleSided == 1)
+	{
+		pNewMaterial->setDoubleSided(true);
+	}
+
 	return pNewMaterial;
 }
 
@@ -251,36 +269,53 @@ Material* MaterialHelper::createBrushedMetalMaterial(const FnKat::GroupAttribute
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	Colour3f colour = ah.getColourParam("colour", Colour3f(0.9f, 0.9f, 0.9f));
-//	pNewMaterial->setColour(colour);
-
-	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
-//	pNewMaterial->setRefractionIndex(refractionIndex);
-	float k = ah.getFloatParam("k", 4.8f);
-//	pNewMaterial->setK(k);
-	float roughnessX = ah.getFloatParam("roughness_x", 0.1f);
-	pNewMaterial->setRoughnessX(roughnessX);
-	float roughnessY = ah.getFloatParam("roughness_y", 0.02f);
-	pNewMaterial->setRoughnessY(roughnessY);
-
-	return pNewMaterial;
-}
-
-Material* MaterialHelper::createMetalicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
-{
-	MetalicPaintMaterial* pNewMaterial = new MetalicPaintMaterial();
-
-	KatanaAttributeHelper ah(shaderParamsAttr);
-/*
-	Colour3f colour = ah.getColourParam("colour", Colour3f(0.9f, 0.9f, 0.9f));
 	pNewMaterial->setColour(colour);
 
 	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
 	pNewMaterial->setRefractionIndex(refractionIndex);
 	float k = ah.getFloatParam("k", 4.8f);
 	pNewMaterial->setK(k);
-	float roughness = ah.getFloatParam("roughness", 0.01f);
-	pNewMaterial->setRoughness(roughness);
-*/
+	float roughnessX = ah.getFloatParam("roughness_x", 0.1f);
+	pNewMaterial->setRoughnessX(roughnessX);
+	float roughnessY = ah.getFloatParam("roughness_y", 0.02f);
+	pNewMaterial->setRoughnessY(roughnessY);
+
+	int doubleSided = ah.getIntParam("double_sided", 0);
+	if (doubleSided == 1)
+	{
+		pNewMaterial->setDoubleSided(true);
+	}
+
+	return pNewMaterial;
+}
+
+Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	MetallicPaintMaterial* pNewMaterial = new MetallicPaintMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.29f, 0.016f, 0.19f));
+	pNewMaterial->setColour(colour);
+
+	Colour3f flakeColour = ah.getColourParam("flake_colour", Colour3f(0.39, 0.016f, 0.19f));
+	pNewMaterial->setFlakeColour(flakeColour);
+
+	float flakeSpread = ah.getFloatParam("flake_spread", 0.32f);
+	pNewMaterial->setFlakeSpread(flakeSpread);
+
+	float flakeMix = ah.getFloatParam("flake_mix", 0.38f);
+	pNewMaterial->setFlakeMix(flakeMix);
+
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
+	pNewMaterial->setRefractionIndex(refractionIndex);
+
+	float reflection = ah.getFloatParam("reflection", 1.0f);
+	pNewMaterial->setReflection(reflection);
+
+	float fresnelCoefficient = ah.getFloatParam("fresnel_coef", 0.0f);
+	pNewMaterial->setFresnelCoefficient(fresnelCoefficient);
+
 	return pNewMaterial;
 }
 
