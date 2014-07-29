@@ -50,6 +50,8 @@ public:
 	virtual bool buildRendererObjectInfo(FnKat::GroupBuilder& rendererObjectInfo, const std::string& name, const std::string& type,
 													const FnKat::GroupAttribute inputAttr = NULL) const;
 
+	virtual void buildLiveRenderControlModules(FnKat::GroupBuilder& liveRenderControlModules) const;
+
 
 	// Many functions in the Katana Render API are stupidly not static when they can be and often marked as protected,
 	// severely limiting how you can use them and thus organise the code. So provide accessors here that call them from

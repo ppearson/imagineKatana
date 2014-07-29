@@ -10,6 +10,8 @@
 #include "image/output_image.h"
 #endif
 
+#include "live_render_helpers.h"
+
 namespace FnKat = Foundry::Katana;
 namespace FnKatRender = FnKat::Render;
 
@@ -17,7 +19,7 @@ namespace FnKatRender = FnKat::Render;
 
 #include "scene.h"
 #include "utils/params.h"
-#include "raytracer/raytracer_common.h"
+#include "raytracer/raytracer.h"
 
 #endif
 
@@ -43,6 +45,19 @@ public:
 
 	}
 
+	// stuff for live rendering
+
+	// bizarrely, we seem to need this when the other render plugins don't, otherwise hasPendingDataUpdates() never gets called by Katana...
+	virtual int startLiveEditing() { return 1; }
+
+	virtual bool hasPendingDataUpdates() const;
+	virtual int applyPendingDataUpdates();
+
+	void restartLiveRender();
+
+	virtual int queueDataUpdates(FnKat::GroupAttribute updateAttribute);
+
+
 
 	// progress back from renderer
 
@@ -52,8 +67,8 @@ public:
 
 protected:
 
-	bool configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
-	bool configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	bool configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender);
+	bool configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender);
 	bool configureRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	void buildCamera(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator cameraIterator);
@@ -61,9 +76,13 @@ protected:
 
 	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 	void performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	void performLiveRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+
+	//
+	void setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings);
 
 	void startDiskRenderer();
-	void startInteractiveRenderer();
+	void startInteractiveRenderer(bool liveRender);
 
 	void renderFinished();
 
@@ -73,6 +92,10 @@ protected:
 	Scene*					m_pScene;
 	Params					m_renderSettings;
 
+	// for use with live-renders only...
+	Raytracer*				m_pRaytracer;
+
+	LiveRenderState			m_liveRenderState;
 #endif
 
 	std::string				m_diskRenderOutputPath;

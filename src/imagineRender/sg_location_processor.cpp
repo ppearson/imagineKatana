@@ -640,14 +640,14 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 				float majorValue = 0.0f;
 				float minorValue = modff(tempV, &majorValue);
-
+/*
 				// hack for whole values...
 				if (minorValue == 0.0f && majorValue > 0.0f)
 				{
 					majorValue -= 1.0f;
 					minorValue += 1.0f;
 				}
-
+*/
 				float finalValue = 1.0f - minorValue;
 				finalValue += majorValue;
 

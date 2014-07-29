@@ -14,8 +14,6 @@
 
 #include "lights/physical_sky.h"
 
-#include "raytracer/raytracer.h"
-
 #include "utils/file_helpers.h"
 #include "utils/memory.h"
 #include "utils/string_helpers.h"
@@ -39,6 +37,8 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 	m_pFrame = NULL;
 	m_pChannel = NULL;
 #endif
+
+	m_pRaytracer = NULL;
 
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -77,7 +77,9 @@ int ImagineRender::start()
 	FnKatRender::RenderSettings renderSettings(rootIterator);
 	FnKatRender::GlobalSettings globalSettings(rootIterator, "imagine");
 
-	if (!configureGeneralSettings(renderSettings, rootIterator))
+	bool diskRender = renderMethodName == FnKat::RendererInfo::DiskRenderMethod::kDefaultName;
+
+	if (!configureGeneralSettings(renderSettings, rootIterator, diskRender))
 	{
 		fprintf(stderr, "Can't configure general settings...\n");
 		return -1;
@@ -98,6 +100,12 @@ int ImagineRender::start()
 	else if (renderMethodName == FnKat::RendererInfo::PreviewRenderMethod::kDefaultName)
 	{
 		performPreviewRender(renderSettings, rootIterator);
+
+		return 0;
+	}
+	else if (renderMethodName == FnKat::RendererInfo::LiveRenderMethod::kDefaultName)
+	{
+		performLiveRender(renderSettings, rootIterator);
 
 		return 0;
 	}
@@ -146,7 +154,7 @@ void ImagineRender::configureDiskRenderOutputProcess(FnKatRender::DiskRenderOutp
 	diskRender.setRenderAction(renderAction);
 }
 
-bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender)
 {
 	m_renderWidth = settings.getResolutionX();
 	m_renderHeight = settings.getResolutionY();
@@ -199,23 +207,33 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 		m_renderSettings.add("cropHeight", roiValues[3]);
 	}
 
-	configureRenderSettings(settings, rootIterator);
+	configureRenderSettings(settings, rootIterator, diskRender);
 
 	return true;
 }
 
 // Imagine-specific settings
-bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender)
 {
 	FnKat::GroupAttribute imagineGSAttribute = rootIterator.getAttribute("imagineGlobalStatements");
 
-	// TODO: provide helper wrapper function to do all this isValue() and default value stuff.
+	// TODO: provide helper wrapper function to do all this isValid() and default value stuff.
 	//       It's rediculous that Katana doesn't provide this anyway...
 
 	FnKat::IntAttribute integratorTypeAttribute = imagineGSAttribute.getChildByName("integrator");
 	unsigned int integratorType = 1;
 	if (integratorTypeAttribute.isValid())
 		integratorType = integratorTypeAttribute.getValue(1, false);
+
+	FnKat::IntAttribute lightSamplingAttribute = imagineGSAttribute.getChildByName("light_sampling");
+	unsigned int lightSamplingType = 0;
+	if (lightSamplingAttribute.isValid())
+		lightSamplingType = lightSamplingAttribute.getValue(0, false);
+
+	FnKat::IntAttribute lightSamplesAttribute = imagineGSAttribute.getChildByName("light_samples");
+	unsigned int lightSamples = 0;
+	if (lightSamplesAttribute.isValid())
+		lightSamples = lightSamplesAttribute.getValue(1, false);
 
 	FnKat::IntAttribute volumetricsAttribute = imagineGSAttribute.getChildByName("enable_volumetrics");
 	unsigned int volumetrics = 0;
@@ -229,7 +247,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	FnKat::IntAttribute iterationsAttribute = imagineGSAttribute.getChildByName("iterations");
 	unsigned int iterations = 1;
-	if (iterationsAttribute.isValid())
+	if (iterationsAttribute.isValid() && !diskRender)
 	{
 		iterations = iterationsAttribute.getValue(1, false);
 		samplesPerPixel /= iterations;
@@ -354,9 +372,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 #ifndef STAND_ALONE
 	m_renderSettings.add("integrator", integratorType);
+	m_renderSettings.add("lightSamplingType", lightSamplingType);
+	m_renderSettings.add("lightSamples", lightSamples);
 	m_renderSettings.add("rayEpsilon", rayEpsilon);
 
-// for the moment, only do one iteration, at least for disk renders...
 	m_renderSettings.add("Iterations", (unsigned int)iterations);
 	m_renderSettings.add("volumetric", volumetrics == 1); // this needs to be a bool...
 	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
@@ -549,6 +568,79 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
+	setupPreviewDataChannel(settings);
+
+	{
+		Timer t1("Katana scene expansion");
+		buildSceneGeometry(settings, rootIterator);
+	}
+
+	// if there's no light in the scene, add a physical sky...
+	if (m_pScene->getLightCount() == 0)
+	{
+		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
+
+		pPhysicalSkyLight->setRadius(1000.0f);
+
+		m_pScene->addObject(pPhysicalSkyLight, false, false);
+	}
+
+	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
+	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
+	// fragmenting the heap quite a bit...
+
+	mallocTrim();
+
+	fprintf(stderr, "Scene setup complete - starting preview render.\n");
+
+	// assumes render settings have been set correctly before hand...
+
+	startInteractiveRenderer(false);
+
+	renderFinished();
+}
+
+void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+{
+	setupPreviewDataChannel(settings);
+
+	{
+		Timer t1("Katana scene expansion");
+		buildSceneGeometry(settings, rootIterator);
+	}
+
+	// if there's no light in the scene, add a physical sky...
+	if (m_pScene->getLightCount() == 0)
+	{
+		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
+
+		pPhysicalSkyLight->setRadius(1000.0f);
+
+		m_pScene->addObject(pPhysicalSkyLight, false, false);
+	}
+
+	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
+	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
+	// fragmenting the heap quite a bit...
+
+	mallocTrim();
+
+	fprintf(stderr, "Scene setup complete - starting live render.\n");
+
+	// assumes render settings have been set correctly before hand...
+
+	// but we add preview settings...
+	m_renderSettings.add("preview", true);
+	m_renderSettings.add("SamplesPerIteration", 16);
+	m_renderSettings.add("Iterations", 30);
+
+	startInteractiveRenderer(true);
+
+//	renderFinished();
+}
+
+void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
+{
 	std::string katHost = getKatanaHost();
 
 	size_t portSep = katHost.find(":");
@@ -596,6 +688,12 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 	//
 
+	if (m_pDataPipe)
+	{
+		delete m_pDataPipe;
+		m_pDataPipe = NULL;
+	}
+
 	m_pDataPipe = FnKat::PipeSingleton::Instance(m_katanaHost, m_katanaPort);
 
 	// try and connect...
@@ -614,6 +712,13 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 		originY += m_ROIStartY;
 	}
 */
+
+	if (m_pFrame)
+	{
+		delete m_pFrame;
+		m_pFrame = NULL;
+	}
+
 	m_pFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, originX, originY);
 
 	// set the name
@@ -622,6 +727,12 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 	m_pFrame->setFrameName(frameName);
 
 	m_pDataPipe->send(*m_pFrame);
+
+	if (m_pChannel)
+	{
+		delete m_pChannel;
+		m_pChannel = NULL;
+	}
 
 	int channelID = 0;
 	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
@@ -636,35 +747,6 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 	m_pDataPipe->send(*m_pChannel);
 #endif
-
-	{
-		Timer t1("Katana scene expansion");
-		buildSceneGeometry(settings, rootIterator);
-	}
-
-	// if there's no light in the scene, add a physical sky...
-	if (m_pScene->getLightCount() == 0)
-	{
-		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
-
-		pPhysicalSkyLight->setRadius(1000.0f);
-
-		m_pScene->addObject(pPhysicalSkyLight, false, false);
-	}
-
-	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
-	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
-	// fragmenting the heap quite a bit...
-
-	mallocTrim();
-
-	fprintf(stderr, "Scene setup complete - starting render.\n");
-
-	// assumes render settings have been set correctly before hand...
-
-	startInteractiveRenderer();
-
-	renderFinished();
 }
 
 void ImagineRender::startDiskRenderer()
@@ -716,7 +798,7 @@ void ImagineRender::startDiskRenderer()
 	delete pWriter;
 }
 
-void ImagineRender::startInteractiveRenderer()
+void ImagineRender::startInteractiveRenderer(bool liveRender)
 {
 #if ENABLE_PREVIEW_RENDERS
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
@@ -739,17 +821,37 @@ void ImagineRender::startInteractiveRenderer()
 	// non-lazy mode...
 	GlobalContext::instance().setWorkerThreads(m_renderThreads);
 
-	// we don't want progressive rendering...
-	Raytracer raytracer(*m_pScene, m_pOutputImage, m_renderSettings, false, m_renderThreads);
-	raytracer.setHost(this);
+	if (!liveRender)
+	{
+		// we don't want progressive rendering...
+		Raytracer raytracer(*m_pScene, m_pOutputImage, m_renderSettings, false, m_renderThreads);
+		raytracer.setHost(this);
 
-	raytracer.renderScene(1.0f, NULL);
+		raytracer.renderScene(1.0f, NULL);
+	}
+	else
+	{
+		// it is a live render, so we need to keep a Raytracer instance around in order to be able to cancel it when
+		// something changes
+
+		if (m_pRaytracer)
+		{
+			delete m_pRaytracer;
+			m_pRaytracer = NULL;
+		}
+
+		// we should really be calling the other one...
+		m_pRaytracer = new Raytracer(*m_pScene, m_pOutputImage, m_renderSettings, true, m_renderThreads);
+		m_pRaytracer->setHost(this);
+
+		m_pRaytracer->renderScene(1.0f, NULL);
+	}
 #endif
 }
 
 void ImagineRender::renderFinished()
 {
-	//
+	// TODO: see if this is getting called on re-render...
 #if ENABLE_PREVIEW_RENDERS
 	bool doFinal = true;
 	if (doFinal && m_pOutputImage)
@@ -814,12 +916,6 @@ void ImagineRender::renderFinished()
 #endif
 	fprintf(stderr, "Render complete.\n");
 
-	if (m_pOutputImage)
-	{
-		delete m_pOutputImage;
-		m_pOutputImage = NULL;
-	}
-
 	if (m_printStatistics)
 	{
 		// run through all objects in the scene, building up geometry info
@@ -851,8 +947,122 @@ void ImagineRender::renderFinished()
 		delete m_pOutputImage;
 		m_pOutputImage = NULL;
 	}
-
 #endif
+}
+
+bool ImagineRender::hasPendingDataUpdates() const
+{
+	return m_liveRenderState.hasUpdates();
+}
+
+int ImagineRender::applyPendingDataUpdates()
+{
+	m_pRaytracer->terminate();
+
+	m_liveRenderState.lock();
+
+	std::vector<KatanaUpdateItem>::const_iterator itUpdate = m_liveRenderState.updatesBegin();
+	for (; itUpdate != m_liveRenderState.updatesEnd(); ++itUpdate)
+	{
+		const KatanaUpdateItem& update = *itUpdate;
+
+		if (update.camera)
+		{
+			// get hold of camera
+			Camera* pCamera = m_pScene->getRenderCamera();
+
+			pCamera->transform().setCachedMatrix(update.xform.data(), true);
+		}
+	}
+
+	m_liveRenderState.unlock();
+
+	m_liveRenderState.flushUpdates();
+
+	restartLiveRender();
+
+	return 0;
+}
+
+void ImagineRender::restartLiveRender()
+{
+	::sleep(1);
+
+	m_pOutputImage->clearImage();
+
+	if (m_pRaytracer)
+	{
+		delete m_pRaytracer;
+		m_pRaytracer = NULL;
+	}
+
+	// we should really be calling the other one...
+	m_pRaytracer = new Raytracer(*m_pScene, m_pOutputImage, m_renderSettings, true, m_renderThreads);
+	m_pRaytracer->setHost(this);
+
+	m_pRaytracer->renderScene(1.0f, NULL);
+}
+
+int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
+{
+	unsigned int numItems = updateAttribute.getNumberOfChildren();
+
+	for (unsigned int i = 0; i < numItems; i++)
+	{
+		FnKat::GroupAttribute dataUpdateItemAttribute = updateAttribute.getChildByIndex(i);
+
+		if (!dataUpdateItemAttribute.isValid())
+			continue;
+
+		FnKat::StringAttribute typeAttribute = dataUpdateItemAttribute.getChildByName("type");
+
+		if (!typeAttribute.isValid())
+			continue;
+
+		FnKat::StringAttribute locationAttribute = dataUpdateItemAttribute.getChildByName("location");
+		FnKat::GroupAttribute attributesAttribute = dataUpdateItemAttribute.getChildByName("attributes");
+
+		bool partialUpdate = false;
+
+		FnKat::StringAttribute partialUpdateAttribute = attributesAttribute.getChildByName("partialUpdate");
+		if (partialUpdateAttribute.isValid() && partialUpdateAttribute.getValue("", false) == "True")
+		{
+			partialUpdate = true;
+		}
+
+		std::string type = typeAttribute.getValue("", false);
+		std::string location = locationAttribute.getValue("", false);
+
+		if (type == "camera")
+		{
+			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
+
+			if (xformAttribute.isValid())
+			{
+				// TODO: this seemingly needs to be done here... Need to work out why...
+				m_pRaytracer->terminate();
+
+				FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+				std::vector<float> relevantSampleTimes;
+				relevantSampleTimes.push_back(0.0f);
+
+				bool isAbsolute = false;
+				FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttribute, relevantSampleTimes,
+															 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+				KatanaUpdateItem newUpdate;
+				newUpdate.camera = true;
+
+				newUpdate.xform.resize(16);
+				std::copy(xforms[0].getValues(), xforms[0].getValues() + 16, newUpdate.xform.begin());
+
+				m_liveRenderState.addUpdate(newUpdate);
+			}
+		}
+	}
+
+	return 0;
 }
 
 // progress back from the main renderer class

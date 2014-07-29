@@ -8,9 +8,23 @@
 					<int name="path_distributed" value="2"/>
 				</hintdict>
 			</int>
-			<int name="enable_volumetrics" default="0" widget="checkBox" help="enable the Volumetrics integrator. Needed for SSS and volumes."/>
+			<int name="path_dist_diffuse_multiplier" default="3" help="Diffuse ray multiplier for the PathDistributed integrator"/>
+			<int name="path_dist_glossy_multiplier" default="2" help= "Glossy ray multiplier for the PathDistributed integrator"/>
+
+			<int name="enable_volumetrics" default="0" widget="checkBox" help="Enable the Volumetrics integrator. Needed for SSS and volumes."/>
+
+			<int name="light_sampling" widget="mapper" default="0">
+				<hintdict name='options'>
+					<int name="Fully sample all lights" value="0"/>
+					<int name="Importance sample lights (uniform)" value="1"/>
+					<int name="Importance sample lights (weighted)" value="2"/>
+				</hintdict>
+			</int>
+			<int name="light_samples" default="1" help="The number of light samples (for importance sampled light sampling) to use per pixel sample."/>
+
 			<int name="spp" default="64" help="The overall number of samples per pixel. Perfect square numbers (49, 64, 144) will give slightly better sample stratification."/>
 			<int name="iterations" default="1" help="The number of iteration passes to split the above samples into"/>
+
 			<int name="reconstruction_filter" widget="mapper" default="3">
 				<hintdict name='options'>
 					<int name="box" value="0"/>
@@ -22,9 +36,6 @@
 					<int name="lanczos-sync" value="6"/>
 				</hintdict>
 			</int>
-
-			<int name="path_dist_diffuse_multiplier" default="3" help="Diffuse ray multiplier for the PathDistributed integrator"/>
-			<int name="path_dist_glossy_multiplier" default="2" help= "Glossy ray multiplier for the PathDistributed integrator"/>
 
 			<int name="depth_of_field" default="0" widget="checkBox"/>
 			<int name="motion_blur" default="0" widget="checkBox"/>

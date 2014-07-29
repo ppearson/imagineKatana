@@ -36,7 +36,7 @@ void ImagineRendererInfo::fillRenderMethods(std::vector<Foundry::Katana::Rendere
 	renderMethods.push_back(new Foundry::Katana::RendererInfo::DiskRenderMethod());
 	renderMethods.push_back(new Foundry::Katana::RendererInfo::PreviewRenderMethod());
 
-//	renderMethods.push_back(new Foundry::Katana::RendererInfo::LiveRenderMethod());
+	renderMethods.push_back(new Foundry::Katana::RendererInfo::LiveRenderMethod());
 }
 
 void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& renderObjectTypes, const std::string& type) const
@@ -192,6 +192,11 @@ bool ImagineRendererInfo::buildRendererObjectInfo(FnKat::GroupBuilder& rendererO
 	}
 
 	return false;
+}
+
+void ImagineRendererInfo::buildLiveRenderControlModules(FnKat::GroupBuilder& liveRenderControlModules) const
+{
+
 }
 
 void ImagineRendererInfo::localAddRenderObjectParam(FnKat::GroupBuilder& renderObjectInfo, const std::string& name, int type, int arraySize,
