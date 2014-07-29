@@ -22,6 +22,13 @@ void RenderObjectInfoHelper::configureBasicRenderObjectInfo(FnKat::GroupBuilder&
 	std::string location = name;
 	std::string fullPath;
 
+	if (type == "renderOutput")
+	{
+		typeTags.push_back(kFnRendererOutputTypeColor);
+		typeTags.push_back(kFnRendererOutputTypeRaw);
+		typeTags.push_back(kFnRendererOutputTypeDeep);
+	}
+
 	FnKat::Attribute containerHintsAttribute;
 
 	Foundry::Katana::RendererInfo::RendererInfoBase::configureBasicRenderObjectInfo(rendererObjectInfo, type, typeTags, location, fullPath,

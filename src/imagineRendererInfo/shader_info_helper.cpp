@@ -49,6 +49,13 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 
 	FnKat::Attribute containerHintsAttribute;
 
+	typeTags.push_back("surface");
+	typeTags.push_back("bump");
+	typeTags.push_back("medium");
+	typeTags.push_back("displacement");
+	typeTags.push_back("alpha");
+	typeTags.push_back("light");
+
 	Foundry::Katana::RendererInfo::RendererInfoBase::configureBasicRenderObjectInfo(rendererObjectInfo, kFnRendererObjectTypeShader,
 																					typeTags, location, fullPath,
 																					kFnRendererObjectValueTypeUnknown, containerHintsAttribute);
