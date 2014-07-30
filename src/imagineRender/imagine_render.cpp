@@ -6,7 +6,6 @@
 #include <RendererInfo/RenderMethod.h>
 #include <RenderOutputUtils/RenderOutputUtils.h>
 
-#ifndef STAND_ALONE
 // include any Imagine headers directly from the source directory as Imagine hasn't got an API yet...
 #include "objects/camera.h"
 #include "image/output_image.h"
@@ -21,14 +20,13 @@
 
 #include "global_context.h"
 
-#endif
 
 #include "utilities.h"
 
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_useCompactGeometry(true), m_deduplicateVertexNormals(false), m_printStatistics(false),
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_deduplicateVertexNormals(false), m_printStatistics(false),
 	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false)
 {
 #if ENABLE_PREVIEW_RENDERS
@@ -161,19 +159,17 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 
 //	fprintf(stderr, "Render dimensions: %d, %d\n", m_renderWidth, m_renderHeight);
 
-#ifndef STAND_ALONE
 	m_renderSettings.add("width", m_renderWidth);
 	m_renderSettings.add("height", m_renderHeight);
-#endif
 
 	// work out number of threads to use for rendering
 	settings.applyRenderThreads(m_renderThreads);
 	applyRenderThreadsOverride(m_renderThreads);
 
 	Foundry::Katana::StringAttribute cameraNameAttribute = rootIterator.getAttribute("renderSettings.cameraName");
-	std::string cameraName = cameraNameAttribute.getValue("/root/world/cam/camera", false);
+	m_renderCameraLocation = cameraNameAttribute.getValue("/root/world/cam/camera", false);
 
-	FnKat::FnScenegraphIterator cameraIterator = rootIterator.getByPath(cameraName);
+	FnKat::FnScenegraphIterator cameraIterator = rootIterator.getByPath(m_renderCameraLocation);
 	if (!cameraIterator.isValid())
 	{
 		fprintf(stderr, "Error: Can't get hold of render camera attributes...\n");
@@ -329,12 +325,6 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (bakeDownSceneAttribute.isValid())
 		bakeDownScene = bakeDownSceneAttribute.getValue(0, false);
 
-	FnKat::IntAttribute useCompactGeometryAttribute = imagineGSAttribute.getChildByName("use_compact_geometry");
-	unsigned int useCompactGeometry = 1;
-	if (useCompactGeometryAttribute.isValid())
-		useCompactGeometry = useCompactGeometryAttribute.getValue(1, false);
-	m_useCompactGeometry = (useCompactGeometry == 1);
-
 	FnKat::IntAttribute deduplicateVertexNormalsAttribute = imagineGSAttribute.getChildByName("deduplicate_vertex_normals");
 	m_deduplicateVertexNormals = true;
 	if (deduplicateVertexNormalsAttribute.isValid())
@@ -370,7 +360,6 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (bucketSizeAttribute.isValid())
 		bucketSize = bucketSizeAttribute.getValue(48, false);
 
-#ifndef STAND_ALONE
 	m_renderSettings.add("integrator", integratorType);
 	m_renderSettings.add("lightSamplingType", lightSamplingType);
 	m_renderSettings.add("lightSamples", lightSamples);
@@ -401,7 +390,6 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	{
 		m_pScene->setBakeDownScene(true);
 	}
-#endif
 
 	return true;
 }
@@ -479,7 +467,6 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 //			pMatrix[4], pMatrix[5], pMatrix[6], pMatrix[7], pMatrix[8], pMatrix[9], pMatrix[10], pMatrix[11], pMatrix[12], pMatrix[13],
 //			pMatrix[14], pMatrix[15]);
 
-#ifndef STAND_ALONE
 	Camera* pRenderCamera = new Camera();
 	pRenderCamera->setFOV(fovValue);
 	pRenderCamera->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
@@ -498,22 +485,15 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	}
 
 	m_pScene->setDefaultCamera(pRenderCamera);
-
-#endif
 }
 
 void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
 	// force expand for the moment, instead of using lazy procedurals...
 
-#ifndef STAND_ALONE
 	SGLocationProcessor locProcessor(*m_pScene);
-#else
-	SGLocationProcessor locProcessor;
-#endif
 
 	locProcessor.setEnableSubD(m_enableSubdivision);
-	locProcessor.setUseCompactGeometry(m_useCompactGeometry);
 	locProcessor.setDeduplicateVertexNormals(m_deduplicateVertexNormals);
 	locProcessor.setSpecialiseAssemblies(m_specialiseAssembies);
 	locProcessor.setFlipT(m_flipT);
@@ -633,6 +613,8 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 	m_renderSettings.add("preview", true);
 	m_renderSettings.add("SamplesPerIteration", 16);
 	m_renderSettings.add("Iterations", 30);
+	m_renderSettings.add("progressive", true);
+//	m_renderSettings.add("re_render", true); // don't want this as that uses OpenGL camera...
 
 	startInteractiveRenderer(true);
 
@@ -840,11 +822,13 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 			m_pRaytracer = NULL;
 		}
 
-		// we should really be calling the other one...
-		m_pRaytracer = new Raytracer(*m_pScene, m_pOutputImage, m_renderSettings, true, m_renderThreads);
+		m_pRaytracer = new Raytracer(*m_pScene, m_renderThreads, true);
+		m_pRaytracer->setExtraChannels(0);
 		m_pRaytracer->setHost(this);
 
-		m_pRaytracer->renderScene(1.0f, NULL);
+		m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
+
+		m_pRaytracer->renderScene(1.0f, &m_renderSettings);
 	}
 #endif
 }
@@ -957,7 +941,7 @@ bool ImagineRender::hasPendingDataUpdates() const
 
 int ImagineRender::applyPendingDataUpdates()
 {
-	m_pRaytracer->terminate();
+//	m_pRaytracer->terminate();
 
 	m_liveRenderState.lock();
 
@@ -996,11 +980,13 @@ void ImagineRender::restartLiveRender()
 		m_pRaytracer = NULL;
 	}
 
-	// we should really be calling the other one...
-	m_pRaytracer = new Raytracer(*m_pScene, m_pOutputImage, m_renderSettings, true, m_renderThreads);
+	m_pRaytracer = new Raytracer(*m_pScene, m_renderThreads, true);
+	m_pRaytracer->setExtraChannels(0);
 	m_pRaytracer->setHost(this);
 
-	m_pRaytracer->renderScene(1.0f, NULL);
+	m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
+
+	m_pRaytracer->renderScene(1.0f, &m_renderSettings);
 }
 
 int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
@@ -1033,7 +1019,39 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 		std::string type = typeAttribute.getValue("", false);
 		std::string location = locationAttribute.getValue("", false);
 
-		if (type == "camera")
+		if (location == m_renderCameraLocation)
+		{
+			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
+
+			if (xformAttribute.isValid())
+			{
+				// TODO: this seemingly needs to be done here... Need to work out why...
+				// also need to guard against it being NULL as Katana sends through laggy updates..
+				if (m_pRaytracer)
+				{
+					m_pRaytracer->terminate();
+				}
+
+				FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+				std::vector<float> relevantSampleTimes;
+				relevantSampleTimes.push_back(0.0f);
+
+				bool isAbsolute = false;
+				FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttribute, relevantSampleTimes,
+															 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+				KatanaUpdateItem newUpdate;
+				newUpdate.camera = true;
+
+				newUpdate.xform.resize(16);
+				std::copy(xforms[0].getValues(), xforms[0].getValues() + 16, newUpdate.xform.begin());
+
+				m_liveRenderState.addUpdate(newUpdate);
+			}
+		}
+
+		if (type == "camera11")
 		{
 			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
 

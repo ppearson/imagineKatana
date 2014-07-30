@@ -2,14 +2,13 @@
 
 #include <stdio.h>
 
-#ifndef STAND_ALONE
 #include "materials/standard_material.h"
 #include "materials/glass_material.h"
 #include "materials/metal_material.h"
 #include "materials/translucent_material.h"
 #include "materials/brushed_metal_material.h"
 #include "materials/metalic_paint_material.h"
-#endif
+#include "materials/velvet_material.h"
 
 #include "katana_helpers.h"
 
@@ -99,6 +98,10 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	else if (shaderName == "Translucent")
 	{
 		pNewMaterial = createTranslucentMaterial(shaderParamsAttr);
+	}
+	else if (shaderName == "Velvet")
+	{
+		pNewMaterial = createVelvetMaterial(shaderParamsAttr);
 	}
 
 	if (pNewMaterial)
@@ -342,6 +345,39 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setTransmittance(transmittance);
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);
+
+	return pNewMaterial;
+}
+
+Material* MaterialHelper::createVelvetMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	VelvetMaterial* pNewMaterial = new VelvetMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f horizonColour = ah.getColourParam("horiz_col", Colour3f(0.7f, 0.7f, 0.7f));
+	pNewMaterial->setHorizonScatteringColour(horizonColour);
+
+	std::string horizonColourTexture = ah.getStringParam("horiz_col_texture");
+	if (!horizonColourTexture.empty())
+	{
+		pNewMaterial->setHorizonScatteringColourTexture(horizonColourTexture, true);
+	}
+
+	float horizonScatterFalloff = ah.getFloatParam("horiz_scatter_falloff", 0.4f);
+	pNewMaterial->setHorizonScatteringFalloff(horizonScatterFalloff);
+
+	Colour3f backscatterColour = ah.getColourParam("backscatter_col", Colour3f(0.4f, 0.4f, 0.4f));
+	pNewMaterial->setBackScatteringColour(backscatterColour);
+
+	std::string backscatterColourTexture = ah.getStringParam("backscatter_col_texture");
+	if (!backscatterColourTexture.empty())
+	{
+		pNewMaterial->setBackScatteringColourTexture(backscatterColourTexture, true);
+	}
+
+	float backscatterFalloff = ah.getFloatParam("backscatter", 0.7f);
+	pNewMaterial->setBackScatteringFalloff(backscatterFalloff);
 
 	return pNewMaterial;
 }

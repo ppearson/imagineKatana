@@ -15,13 +15,9 @@
 namespace FnKat = Foundry::Katana;
 namespace FnKatRender = FnKat::Render;
 
-#ifndef STAND_ALONE
-
 #include "scene.h"
 #include "utils/params.h"
 #include "raytracer/raytracer.h"
-
-#endif
 
 class ImagineRender : public Foundry::Katana::Render::RenderBase, RaytracerHost
 {
@@ -88,7 +84,6 @@ protected:
 
 protected:
 
-#ifndef STAND_ALONE
 	Scene*					m_pScene;
 	Params					m_renderSettings;
 
@@ -96,7 +91,7 @@ protected:
 	Raytracer*				m_pRaytracer;
 
 	LiveRenderState			m_liveRenderState;
-#endif
+	std::string				m_renderCameraLocation;
 
 	std::string				m_diskRenderOutputPath;
 
@@ -116,7 +111,6 @@ protected:
 
 	//
 
-	bool					m_useCompactGeometry;
 	bool					m_deduplicateVertexNormals;
 	bool					m_printStatistics;
 	bool					m_specialiseAssembies;

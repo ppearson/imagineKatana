@@ -88,6 +88,10 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 		buildTranslucentShaderParams(iri, rendererObjectInfo);
 	}
+	else if (name == "Velvet")
+	{
+		buildVelvetShaderParams(iri, rendererObjectInfo);
+	}
 	// lights
 	else if (name == "Point")
 	{
@@ -230,6 +234,19 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatParam("transmittance", 0.6f);
 
 	helper.addFloatParam("absorption_ratio", 0.46f);
+}
+
+void ShaderInfoHelper::buildVelvetShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("horiz_col", Col3f(0.7f, 0.7f, 0.7f));
+	helper.addStringParam("horiz_col_texture");
+	helper.addFloatParam("horiz_scatter_falloff", 0.4f);
+
+	helper.addColourParam("backscatter_col", Col3f(0.4f, 0.4f, 0.4f));
+	helper.addStringParam("backscatter_col_texture");
+	helper.addFloatParam("backscatter", 0.7f);
 }
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

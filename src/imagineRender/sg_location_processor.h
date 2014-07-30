@@ -10,12 +10,8 @@
 #include "material_helper.h"
 #include "light_helpers.h"
 
-#ifndef STAND_ALONE
-
 #include "materials/material.h"
 #include "scene.h"
-
-#endif
 
 class CompactGeometryInstance;
 class CompoundObject;
@@ -23,11 +19,7 @@ class CompoundObject;
 class SGLocationProcessor
 {
 public:
-#ifndef STAND_ALONE
 	SGLocationProcessor(Scene& scene);
-#else
-	SGLocationProcessor();
-#endif
 
 	struct InstanceInfo
 	{
@@ -43,11 +35,6 @@ public:
 	void setEnableSubD(bool enableSubD)
 	{
 		m_enableSubd = enableSubD;
-	}
-
-	void setUseCompactGeometry(bool useCG)
-	{
-		m_useCompactGeometry = useCG;
 	}
 
 	void setDeduplicateVertexNormals(bool ddVN)
@@ -70,7 +57,6 @@ public:
 
 	void processLocationRecursive(FnKat::FnScenegraphIterator iterator);
 
-	void processGeometryPolymeshStandard(FnKat::FnScenegraphIterator iterator);
 	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD);
 
 	void processAssembly(FnKat::FnScenegraphIterator iterator);
@@ -91,7 +77,6 @@ protected:
 	bool				m_applyMaterials;
 	bool				m_useTextures;
 	bool				m_enableSubd;
-	bool				m_useCompactGeometry;
 	bool				m_deduplicateVertexNormals;
 	bool				m_specialiseAssemblies;
 	bool				m_flipT;
