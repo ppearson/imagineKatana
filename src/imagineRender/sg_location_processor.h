@@ -55,22 +55,28 @@ public:
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
-	void processLocationRecursive(FnKat::FnScenegraphIterator iterator);
+	void getFinalMaterials(std::vector<Material*>& aMaterials);
+
+protected:
+
+	void processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
 	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD);
 
-	void processAssembly(FnKat::FnScenegraphIterator iterator);
+	void processAssembly(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
 	CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD);
-	CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator);
-	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects);
+	CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth);
+
+	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects,
+												   unsigned int baseLevelDepth, unsigned int currentDepth);
 
 	void processInstance(FnKat::FnScenegraphIterator iterator);
 	void processSphere(FnKat::FnScenegraphIterator iterator);
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
 
-	void getFinalMaterials(std::vector<Material*>& aMaterials);
+
 
 protected:
 	// TODO: this is getting a bit silly...

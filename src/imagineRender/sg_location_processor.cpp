@@ -4,6 +4,8 @@
 
 #include <RenderOutputUtils/RenderOutputUtils.h>
 
+#include "katana_helpers.h"
+
 #include "objects/mesh.h"
 #include "objects/primitives/sphere.h"
 #include "objects/compound_object.h"
@@ -26,10 +28,15 @@ void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)
 
 void SGLocationProcessor::processSGForceExpand(FnKat::FnScenegraphIterator rootIterator)
 {
-	processLocationRecursive(rootIterator);
+	processLocationRecursive(rootIterator, 0);
 }
 
-void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
+{
+	aMaterials = m_materialHelper.getMaterialsVector();
+}
+
+void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
 {
 	std::string type = iterator.getType();
 
@@ -70,7 +77,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	}
 	if (m_specialiseAssemblies && type == "assembly")
 	{
-		processAssembly(iterator);
+		processAssembly(iterator, currentDepth);
 		return;
 	}
 /*	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
@@ -93,10 +100,12 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		return;
 	}
 
+	unsigned int nextDepth = currentDepth + 1;
+
 	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
 	for (; child.isValid(); child = child.getNextSibling())
 	{
-		processLocationRecursive(child);
+		processLocationRecursive(child, nextDepth);
 	}
 }
 
@@ -143,7 +152,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
-	sampleTimes.insert(0);
+	sampleTimes.insert(0.0f);
 	std::vector<float> relevantSampleTimes;
 	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
 
@@ -160,16 +169,15 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	m_scene.addObject(pNewMeshObject, false, false);
 }
 
-void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
 {
-	// TODO: we don't really want inherited transforms here...
-	CompoundObject* pCO = createCompoundObjectFromLocation(iterator);
+	CompoundObject* pCO = createCompoundObjectFromLocation(iterator, currentDepth);
 
 	// do transform
 	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
-	sampleTimes.insert(0);
+	sampleTimes.insert(0.0f);
 	std::vector<float> relevantSampleTimes;
 	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
 
@@ -493,11 +501,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	return pNewGeoInstance;
 }
 
-CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator)
+CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth)
 {
 	std::vector<Object*> aObjects;
 
-	createCompoundObjectFromLocationRecursive(iterator, aObjects);
+	createCompoundObjectFromLocationRecursive(iterator, aObjects, baseLevelDepth, baseLevelDepth);
 
 	CompoundObject* pNewCO = new CompoundObject();
 
@@ -514,7 +522,8 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	return pNewCO;
 }
 
-void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects)
+void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects,
+																	unsigned int baseLevelDepth, unsigned int currentDepth)
 {
 	std::string type = iterator.getType();
 
@@ -577,12 +586,14 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			pNewMeshObject->setDefaultMaterial();
 		}
 
-		// do transform
+		// do transform - but limit the number of levels
 
-		FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+		int depthLimit = currentDepth - baseLevelDepth;
+
+		FnKat::GroupAttribute xformAttr = KatanaHelpers::buildLocationXformList(iterator, depthLimit);
 
 		std::set<float> sampleTimes;
-		sampleTimes.insert(0);
+		sampleTimes.insert(0.0f);
 		std::vector<float> relevantSampleTimes;
 		std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
 
@@ -601,10 +612,12 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		return;
 	}
 
+	unsigned int nextDepth = currentDepth + 1;
+
 	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
 	for (; child.isValid(); child = child.getNextSibling())
 	{
-		createCompoundObjectFromLocationRecursive(child, aObjects);
+		createCompoundObjectFromLocationRecursive(child, aObjects, baseLevelDepth, nextDepth);
 	}
 }
 
@@ -683,7 +696,9 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		{
 			// it's a full hierarchy, so we can specialise by building a compound object containing all the sub-objects
 
-			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource);
+			// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
+			// is what we want...
+			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
 
 			// this one is set to be hidden, but we need to add it to the scene...
 
@@ -728,7 +743,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
-	sampleTimes.insert(0);
+	sampleTimes.insert(0.0f);
 	std::vector<float> relevantSampleTimes;
 	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
 
@@ -784,7 +799,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
-	sampleTimes.insert(0);
+	sampleTimes.insert(0.0f);
 	std::vector<float> relevantSampleTimes;
 	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
 
@@ -813,7 +828,7 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	FnKat::GroupAttribute xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
 	std::set<float> sampleTimes;
-	sampleTimes.insert(0);
+	sampleTimes.insert(0.0f);
 	std::vector<float> relevantSampleTimes;
 	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
 
@@ -828,9 +843,4 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
 	m_scene.addObject(pNewLight, false, false);
-}
-
-void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
-{
-	aMaterials = m_materialHelper.getMaterialsVector();
 }

@@ -1,7 +1,56 @@
 #include "katana_helpers.h"
 
+#include <stdio.h>
+
+#include <FnAttribute/FnGroupBuilder.h>
+
 KatanaHelpers::KatanaHelpers()
 {
+}
+
+FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(FnKat::FnScenegraphIterator iterator, int depthLimit)
+{
+	int limit = depthLimit;
+
+	std::vector<FnKat::GroupAttribute> aXFormAttributes;
+
+	FnKat::FnScenegraphIterator localIt = iterator;
+
+	while (localIt.isValid() && limit > 0)
+	{
+		FnKat::GroupAttribute localXFormAttribute = localIt.getAttribute("xform");
+
+		if (localXFormAttribute.isValid())
+		{
+			aXFormAttributes.push_back(localXFormAttribute);
+		}
+
+		limit --;
+
+		if (limit <= 0)
+			break;
+
+		localIt = localIt.getParent();
+	}
+
+	if (aXFormAttributes.empty())
+	{
+		return FnKat::Attribute();
+	}
+
+	FnKat::GroupBuilder gb;
+
+	unsigned int count = 0;
+	char szTemp[16];
+	std::vector<FnKat::GroupAttribute>::reverse_iterator itItem = aXFormAttributes.rbegin();
+	for (; itItem != aXFormAttributes.rend(); ++itItem)
+	{
+		sprintf(szTemp, "item %i", count++);
+
+		gb.set(szTemp, *itItem);
+	}
+
+	return gb.build();
 }
 
 

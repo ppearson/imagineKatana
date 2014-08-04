@@ -1,7 +1,11 @@
 #ifndef KATANA_HELPERS_H
 #define KATANA_HELPERS_H
 
+#include <vector>
+
 #include <FnAttribute/FnAttribute.h>
+
+#include <FnScenegraphIterator/FnScenegraphIterator.h>
 
 #include "colour/colour3f.h"
 
@@ -10,9 +14,11 @@ class KatanaHelpers
 public:
 	KatanaHelpers();
 
+	static FnKat::GroupAttribute buildLocationXformList(FnKat::FnScenegraphIterator iterator, int depthLimit);
+
 };
 
-// helpers to get attribs with fallback defaults easily
+// helpers to easily get attributes with fallback defaults
 class KatanaAttributeHelper
 {
 public:
