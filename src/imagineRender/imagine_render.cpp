@@ -27,7 +27,7 @@
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
 	RenderBase(rootIterator, arguments), m_pScene(NULL), m_deduplicateVertexNormals(false), m_printStatistics(false),
-	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false)
+	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false), m_fastLiveRenders(false)
 {
 #if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
@@ -247,6 +247,12 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	{
 		iterations = iterationsAttribute.getValue(1, false);
 		samplesPerPixel /= iterations;
+	}
+
+	FnKat::IntAttribute fastLiveRendersAttribute = imagineGSAttribute.getChildByName("fast_live_renders");
+	if (fastLiveRendersAttribute.isValid())
+	{
+		m_fastLiveRenders = (fastLiveRendersAttribute.getValue(0, false) == 1);
 	}
 
 	FnKat::IntAttribute filterTypeAttribute = imagineGSAttribute.getChildByName("reconstruction_filter");
@@ -609,12 +615,21 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 
 	// assumes render settings have been set correctly before hand...
 
-	// but we add preview settings...
+	// but we add/override preview settings...
 	m_renderSettings.add("preview", true);
-	m_renderSettings.add("SamplesPerIteration", 16);
-	m_renderSettings.add("Iterations", 30);
+	if (m_fastLiveRenders)
+	{
+		m_renderSettings.add("SamplesPerIteration", 4);
+		m_renderSettings.add("Iterations", 60);
+	}
+	else
+	{
+		m_renderSettings.add("SamplesPerIteration", 16);
+		m_renderSettings.add("Iterations", 30);
+	}
 	m_renderSettings.add("progressive", true);
-//	m_renderSettings.add("re_render", true); // don't want this as that uses OpenGL camera...
+
+	m_renderSettings.add("integrated_rerender", true);
 
 	startInteractiveRenderer(true);
 
@@ -638,12 +653,11 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	std::string strPort = katHost.substr(portSep + 1);
 	m_katanaPort = atol(strPort.c_str());
 
-	m_katanaPort += 100;
-
 	// perversely, Katana requires the port number retrieved above to be incremented by 100,
 	// despite the fact that KatanaPipe::connect() seems to handle doing that itself for the control
 	// port (which is +100 the data port). Not doing this causes Katana to segfault on the connect()
 	// call, leaving renderBoot orphaned doing the render in the background...
+	m_katanaPort += 100;
 
 	//
 #if ENABLE_PREVIEW_RENDERS
@@ -970,7 +984,9 @@ int ImagineRender::applyPendingDataUpdates()
 
 void ImagineRender::restartLiveRender()
 {
-	::sleep(1);
+	m_liveRenderState.lock();
+
+	::usleep(500);
 
 	m_pOutputImage->clearImage();
 
@@ -986,11 +1002,22 @@ void ImagineRender::restartLiveRender()
 
 	m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
 
+	m_liveRenderState.unlock();
+
 	m_pRaytracer->renderScene(1.0f, &m_renderSettings);
 }
 
 int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 {
+	m_liveRenderState.lock();
+	if (!m_pRaytracer)
+	{
+		m_liveRenderState.unlock();
+		return 0;
+	}
+
+	m_liveRenderState.unlock();
+
 	unsigned int numItems = updateAttribute.getNumberOfChildren();
 
 	for (unsigned int i = 0; i < numItems; i++)
@@ -1026,54 +1053,27 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 			if (xformAttribute.isValid())
 			{
 				// TODO: this seemingly needs to be done here... Need to work out why...
-				// also need to guard against it being NULL as Katana sends through laggy updates..
+				m_liveRenderState.lock();
 				if (m_pRaytracer)
 				{
 					m_pRaytracer->terminate();
 				}
+				m_liveRenderState.unlock();
 
-				FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+				FnKat::DoubleAttribute xformMatrixAttribute = xformAttribute.getChildByName("global");
+				if (!xformMatrixAttribute.isValid())
+					continue;
 
-				std::vector<float> relevantSampleTimes;
-				relevantSampleTimes.push_back(0.0f);
+				FnKat::DoubleConstVector matrixValues = xformMatrixAttribute.getNearestSample(0.0f);
 
-				bool isAbsolute = false;
-				FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttribute, relevantSampleTimes,
-															 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
-
-				KatanaUpdateItem newUpdate;
-				newUpdate.camera = true;
-
-				newUpdate.xform.resize(16);
-				std::copy(xforms[0].getValues(), xforms[0].getValues() + 16, newUpdate.xform.begin());
-
-				m_liveRenderState.addUpdate(newUpdate);
-			}
-		}
-
-		if (type == "camera11")
-		{
-			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
-
-			if (xformAttribute.isValid())
-			{
-				// TODO: this seemingly needs to be done here... Need to work out why...
-				m_pRaytracer->terminate();
-
-				FnKat::RenderOutputUtils::XFormMatrixVector xforms;
-
-				std::vector<float> relevantSampleTimes;
-				relevantSampleTimes.push_back(0.0f);
-
-				bool isAbsolute = false;
-				FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttribute, relevantSampleTimes,
-															 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+				if (matrixValues.size() != 16)
+					continue;
 
 				KatanaUpdateItem newUpdate;
 				newUpdate.camera = true;
 
 				newUpdate.xform.resize(16);
-				std::copy(xforms[0].getValues(), xforms[0].getValues() + 16, newUpdate.xform.begin());
+				std::copy(matrixValues.begin(), matrixValues.end(), newUpdate.xform.begin());
 
 				m_liveRenderState.addUpdate(newUpdate);
 			}
