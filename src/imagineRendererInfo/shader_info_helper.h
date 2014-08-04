@@ -57,6 +57,7 @@ public:
 	// for params
 
 	void addFloatParam(const std::string& name, float defaultValue);
+	void addFloatSliderParam(const std::string& name, float defaultValue, float sliderMin = 0.0f, float sliderMax = 1.0f);
 	void addColourParam(const std::string& name, Col3f defaultValue);
 	void addIntParam(const std::string& name, int defaultValue);
 	void addBoolParam(const std::string& name, bool defaultValue);

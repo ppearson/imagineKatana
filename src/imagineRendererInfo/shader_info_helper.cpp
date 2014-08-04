@@ -9,7 +9,8 @@
 
 // TODO: Hardcode this stuff for the moment, as we haven't got a nice API for doing this yet...
 //       We *could* just instantiate Imagine's materials and call buildParams() on them and then build the
-//       list dynamically from the params which would be practically the same, but would be a bit messy, so...
+//       list dynamically from the params which would be practically the same, but would be a bit messy,
+//       and there's no current way of getting defaults, so...
 
 // RenderInfoBase stupidly has these marked as protected, so redefine them here so we can use them easily...
 typedef std::pair<std::string, int> EnumPair;
@@ -143,23 +144,23 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	helper.addColourParam("diffuse_col", Col3f(0.8f, 0.8f, 0.8f));
 	helper.addStringParam("diff_texture");
 	helper.addIntParam("diff_texture_flags", 0);
-	helper.addFloatParam("diff_roughness", 0.0f);
-	helper.addFloatParam("diff_backlit", 0.0f);
+	helper.addFloatSliderParam("diff_roughness", 0.0f);
+	helper.addFloatSliderParam("diff_backlit", 0.0f);
 
 	helper.addColourParam("spec_col", Col3f(0.1f, 0.1f, 0.1f));
 	helper.addStringParam("spec_texture");
 	helper.addIntParam("spec_texture_flags", 0);
-	helper.addFloatParam("spec_roughness", 0.9f);
+	helper.addFloatSliderParam("spec_roughness", 0.9f);
 
-	helper.addFloatParam("reflection", 0.0f);
+	helper.addFloatSliderParam("reflection", 0.0f);
 
 	helper.addBoolParam("fresnel", false);
-	helper.addFloatParam("fresnel_coef", 0.0f);
+	helper.addFloatSliderParam("fresnel_coef", 0.0f);
 
 	helper.addFloatParam("refraction_index", 1.0f);
 
-	helper.addFloatParam("transparency", 0.0f);
-	helper.addFloatParam("transmission", 0.0f);
+	helper.addFloatSliderParam("transparency", 0.0f);
+	helper.addFloatSliderParam("transmission", 0.0f);
 
 	helper.addBoolParam("double_sided", 0);
 }
@@ -169,10 +170,10 @@ void ShaderInfoHelper::buildGlassShaderParams(const ImagineRendererInfo& iri, Fn
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addColourParam("colour", Col3f(0.0f, 0.0f, 0.0f));
-	helper.addFloatParam("reflection", 1.0f);
-	helper.addFloatParam("gloss", 1.0f);
-	helper.addFloatParam("transparency", 1.0f);
-	helper.addFloatParam("transmittance", 1.0f);
+	helper.addFloatSliderParam("reflection", 1.0f);
+	helper.addFloatSliderParam("gloss", 1.0f);
+	helper.addFloatSliderParam("transparency", 1.0f);
+	helper.addFloatSliderParam("transmittance", 1.0f);
 
 	helper.addFloatParam("refraction_index", 1.517f);
 
@@ -188,7 +189,7 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addColourParam("colour", Col3f(0.9f, 0.9f, 0.9f));
 	helper.addFloatParam("refraction_index", 1.39f);
 	helper.addFloatParam("k", 4.8f);
-	helper.addFloatParam("roughness", 0.01f);
+	helper.addFloatSliderParam("roughness", 0.01f);
 
 	helper.addBoolParam("double_sided", 0);
 }
@@ -200,8 +201,8 @@ void ShaderInfoHelper::buildBrushedMetalShaderParams(const ImagineRendererInfo& 
 	helper.addColourParam("colour", Col3f(0.9f, 0.9f, 0.9f));
 	helper.addFloatParam("refraction_index", 1.39f);
 	helper.addFloatParam("k", 4.8f);
-	helper.addFloatParam("roughness_x", 0.1f);
-	helper.addFloatParam("roughness_y", 0.02f);
+	helper.addFloatSliderParam("roughness_x", 0.1f);
+	helper.addFloatSliderParam("roughness_y", 0.02f);
 
 	helper.addBoolParam("double_sided", 0);
 }
@@ -212,12 +213,12 @@ void ShaderInfoHelper::buildMetallicPaintShaderParams(const ImagineRendererInfo&
 
 	helper.addColourParam("colour", Col3f(0.29f, 0.016f, 0.19f));
 	helper.addColourParam("flake_colour", Col3f(0.39, 0.016f, 0.19f));
-	helper.addFloatParam("flake_spread", 0.32f);
-	helper.addFloatParam("flake_mix", 0.38f);
+	helper.addFloatSliderParam("flake_spread", 0.32f);
+	helper.addFloatSliderParam("flake_mix", 0.38f);
 	helper.addFloatParam("refraction_index", 1.39f);
 
-	helper.addFloatParam("reflection", 1.0f);
-	helper.addFloatParam("fresnel_coef", 0.0f);
+	helper.addFloatSliderParam("reflection", 1.0f);
+	helper.addFloatSliderParam("fresnel_coef", 0.0f);
 }
 
 void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -231,9 +232,9 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatParam("subsurface_density", 3.1f);
 	helper.addFloatParam("sampling_density", 0.35f);
 
-	helper.addFloatParam("transmittance", 0.6f);
+	helper.addFloatSliderParam("transmittance", 0.6f);
 
-	helper.addFloatParam("absorption_ratio", 0.46f);
+	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 }
 
 void ShaderInfoHelper::buildVelvetShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -242,18 +243,18 @@ void ShaderInfoHelper::buildVelvetShaderParams(const ImagineRendererInfo& iri, F
 
 	helper.addColourParam("horiz_col", Col3f(0.7f, 0.7f, 0.7f));
 	helper.addStringParam("horiz_col_texture");
-	helper.addFloatParam("horiz_scatter_falloff", 0.4f);
+	helper.addFloatSliderParam("horiz_scatter_falloff", 0.4f);
 
 	helper.addColourParam("backscatter_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addStringParam("backscatter_col_texture");
-	helper.addFloatParam("backscatter", 0.7f);
+	helper.addFloatSliderParam("backscatter", 0.7f);
 }
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("intensity", 1.0f);
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 
 	helper.addIntParam("shadow_type", 0);
@@ -263,13 +264,13 @@ void ShaderInfoHelper::buildSpotLightShaderParams(const ImagineRendererInfo& iri
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("intensity", 1.0f);
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 	helper.addIntParam("shadow_type", 0);
 
 	helper.addIntParam("num_samples", 1);
 
-	helper.addFloatParam("cone_angle", 30.0f);
+	helper.addFloatSliderParam("cone_angle", 30.0f, 0.0f, 90.0f);
 	helper.addFloatParam("penumbra_angle", 5.0f);
 
 	helper.addBoolParam("is_area", true);
@@ -279,7 +280,7 @@ void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("intensity", 1.0f);
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 	helper.addIntParam("shadow_type", 0);
 
@@ -287,8 +288,8 @@ void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri
 
 	helper.addBoolParam("visible", false);
 
-	helper.addFloatParam("width", 1.0f);
-	helper.addFloatParam("depth", 1.0f);
+	helper.addFloatSliderParam("width", 1.0f, 0.01f, 20.0f);
+	helper.addFloatSliderParam("depth", 1.0f, 0.01f, 20.0f);
 
 	helper.addIntParam("shape_type", 0);
 
@@ -311,7 +312,7 @@ void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& 
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("intensity", 1.0f);
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 5.0f);
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 	helper.addIntParam("shadow_type", 0);
 	helper.addIntParam("num_samples", 1);
@@ -321,7 +322,7 @@ void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererIn
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("intensity", 1.0f);
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 5.0f);
 	helper.addIntParam("shadow_type", 0);
 	helper.addIntParam("num_samples", 1);
 	helper.addBoolParam("visible", true);
@@ -338,12 +339,12 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 	helper.addIntParam("num_samples", 1);
 	helper.addBoolParam("visible", true);
 
-	helper.addFloatParam("sky_intensity", 1.0f);
-	helper.addFloatParam("sun_intensity", 1.0f);
+	helper.addFloatSliderParam("sky_intensity", 1.0f, 0.0f, 5.0f);
+	helper.addFloatSliderParam("sun_intensity", 1.0f, 0.0f, 5.0f);
 
 	helper.addIntParam("hemisphere_extension", 0);
 
-	helper.addFloatParam("time", 17.1f);
+	helper.addFloatSliderParam("time", 17.1f, 0.0f, 24.0f);
 	helper.addIntParam("day", 174);
 }
 
@@ -352,7 +353,7 @@ void ShaderInfoHelper::buildBumpTextureShaderParams(const ImagineRendererInfo& i
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addStringParam("bump_texture_path");
-	helper.addFloatParam("bump_texture_intensity", 0.8f);
+	helper.addFloatSliderParam("bump_texture_intensity", 0.8f, -4.0f, 4.0f);
 }
 
 void ShaderInfoHelper::buildAlphaTextureShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -374,6 +375,27 @@ void ShaderInfoHelper::addFloatParam(const std::string& name, float defaultValue
 	FnKat::Attribute defaultAttribute = fb.build();
 	FnKat::GroupBuilder params;
 	params.set("isDynamicArray", FnKat::IntAttribute(0));
+
+	FnKat::Attribute hintsAttribute = params.build();
+
+	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeFloat, 0, defaultAttribute, hintsAttribute, enums);
+}
+
+void ShaderInfoHelper::addFloatSliderParam(const std::string& name, float defaultValue, float sliderMin, float sliderMax)
+{
+	EnumPairVector enums;
+
+	FnKat::FloatBuilder fb(1);
+	fb.push_back(defaultValue);
+
+	FnKat::Attribute defaultAttribute = fb.build();
+	FnKat::GroupBuilder params;
+	params.set("isDynamicArray", FnKat::IntAttribute(0));
+	params.set("slider", FnKat::IntAttribute(1));
+	params.set("slidermin", FnKat::FloatAttribute(sliderMin));
+	params.set("slidermax", FnKat::FloatAttribute(sliderMax));
+
+	// TODO: see if we can work out how to get log/exp sliders for roughness params...
 
 	FnKat::Attribute hintsAttribute = params.build();
 
