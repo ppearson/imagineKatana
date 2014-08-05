@@ -316,6 +316,8 @@ void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& 
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 	helper.addIntParam("shadow_type", 0);
 	helper.addIntParam("num_samples", 1);
+
+	helper.addBoolParam("visible", true);
 }
 
 void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

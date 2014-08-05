@@ -144,12 +144,14 @@ Light* LightHelpers::createSkydomeLight(const FnKat::GroupAttribute& shaderParam
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
 	int shadowType = ah.getIntParam("shadow_type", 0);
 	int numSamples = ah.getIntParam("num_samples", 1);
+	bool isVisible = ah.getIntParam("visible", 1) == 1;
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setColour(colour);
 	pNewLight->setShadowType((Light::ShadowType)shadowType);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
+	pNewLight->setVisible(isVisible);
 
 	return pNewLight;
 }

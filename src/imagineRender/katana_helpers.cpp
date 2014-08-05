@@ -35,7 +35,8 @@ FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(FnKat::FnScenegraphI
 
 	if (aXFormAttributes.empty())
 	{
-		return FnKat::Attribute();
+		FnKat::GroupBuilder gb;
+		return gb.build();
 	}
 
 	FnKat::GroupBuilder gb;
