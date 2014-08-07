@@ -33,12 +33,13 @@ public:
 	std::vector<Material*>& getMaterialsVector() { return m_aMaterials; }
 
 protected:
-	static Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
+	static Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,
+											FnKat::GroupAttribute& alphaParamsAttr);
 	static Material* createGlassMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
-	static Material* createMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
+	static Material* createMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr);
 	static Material* createBrushedMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createMetallicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
-	static Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
+	static Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr);
 	static Material* createVelvetMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 
 protected:

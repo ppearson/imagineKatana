@@ -17,6 +17,8 @@ MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL)
 	FnKat::StringBuilder tnBuilder;
 	tnBuilder.push_back("imagineSurface");
 	tnBuilder.push_back("imagineLight");
+	tnBuilder.push_back("imagineBump");
+	tnBuilder.push_back("imagineAlpha");
 
 	m_terminatorNodes = tnBuilder.build();
 
@@ -73,11 +75,17 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 
 	std::string shaderName = shaderNameAttr.getValue(shaderName, false);
 
+	// see if we've got any Bump or Alpha materials - this isn't great doing it this way,
+	// as Imagine's versions are (possibly wrongly) part of the below shader types, but it's the only way
+	// currently
+	FnKat::GroupAttribute bumpParamsAttr = attribute.getChildByName("imagineBumpParams");
+	FnKat::GroupAttribute alphaParamsAttr = attribute.getChildByName("imagineAlphaParams");
+
 	Material* pNewMaterial = NULL;
 
 	if (shaderName == "Standard")
 	{
-		pNewMaterial = createStandardMaterial(shaderParamsAttr);
+		pNewMaterial = createStandardMaterial(shaderParamsAttr, bumpParamsAttr, alphaParamsAttr);
 	}
 	else if (shaderName == "Glass")
 	{
@@ -85,7 +93,7 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	}
 	else if (shaderName == "Metal")
 	{
-		pNewMaterial = createMetalMaterial(shaderParamsAttr);
+		pNewMaterial = createMetalMaterial(shaderParamsAttr, bumpParamsAttr);
 	}
 	else if (shaderName == "Brushed Metal")
 	{
@@ -97,7 +105,7 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	}
 	else if (shaderName == "Translucent")
 	{
-		pNewMaterial = createTranslucentMaterial(shaderParamsAttr);
+		pNewMaterial = createTranslucentMaterial(shaderParamsAttr, bumpParamsAttr);
 	}
 	else if (shaderName == "Velvet")
 	{
@@ -110,7 +118,8 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	return m_pDefaultMaterial;
 }
 
-Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,
+												 FnKat::GroupAttribute& alphaParamsAttr)
 {
 	StandardMaterial* pNewStandardMaterial = new StandardMaterial();
 
@@ -198,16 +207,29 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 		pNewStandardMaterial->setDoubleSided(true);
 	}
 
-	std::string bumpTexture = ah.getStringParam("bump_texture_path");
-	if (!bumpTexture.empty())
+	if (bumpParamsAttr.isValid())
 	{
-		pNewStandardMaterial->setBumpTextureMapPath(bumpTexture, true);
+		KatanaAttributeHelper ahBump(bumpParamsAttr);
+
+		std::string bumpTexture = ahBump.getStringParam("bump_texture_path");
+		if (!bumpTexture.empty())
+		{
+			pNewStandardMaterial->setBumpTextureMapPath(bumpTexture, true);
+
+			float bumpIntensity = ahBump.getFloatParam("bump_texture_intensity", 0.8f);
+			pNewStandardMaterial->setBumpIntensity(bumpIntensity);
+		}
 	}
 
-	std::string alphaTexture = ah.getStringParam("alpha_texture_path");
-	if (!alphaTexture.empty())
+	if (alphaParamsAttr.isValid())
 	{
-		pNewStandardMaterial->setAlphaTextureMapPath(bumpTexture, true);
+		KatanaAttributeHelper ahAlpha(alphaParamsAttr);
+
+		std::string alphaTexture = ahAlpha.getStringParam("alpha_texture_path");
+		if (!alphaTexture.empty())
+		{
+			pNewStandardMaterial->setAlphaTextureMapPath(alphaTexture, true);
+		}
 	}
 
 	return pNewStandardMaterial;
@@ -240,7 +262,7 @@ Material* MaterialHelper::createGlassMaterial(const FnKat::GroupAttribute& shade
 	return pNewMaterial;
 }
 
-Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr)
 {
 	MetalMaterial* pNewMaterial = new MetalMaterial();
 
@@ -260,6 +282,20 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	if (doubleSided == 1)
 	{
 		pNewMaterial->setDoubleSided(true);
+	}
+
+	if (bumpParamsAttr.isValid())
+	{
+		KatanaAttributeHelper ahBump(bumpParamsAttr);
+
+		std::string bumpTexture = ahBump.getStringParam("bump_texture_path");
+		if (!bumpTexture.empty())
+		{
+			pNewMaterial->setBumpTextureMapPath(bumpTexture, true);
+
+			float bumpIntensity = ahBump.getFloatParam("bump_texture_intensity", 0.8f);
+			pNewMaterial->setBumpIntensity(bumpIntensity);
+		}
 	}
 
 	return pNewMaterial;
@@ -322,7 +358,7 @@ Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribut
 	return pNewMaterial;
 }
 
-Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr)
 {
 	TranslucentMaterial* pNewMaterial = new TranslucentMaterial();
 
