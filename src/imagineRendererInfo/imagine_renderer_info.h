@@ -33,8 +33,6 @@ public:
 
 	virtual bool isNodeTypeSupported(const std::string& nodeType) const { return false; }
 
-	virtual bool isPolymeshFacesetSplittingEnabled() const { return true; }
-
 	virtual void fillShaderInputNames(std::vector<std::string>& shaderInputNames, const std::string& shaderName) const;
 
 	virtual void fillShaderInputTags(std::vector<std::string>& shaderInputTags, const std::string& shaderName,

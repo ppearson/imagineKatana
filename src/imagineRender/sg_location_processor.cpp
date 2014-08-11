@@ -53,6 +53,8 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		else if (type == "subdmesh")
 		{
 			processGeometryPolymeshCompact(iterator, true);
+
+			return;
 		}
 	}
 	else
@@ -121,6 +123,10 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		fprintf(stderr, "Warning: polymesh '%s' does not have a 'geometry' attribute...\n", name.c_str());
 		return;
 	}
+
+	// TODO: if we want to support facesets (modo's abc output annoyingly seems very pro-faceset) in the future, we're going
+	//       to have to check here if there are any children of type faceset/polymesh below this iterator. If so, we'd
+	//       need to ignore this location and just process the children.
 
 	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD);
 	if (!pNewGeoInstance)
@@ -365,14 +371,14 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 				float majorValue = 0.0f;
 				float minorValue = modff(tempV, &majorValue);
-/*
+
 				// hack for whole values...
-				if (minorValue == 0.0f && majorValue > 0.0f)
-				{
-					majorValue -= 1.0f;
-					minorValue += 1.0f;
-				}
-*/
+//				if (minorValue == 0.0f && majorValue > 0.0f)
+//				{
+//					majorValue -= 1.0f;
+//					minorValue += 1.0f;
+//				}
+
 				float finalValue = 1.0f - minorValue;
 				finalValue += majorValue;
 
@@ -470,11 +476,6 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	else
 	{
 		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS;
-	}
-
-	if (hasUVs)
-	{
-		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");

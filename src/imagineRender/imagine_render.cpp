@@ -10,6 +10,7 @@
 #include "objects/camera.h"
 #include "image/output_image.h"
 #include "io/image/image_writer_exr.h"
+#include "image/image_cache.h"
 
 #include "lights/physical_sky.h"
 
@@ -786,6 +787,8 @@ void ImagineRender::startDiskRenderer()
 
 	raytracer.renderScene(1.0f, NULL);
 
+	m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
+
 	renderImage.normaliseProgressive();
 	renderImage.applyExposure(1.1f);
 
@@ -824,6 +827,8 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		raytracer.setHost(this);
 
 		raytracer.renderScene(1.0f, NULL);
+
+		m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
 	}
 	else
 	{
@@ -843,6 +848,8 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
 
 		m_pRaytracer->renderScene(1.0f, &m_renderSettings);
+
+		m_rendererOtherMemory = m_pRaytracer->getRendererMemoryUsage();
 	}
 #endif
 }
@@ -928,15 +935,23 @@ void ImagineRender::renderFinished()
 			pObject->fillGeometryInfo(info);
 		}
 
-		fprintf(stderr, "\n\nGeometry Statistics:\n");
+		fprintf(stderr, "\n\nStatistics:\n-----------\n");
 
 		std::string sourceGeoSize = formatSize(info.getTotalSourceSize());
-		std::string trianglesSize = formatSize(info.getTotalTrianglesSize());
+		std::string totalTrianglesSize = formatSize(info.getTotalTrianglesSize());
+		std::string uniqueTrianglesSize = formatSize(info.getUniqueTrianglesSize());
+		std::string otherSize = formatSize(info.getOtherSize() + m_rendererOtherMemory);
 		std::string accelSize = formatSize(info.getAccelerationStructureSize());
+		unsigned int numImages = 0;
+		size_t imageTextureSize = ImageCache::instance().getImageCacheMemorySize(&numImages);
+		std::string strImageTextureSize = formatSize(imageTextureSize);
 
 		fprintf(stderr, "Total source Geo memory size: %s\n", sourceGeoSize.c_str());
-		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), trianglesSize.c_str());
-		fprintf(stderr, "Total accel structure memory size: %s\n\n", accelSize.c_str());
+		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), totalTrianglesSize.c_str());
+		fprintf(stderr, "Unique triangle count: %u, unique triangles memory size: %s\n", info.getUniqueTrianglesCount(), uniqueTrianglesSize.c_str());
+		fprintf(stderr, "Total other memory size: %s\n", otherSize.c_str());
+		fprintf(stderr, "Total accel structure memory size: %s\n", accelSize.c_str());
+		fprintf(stderr, "Total image texture count: %u, total image texture memory size: %s\n\n", numImages, strImageTextureSize.c_str());
 	}
 
 #if ENABLE_PREVIEW_RENDERS

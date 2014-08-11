@@ -129,6 +129,8 @@ protected:
 
 	int						m_renderThreads;
 
+	size_t					m_rendererOtherMemory;
+
 	int						m_lastProgress;
 };
 
