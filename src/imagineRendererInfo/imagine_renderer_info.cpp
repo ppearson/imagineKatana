@@ -89,6 +89,7 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 		if (isSurface)
 		{
 			rendererObjectNames.push_back("Standard");
+			rendererObjectNames.push_back("StandardImage");
 			rendererObjectNames.push_back("Velvet");
 			rendererObjectNames.push_back("Glass");
 			rendererObjectNames.push_back("Plastic");

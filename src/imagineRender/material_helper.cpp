@@ -83,7 +83,7 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 
 	Material* pNewMaterial = NULL;
 
-	if (shaderName == "Standard")
+	if (shaderName == "Standard" || shaderName == "StandardImage")
 	{
 		pNewMaterial = createStandardMaterial(shaderParamsAttr, bumpParamsAttr, alphaParamsAttr);
 	}
@@ -125,16 +125,16 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
-	Colour3f diffColour = ah.getColourParam("diffuse_col", Colour3f(0.8f, 0.8f, 0.8f));
+	Colour3f diffColour = ah.getColourParam("diff_col", Colour3f(0.8f, 0.8f, 0.8f));
 	pNewStandardMaterial->setDiffuseColour(diffColour);
 
 	// diffuse texture overrides colour if available
-	std::string diffTexture = ah.getStringParam("diff_texture");
-	if (!diffTexture.empty())
+	std::string diffColTexture = ah.getStringParam("diff_col_texture");
+	if (!diffColTexture.empty())
 	{
-		pNewStandardMaterial->setDiffuseTextureMapPath(diffTexture, true); // lazy load texture when needed
+		pNewStandardMaterial->setDiffuseTextureMapPath(diffColTexture, true); // lazy load texture when needed
 
-		int diffTextureFlags = ah.getIntParam("diff_texture_flags", 0);
+		int diffTextureFlags = ah.getIntParam("diff_col_texture_flags", 0);
 		if (diffTextureFlags)
 		{
 			// hack mip-map bias for the moment
@@ -149,19 +149,34 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 		}
 	}
 
-	float diffuseRoughness = ah.getFloatParam("diff_roughness", 0.0f);
-	pNewStandardMaterial->setDiffuseRoughness(diffuseRoughness);
+	float diffRoughness = ah.getFloatParam("diff_roughness", 0.0f);
+	pNewStandardMaterial->setDiffuseRoughness(diffRoughness);
+
+	std::string diffRoughnessTexture = ah.getStringParam("diff_roughness_texture");
+	if (!diffRoughnessTexture.empty())
+	{
+		pNewStandardMaterial->setDiffuseRoughnessTextureMapPath(diffRoughnessTexture, true);
+	}
+
+	float diffBacklit = ah.getFloatParam("diff_backlit", 0.0f);
+	pNewStandardMaterial->setDiffuseBacklit(diffBacklit);
+
+	std::string diffBacklitTexture = ah.getStringParam("diff_backlit_texture");
+	if (!diffBacklitTexture.empty())
+	{
+		pNewStandardMaterial->setDiffuseBacklitTextureMapPath(diffBacklitTexture, true);
+	}
 
 	Colour3f specColour = ah.getColourParam("spec_col", Colour3f(0.1f, 0.1f, 0.1f));
 	pNewStandardMaterial->setSpecularColour(specColour);
 
 	// specular texture overrides colour if available
-	std::string specTexture = ah.getStringParam("spec_texture");
+	std::string specTexture = ah.getStringParam("spec_col_texture");
 	if (!specTexture.empty())
 	{
 		pNewStandardMaterial->setSpecularTextureMapPath(specTexture, true); // lazy load texture when needed
 
-		int specTextureFlags = ah.getIntParam("spec_texture_flags", 0);
+		int specTextureFlags = ah.getIntParam("spec_col_texture_flags", 0);
 		if (specTextureFlags)
 		{
 			// hack mip-map bias for the moment
@@ -178,6 +193,12 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	float specRoughness = ah.getFloatParam("spec_roughness", 0.9f);
 	pNewStandardMaterial->setSpecularRoughness(specRoughness);
+
+	std::string specRoughnessTexture = ah.getStringParam("spec_roughness_texture");
+	if (!specRoughnessTexture.empty())
+	{
+		pNewStandardMaterial->setSpecularRoughnessTextureMapPath(specRoughnessTexture, true);
+	}
 
 	float reflection = ah.getFloatParam("reflection", 0.0f);
 	pNewStandardMaterial->setReflection(reflection);
@@ -229,6 +250,12 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 		if (!alphaTexture.empty())
 		{
 			pNewStandardMaterial->setAlphaTextureMapPath(alphaTexture, true);
+
+			int invertTexture = ahAlpha.getIntParam("alpha_texture_invert", 0);
+			if (invertTexture == 1)
+			{
+				pNewStandardMaterial->setAlphaTextureInvert(true);
+			}
 		}
 	}
 
@@ -258,6 +285,9 @@ Material* MaterialHelper::createGlassMaterial(const FnKat::GroupAttribute& shade
 
 	int fresnel = ah.getIntParam("fresnel", 1);
 	pNewMaterial->setFresnel((bool)fresnel);
+
+	int ignoreRefraction = ah.getIntParam("ignore_trans_refraction", 0);
+	pNewMaterial->setIgnoreTransmissionRefraction((bool)ignoreRefraction);
 
 	return pNewMaterial;
 }

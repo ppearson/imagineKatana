@@ -65,6 +65,10 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 		buildStandardShaderParams(iri, rendererObjectInfo);
 	}
+	else if (name == "StandardImage")
+	{
+		buildStandardImageShaderParams(iri, rendererObjectInfo);
+	}
 	else if (name == "Glass")
 	{
 		buildGlassShaderParams(iri, rendererObjectInfo);
@@ -141,16 +145,50 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("diffuse_col", Col3f(0.8f, 0.8f, 0.8f));
-	helper.addStringParam("diff_texture");
-	helper.addIntParam("diff_texture_flags", 0);
+	helper.addColourParam("diff_col", Col3f(0.8f, 0.8f, 0.8f));
+	helper.addStringParam("diff_col_texture");
+	helper.addIntParam("diff_col_texture_flags", 0);
 	helper.addFloatSliderParam("diff_roughness", 0.0f);
 	helper.addFloatSliderParam("diff_backlit", 0.0f);
 
 	helper.addColourParam("spec_col", Col3f(0.1f, 0.1f, 0.1f));
-	helper.addStringParam("spec_texture");
-	helper.addIntParam("spec_texture_flags", 0);
+	helper.addStringParam("spec_col_texture");
+	helper.addIntParam("spec_col_texture_flags", 0);
 	helper.addFloatSliderParam("spec_roughness", 0.9f);
+
+	helper.addFloatSliderParam("reflection", 0.0f);
+
+	helper.addBoolParam("fresnel", false);
+	helper.addFloatSliderParam("fresnel_coef", 0.0f);
+
+	helper.addFloatParam("refraction_index", 1.0f);
+
+	helper.addFloatSliderParam("transparency", 0.0f);
+	helper.addFloatSliderParam("transmission", 0.0f);
+
+	helper.addBoolParam("double_sided", 0);
+}
+
+void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("diff_col", Col3f(0.8f, 0.8f, 0.8f));
+	helper.addStringParam("diff_col_texture");
+	helper.addIntParam("diff_col_texture_flags", 0);
+
+	helper.addFloatSliderParam("diff_roughness", 0.0f);
+	helper.addStringParam("diff_roughness_texture");
+
+	helper.addFloatSliderParam("diff_backlit", 0.0f);
+	helper.addStringParam("diff_backlit_texture");
+
+	helper.addColourParam("spec_col", Col3f(0.1f, 0.1f, 0.1f));
+	helper.addStringParam("spec_col_texture");
+	helper.addIntParam("spec_col_texture_flags", 0);
+
+	helper.addFloatSliderParam("spec_roughness", 0.9f);
+	helper.addStringParam("spec_roughness_texture");
 
 	helper.addFloatSliderParam("reflection", 0.0f);
 
@@ -363,6 +401,7 @@ void ShaderInfoHelper::buildAlphaTextureShaderParams(const ImagineRendererInfo& 
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addStringParam("alpha_texture_path");
+	helper.addBoolParam("alpha_texture_invert", false);
 }
 
 //
@@ -466,6 +505,7 @@ void ShaderInfoHelper::addStringParam(const std::string& name)
 	FnKat::Attribute defaultAttribute = sb.build();
 	FnKat::GroupBuilder params;
 	params.set("isDynamicArray", FnKat::IntAttribute(0));
+	params.set("widget", FnKat::StringAttribute("assetIdInput"));
 
 	FnKat::Attribute hintsAttribute = params.build();
 
