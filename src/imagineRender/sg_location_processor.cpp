@@ -11,8 +11,8 @@
 #include "objects/compound_object.h"
 #include "objects/compound_instance.h"
 
-#include "geometry/compact_geometry_instance.h"
-#include "geometry/compact_geometry_operations.h"
+#include "geometry/standard_geometry_instance.h"
+#include "geometry/standard_geometry_operations.h"
 
 #include "lights/light.h"
 
@@ -46,13 +46,13 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		{
 			// TODO: use SG location delegates...
 
-			processGeometryPolymeshCompact(iterator, false);
+			processGeometryPolymesh(iterator, false);
 
 			return;
 		}
 		else if (type == "subdmesh")
 		{
-			processGeometryPolymeshCompact(iterator, true);
+			processGeometryPolymesh(iterator, true);
 
 			return;
 		}
@@ -63,7 +63,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		{
 			// TODO: use SG location delegates...
 
-			processGeometryPolymeshCompact(iterator, false);
+			processGeometryPolymesh(iterator, false);
 			return;
 		}
 	}
@@ -113,7 +113,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 #define FAST 0
 
-void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD)
+void SGLocationProcessor::processGeometryPolymesh(FnKat::FnScenegraphIterator iterator, bool asSubD)
 {
 	// get the geometry attributes group
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -128,7 +128,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	//       to have to check here if there are any children of type faceset/polymesh below this iterator. If so, we'd
 	//       need to ignore this location and just process the children.
 
-	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD);
+	StandardGeometryInstance* pNewGeoInstance = createGeometryInstanceFromLocation(iterator, asSubD);
 	if (!pNewGeoInstance)
 	{
 		return;
@@ -200,7 +200,7 @@ void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator, 
 	m_scene.addObject(pCO, false, false);
 }
 
-CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD)
+StandardGeometryInstance* SGLocationProcessor::createGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD)
 {
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
 	if (!geometryAttribute.isValid())
@@ -208,7 +208,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		return NULL;
 	}
 
-	CompactGeometryInstance* pNewGeoInstance = new CompactGeometryInstance();
+	StandardGeometryInstance* pNewGeoInstance = new StandardGeometryInstance();
 
 	std::vector<Point>& aPoints = pNewGeoInstance->getPoints();
 
@@ -552,7 +552,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			return;
 		}
 
-		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD);
+		StandardGeometryInstance* pNewGeoInstance = createGeometryInstanceFromLocation(iterator, isSubD);
 
 		if (!pNewGeoInstance)
 		{
@@ -679,7 +679,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			bool isSubD = m_enableSubd && itInstanceSource.getType() == "subdmesh";
 
-			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD);
+			StandardGeometryInstance* pNewInstance = createGeometryInstanceFromLocation(itInstanceSource, isSubD);
 
 			InstanceInfo ii;
 			ii.m_compound = false;
