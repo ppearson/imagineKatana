@@ -14,6 +14,7 @@
 #include "scene.h"
 
 class StandardGeometryInstance;
+class CompactGeometryInstance;
 class CompoundObject;
 
 class SGLocationProcessor
@@ -62,10 +63,12 @@ protected:
 	void processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
 	void processGeometryPolymesh(FnKat::FnScenegraphIterator iterator, bool asSubD);
+	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD);
 
 	void processAssembly(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
 	StandardGeometryInstance* createGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD);
+	CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD);
 	CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth);
 
 	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects,
