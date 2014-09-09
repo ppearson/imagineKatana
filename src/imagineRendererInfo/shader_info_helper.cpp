@@ -97,6 +97,10 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 		buildVelvetShaderParams(iri, rendererObjectInfo);
 	}
+	else if (name == "Wireframe")
+	{
+		buildWireframeShaderParams(iri, rendererObjectInfo);
+	}
 	// lights
 	else if (name == "Point")
 	{
@@ -286,6 +290,19 @@ void ShaderInfoHelper::buildVelvetShaderParams(const ImagineRendererInfo& iri, F
 	helper.addColourParam("backscatter_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addStringParam("backscatter_col_texture");
 	helper.addFloatSliderParam("backscatter", 0.7f);
+}
+
+void ShaderInfoHelper::buildWireframeShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("interior_colour", Col3f(0.7f, 0.7f, 0.7f));
+	helper.addFloatSliderParam("line_width", 0.005f, 0.0f, 10.0f);
+
+	helper.addColourParam("line_colour", Col3f(0.01f, 0.01f, 0.01f));
+	helper.addFloatSliderParam("edge_softness", 0.3f);
+
+	helper.addIntParam("edge_type", 0);
 }
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

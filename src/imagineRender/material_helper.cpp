@@ -9,6 +9,7 @@
 #include "materials/brushed_metal_material.h"
 #include "materials/metalic_paint_material.h"
 #include "materials/velvet_material.h"
+#include "materials/wireframe_material.h"
 
 #include "katana_helpers.h"
 
@@ -110,6 +111,10 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	else if (shaderName == "Velvet")
 	{
 		pNewMaterial = createVelvetMaterial(shaderParamsAttr);
+	}
+	else if (shaderName == "Wireframe")
+	{
+		pNewMaterial = createWireframeMaterial(shaderParamsAttr);
 	}
 
 	if (pNewMaterial)
@@ -444,6 +449,30 @@ Material* MaterialHelper::createVelvetMaterial(const FnKat::GroupAttribute& shad
 
 	float backscatterFalloff = ah.getFloatParam("backscatter", 0.7f);
 	pNewMaterial->setBackScatteringFalloff(backscatterFalloff);
+
+	return pNewMaterial;
+}
+
+Material* MaterialHelper::createWireframeMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	WireframeMaterial* pNewMaterial = new WireframeMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f interiorColour = ah.getColourParam("interior_colour", Colour3f(0.7f, 0.7f, 0.7f));
+	pNewMaterial->setInteriorColour(interiorColour);
+
+	float lineWidth = ah.getFloatParam("line_width", 0.005f);
+	pNewMaterial->setLineWidth(lineWidth);
+
+	Colour3f lineColour = ah.getColourParam("line_colour", Colour3f(0.01f, 0.01f, 0.01f));
+	pNewMaterial->setLineColour(lineColour);
+
+	float edgeSoftness = ah.getFloatParam("edge_softness", 0.3f);
+	pNewMaterial->setEdgeSoftness(edgeSoftness);
+
+	int edgeType = ah.getIntParam("edge_type", 0);
+	pNewMaterial->setEdgeType(edgeType);
 
 	return pNewMaterial;
 }

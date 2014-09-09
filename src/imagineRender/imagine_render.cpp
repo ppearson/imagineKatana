@@ -940,6 +940,8 @@ void ImagineRender::renderFinished()
 		std::string sourceGeoSize = formatSize(info.getTotalSourceSize());
 		std::string totalTrianglesSize = formatSize(info.getTotalTrianglesSize());
 		std::string uniqueTrianglesSize = formatSize(info.getUniqueTrianglesSize());
+		std::string totalTriangleIndicesSize = formatSize(info.getTotalTriangleIndicesSize());
+		std::string uniqueTriangleIndicesSize = formatSize(info.getUniqueTriangleIndicesSize());
 		std::string otherSize = formatSize(info.getOtherSize() + m_rendererOtherMemory);
 		std::string accelSize = formatSize(info.getAccelerationStructureSize());
 		unsigned int numImages = 0;
@@ -949,6 +951,8 @@ void ImagineRender::renderFinished()
 		fprintf(stderr, "Total source Geo memory size: %s\n", sourceGeoSize.c_str());
 		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), totalTrianglesSize.c_str());
 		fprintf(stderr, "Unique triangle count: %u, unique triangles memory size: %s\n", info.getUniqueTrianglesCount(), uniqueTrianglesSize.c_str());
+		fprintf(stderr, "Total triangle indices memory size: %s\n", totalTriangleIndicesSize.c_str());
+		fprintf(stderr, "Unique triangle indices memory size: %s\n", uniqueTriangleIndicesSize.c_str());
 		fprintf(stderr, "Total other memory size: %s\n", otherSize.c_str());
 		fprintf(stderr, "Total accel structure memory size: %s\n", accelSize.c_str());
 		fprintf(stderr, "Total image texture count: %u, total image texture memory size: %s\n\n", numImages, strImageTextureSize.c_str());

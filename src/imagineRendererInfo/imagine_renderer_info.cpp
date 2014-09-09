@@ -98,6 +98,7 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 			rendererObjectNames.push_back("Luminous");
 			rendererObjectNames.push_back("Metallic Paint");
 			rendererObjectNames.push_back("Translucent");
+			rendererObjectNames.push_back("Wireframe");
 		}
 		else if (isLight)
 		{

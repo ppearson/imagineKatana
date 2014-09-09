@@ -41,6 +41,7 @@ protected:
 	static Material* createMetallicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr);
 	static Material* createVelvetMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
+	static Material* createWireframeMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 
 protected:
 	FnKat::StringAttribute m_terminatorNodes;
