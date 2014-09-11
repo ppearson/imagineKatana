@@ -148,6 +148,14 @@ std::string ImagineRendererInfo::getRegisteredRendererVersion() const
 	return "0.94";
 }
 
+bool ImagineRendererInfo::isNodeTypeSupported(const std::string& nodeType) const
+{
+	if (nodeType == "OutputChannelDefine")
+		return true;
+
+	return false;
+}
+
 void ImagineRendererInfo::fillShaderInputNames(std::vector<std::string>& shaderInputNames, const std::string& shaderName) const
 {
 	ShaderInfoHelper::fillShaderInputNames(shaderName, shaderInputNames);

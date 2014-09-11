@@ -75,7 +75,7 @@ protected:
 	void performLiveRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	//
-	void setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings);
+	bool setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings);
 
 	void startDiskRenderer();
 	void startInteractiveRenderer(bool liveRender);
@@ -84,54 +84,56 @@ protected:
 
 protected:
 
-	Scene*					m_pScene;
-	Params					m_renderSettings;
+	Scene*						m_pScene;
+	Params						m_renderSettings;
 
 	// for use with live-renders only...
-	Raytracer*				m_pRaytracer;
+	Raytracer*					m_pRaytracer;
 
-	LiveRenderState			m_liveRenderState;
-	std::string				m_renderCameraLocation;
+	LiveRenderState				m_liveRenderState;
+	std::string					m_renderCameraLocation;
 
-	std::string				m_diskRenderOutputPath;
+	std::string					m_diskRenderOutputPath;
 
 	//
-	std::string				m_katanaHost;
-	unsigned int			m_katanaPort;
+	std::string					m_katanaHost;
+	unsigned int				m_katanaPort;
 
 #if ENABLE_PREVIEW_RENDERS
-	OutputImage*			m_pOutputImage;
-	FnKat::KatanaPipe*		m_pDataPipe;
-	FnKat::NewFrameMessage* m_pFrame;
-	FnKat::NewChannelMessage* m_pChannel;
+	OutputImage*				m_pOutputImage;
+	FnKat::KatanaPipe*			m_pDataPipe;
+	FnKat::NewFrameMessage*		m_pFrame;
+	FnKat::NewChannelMessage*	m_pChannel;
 
-	int						m_frameID;
-	std::string				m_channelName;
+	std::vector<int>			m_aInteractiveFrameIDs;
+	std::vector<std::string>	m_aInteractiveChannelNames;
 #endif
 
 	//
 
-	bool					m_deduplicateVertexNormals;
-	bool					m_printStatistics;
-	bool					m_specialiseAssembies;
-	bool					m_flipT;
-	bool					m_enableSubdivision;
-	bool					m_fastLiveRenders;
+	bool						m_deduplicateVertexNormals;
+	bool						m_printStatistics;
+	bool						m_specialiseAssembies;
+	bool						m_flipT;
+	bool						m_enableSubdivision;
+	bool						m_fastLiveRenders;
 
-	bool					m_ROIActive;
-	unsigned int			m_ROIStartX;
-	unsigned int			m_ROIStartY;
-	unsigned int			m_ROIWidth;
-	unsigned int			m_ROIHeight;
+	bool						m_ROIActive;
+	unsigned int				m_ROIStartX;
+	unsigned int				m_ROIStartY;
+	unsigned int				m_ROIWidth;
+	unsigned int				m_ROIHeight;
 
-	unsigned int			m_renderWidth;
-	unsigned int			m_renderHeight;
+	unsigned int				m_renderWidth;
+	unsigned int				m_renderHeight;
 
-	int						m_renderThreads;
+	int							m_renderThreads;
 
-	size_t					m_rendererOtherMemory;
+	size_t						m_rendererOtherMemory;
 
-	int						m_lastProgress;
+	int							m_lastProgress;
+
+	unsigned int				m_extraAOVsFlags;
 };
 
 #endif // IMAGINE_RENDER_H

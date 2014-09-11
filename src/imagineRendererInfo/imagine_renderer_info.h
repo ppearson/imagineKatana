@@ -31,7 +31,7 @@ public:
 
 	virtual bool isPresetLocalFileNeeded(const std::string& outputType) const { return false; }
 
-	virtual bool isNodeTypeSupported(const std::string& nodeType) const { return false; }
+	virtual bool isNodeTypeSupported(const std::string& nodeType) const;
 
 	virtual void fillShaderInputNames(std::vector<std::string>& shaderInputNames, const std::string& shaderName) const;
 

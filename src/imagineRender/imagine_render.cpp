@@ -58,6 +58,7 @@ int ImagineRender::start()
 	}
 
 	m_lastProgress = 0;
+	m_extraAOVsFlags = 0;
 
 	Utilities::registerFileReaders();
 
@@ -409,17 +410,45 @@ bool ImagineRender::configureRenderOutputs(Foundry::Katana::Render::RenderSettin
 	if (outputs.empty())
 		return false;
 
+	// TODO: this assumes that all outputs are to the same file for the moment, which won't necessarily be the case...
+
 	std::vector<std::string> renderOutputNames = settings.getRenderOutputNames();
 	std::vector<std::string>::const_iterator it = renderOutputNames.begin();
 
 	for (; it != renderOutputNames.end(); ++it)
 	{
-		const FnKatRender::RenderSettings::RenderOutput& renderOutput = outputs[(*it)];
+		const std::string& outputName = *it;
+		const FnKatRender::RenderSettings::RenderOutput& renderOutput = outputs[outputName];
 
-		if (renderOutput.type == "color")
+		if (renderOutput.type == "color" && outputName == "primary")
 		{
+			// main primary / beauty pass
 			m_diskRenderOutputPath = renderOutput.renderLocation;
-			break;
+		}
+		else if (outputName == "z")
+		{
+			m_renderSettings.add("output_realz", true);
+			m_extraAOVsFlags |= COMPONENT_DEPTH_REAL;
+		}
+		else if (outputName == "zn")
+		{
+			m_renderSettings.add("output_z", true);
+			m_extraAOVsFlags |= COMPONENT_DEPTH_NORMALISED;
+		}
+		else if (outputName == "wpp")
+		{
+			m_renderSettings.add("output_wpp", true);
+			m_extraAOVsFlags |= COMPONENT_WPP;
+		}
+		else if (outputName == "n")
+		{
+			m_renderSettings.add("output_normals", true);
+			m_extraAOVsFlags |= COMPONENT_NORMAL;
+		}
+		else if (outputName == "shadow")
+		{
+			m_renderSettings.add("output_shadows", true);
+			m_extraAOVsFlags |= COMPONENT_SHADOWS;
 		}
 	}
 
@@ -555,7 +584,8 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
-	setupPreviewDataChannel(settings);
+	if (!setupPreviewDataChannel(settings))
+		return;
 
 	{
 		Timer t1("Katana scene expansion");
@@ -589,7 +619,8 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
-	setupPreviewDataChannel(settings);
+	if (!setupPreviewDataChannel(settings))
+		return;
 
 	{
 		Timer t1("Katana scene expansion");
@@ -637,7 +668,7 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 //	renderFinished();
 }
 
-void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
+bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
 {
 	std::string katHost = getKatanaHost();
 
@@ -646,7 +677,7 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	if (portSep == std::string::npos)
 	{
 		fprintf(stderr, "Error: Katana host and port not specified...\n");
-		return;
+		return false;
 	}
 
 	m_katanaHost = katHost.substr(0, portSep);
@@ -670,17 +701,25 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	{
 		const FnKat::Render::RenderSettings::ChannelBuffer& buffer = (*itBuffer).second;
 
-		m_frameID = atoi(buffer.bufferId.c_str());
+		int frameID = atoi(buffer.bufferId.c_str());
+		m_aInteractiveFrameIDs.push_back(frameID);
 
-		m_channelName = buffer.channelName;
+		std::string channelName = buffer.channelName;
+		m_aInteractiveChannelNames.push_back(channelName);
 
 //		fprintf(stderr, "Buffers: %i, %s\n", m_frameID, m_channelName.c_str());
+	}
+
+	if (m_aInteractiveFrameIDs.empty() || m_aInteractiveChannelNames.empty())
+	{
+		fprintf(stderr, "Error: no channel buffers specified for interactive rendering...\n");
+		return false;
 	}
 
 	// Katana expects the frame to be formatted like this, based on the ID pass frame...
 	// Without doing this, it can't identify frames and channels...
 	char szFN[128];
-	sprintf(szFN, "id_katana_%i", m_frameID);
+	sprintf(szFN, "id_katana_%i", m_aInteractiveFrameIDs[0]);
 	std::string fFrameName(szFN);
 
 	//
@@ -696,8 +735,8 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	// try and connect...
 	if (m_pDataPipe->connect() != 0)
 	{
-		fprintf(stderr, "Can't connect to Katana data socket: %s:%u\n", m_katanaHost.c_str(), m_katanaPort);
-		return;
+		fprintf(stderr, "Error: Can't connect to Katana data socket: %s:%u\n", m_katanaHost.c_str(), m_katanaPort);
+		return false;
 	}
 
 	unsigned int originX = 0;
@@ -718,9 +757,11 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 	m_pFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, originX, originY);
 
+	int localFrameID = m_aInteractiveFrameIDs[0];
+
 	// set the name
 	std::string frameName;
-	FnKat::encodeLegacyName(fFrameName, m_frameID, frameName);
+	FnKat::encodeLegacyName(fFrameName, localFrameID, frameName);
 	m_pFrame->setFrameName(frameName);
 
 	m_pDataPipe->send(*m_pFrame);
@@ -735,7 +776,7 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
 
 	std::string channelName;
-	FnKat::encodeLegacyName(fFrameName, m_frameID, channelName);
+	FnKat::encodeLegacyName(fFrameName, localFrameID, channelName);
 	m_pChannel->setChannelName(channelName);
 
 	// total size of a pixel for a single channel (RGBA * float) = 16
@@ -744,11 +785,14 @@ void ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 	m_pDataPipe->send(*m_pChannel);
 #endif
+
+	return true;
 }
 
 void ImagineRender::startDiskRenderer()
 {
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
+	imageFlags |= m_extraAOVsFlags;
 	unsigned int imageChannelWriteFlags = ImageWriter::ALL;
 
 	unsigned int writeFlags = 0;
