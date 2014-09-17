@@ -12,6 +12,9 @@
 			<int name="path_dist_glossy_multiplier" default="2" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help= "Glossy ray multiplier for the PathDistributed integrator"/>
 
 			<int name="enable_volumetrics" default="0" widget="checkBox" help="Enable the Volumetrics integrator. Needed for SSS and volumes."/>
+			<int name="use_mis" default="1" widget="checkBox" help="Enable use of MIS."/>
+			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final image noise variance levels reach a certain level."/>
+			<float name="adaptive_variance_threshold" default="0.02" conditionalVisOp='equalTo' conditionalVisPath='adaptive' conditionalVisValue='1'/>
 
 			<int name="light_sampling" widget="mapper" default="0">
 				<hintdict name='options'>

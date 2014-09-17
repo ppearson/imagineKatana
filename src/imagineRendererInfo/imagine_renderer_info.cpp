@@ -57,6 +57,7 @@ void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& rend
 		renderObjectTypes.push_back(kFnRendererOutputTypeColor);
 		renderObjectTypes.push_back(kFnRendererOutputTypeRaw);
 		renderObjectTypes.push_back(kFnRendererOutputTypeDeep);
+		renderObjectTypes.push_back(kFnRendererOutputTypeMerge);
 		renderObjectTypes.push_back(kFnRendererOutputTypeForceNone);
 	}
 }

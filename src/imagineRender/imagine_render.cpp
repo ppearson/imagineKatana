@@ -238,6 +238,21 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (volumetricsAttribute.isValid())
 		volumetrics = volumetricsAttribute.getValue(0, false);
 
+	FnKat::IntAttribute useMISAttribute = imagineGSAttribute.getChildByName("use_mis");
+	unsigned int useMIS = 1;
+	if (useMISAttribute.isValid())
+		useMIS = useMISAttribute.getValue(1, false);
+
+	FnKat::IntAttribute useAdaptiveAttribute = imagineGSAttribute.getChildByName("adaptive");
+	unsigned int useAdaptive = 0;
+	if (useAdaptiveAttribute.isValid())
+		useAdaptive = useAdaptiveAttribute.getValue(0, false);
+
+	FnKat::FloatAttribute adaptiveVarianceAttribute = imagineGSAttribute.getChildByName("adaptive_variance_threshold");
+	float adaptiveVarianceThreshold = 0.01f;
+	if (adaptiveVarianceAttribute.isValid())
+		adaptiveVarianceThreshold = adaptiveVarianceAttribute.getValue(0.01f, false);
+
 	FnKat::IntAttribute samplesPerPixelAttribute = imagineGSAttribute.getChildByName("spp");
 	unsigned int samplesPerPixel = 64;
 	if (samplesPerPixelAttribute.isValid())
@@ -369,6 +384,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		bucketSize = bucketSizeAttribute.getValue(48, false);
 
 	m_renderSettings.add("integrator", integratorType);
+	m_renderSettings.add("useMIS", (bool)useMIS);
+
+	if (useAdaptive == 1)
+	{
+		m_renderSettings.add("adaptive", true);
+		m_renderSettings.add("adaptiveThreshold", adaptiveVarianceThreshold);
+	}
+
 	m_renderSettings.add("lightSamplingType", lightSamplingType);
 	m_renderSettings.add("lightSamples", lightSamples);
 	m_renderSettings.add("rayEpsilon", rayEpsilon);
