@@ -16,6 +16,7 @@
 class StandardGeometryInstance;
 class CompactGeometryInstance;
 class CompoundObject;
+class Object;
 
 class SGLocationProcessor
 {
@@ -79,7 +80,7 @@ protected:
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
 
-
+	void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject);
 
 protected:
 	// TODO: this is getting a bit silly...

@@ -373,6 +373,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (rayEpsilonAttribute.isValid())
 		rayEpsilon = rayEpsilonAttribute.getValue(0.0001f, false);
 
+	FnKat::FloatAttribute shadowRayEpsilonAttribute = imagineGSAttribute.getChildByName("shadow_ray_epsilon");
+	float shadowRayEpsilon = 0.0001f;
+	if (shadowRayEpsilonAttribute.isValid())
+		shadowRayEpsilon = shadowRayEpsilonAttribute.getValue(0.0001f, false);
+
 	FnKat::IntAttribute bucketOrderAttribute = imagineGSAttribute.getChildByName("bucket_order");
 	unsigned int bucketOrder = 2;
 	if (bucketOrderAttribute.isValid())
@@ -395,6 +400,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("lightSamplingType", lightSamplingType);
 	m_renderSettings.add("lightSamples", lightSamples);
 	m_renderSettings.add("rayEpsilon", rayEpsilon);
+	m_renderSettings.add("shadowRayEpsilon", shadowRayEpsilon);
 
 	m_renderSettings.add("Iterations", (unsigned int)iterations);
 	m_renderSettings.add("volumetric", volumetrics == 1); // this needs to be a bool...

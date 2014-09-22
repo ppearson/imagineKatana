@@ -199,6 +199,8 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		return;
 	}
 
+	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
 	// TODO: if we want to support facesets (modo's abc output annoyingly seems very pro-faceset) in the future, we're going
 	//       to have to check here if there are any children of type faceset/polymesh below this iterator. If so, we'd
 	//       need to ignore this location and just process the children.
@@ -246,6 +248,8 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	const double* pMatrix = xforms[0].getValues();
 
 	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+
+	processVisibilityAttributes(imagineStatements, pNewMeshObject);
 
 	m_scene.addObject(pNewMeshObject, false, false);
 }
@@ -923,6 +927,8 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 {
 	std::vector<Object*> aObjects;
 
+	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
 	createCompoundObjectFromLocationRecursive(iterator, aObjects, baseLevelDepth, baseLevelDepth);
 
 	CompoundObject* pNewCO = new CompoundObject();
@@ -936,6 +942,8 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	}
 
 	pNewCO->setType(CompoundObject::eBaked);
+
+	processVisibilityAttributes(imagineStatements, pNewCO);
 
 	return pNewCO;
 }
@@ -1261,4 +1269,47 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
 	m_scene.addObject(pNewLight, false, false);
+}
+
+void SGLocationProcessor::processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject)
+{
+	if (!imagineStatements.isValid())
+		return;
+
+	FnKat::GroupAttribute visibilityAttributes = imagineStatements.getChildByName("visibility");
+	if (visibilityAttributes.isValid())
+	{
+		int cameraVis = 1;
+		int shadowVis = 1;
+		int diffuseVis = 1;
+		int glossyVis = 1;
+		int reflectionVis = 1;
+		int refractionVis = 1;
+
+		KatanaAttributeHelper helper(visibilityAttributes);
+
+		cameraVis = helper.getIntParam("camera", 1);
+		shadowVis = helper.getIntParam("shadow", 1);
+		diffuseVis = helper.getIntParam("diffuse", 1);
+		glossyVis = helper.getIntParam("glossy", 1);
+		reflectionVis = helper.getIntParam("reflection", 1);
+		refractionVis = helper.getIntParam("refraction", 1);
+
+		unsigned char finalVisibility = 0;
+
+		if (cameraVis)
+			finalVisibility |= RENDER_VISIBILITY_CAMERA;
+		if (shadowVis)
+			finalVisibility |= RENDER_VISIBILITY_SHADOW;
+		if (diffuseVis)
+			finalVisibility |= RENDER_VISIBILITY_DIFFUSE;
+		if (glossyVis)
+			finalVisibility |= RENDER_VISIBILITY_GLOSSY;
+		if (reflectionVis)
+			finalVisibility |= RENDER_VISIBILITY_REFLECTION;
+		if (refractionVis)
+			finalVisibility |= RENDER_VISIBILITY_REFRACTION;
+
+		pObject->setRenderVisibilityFlags(finalVisibility);
+	}
 }

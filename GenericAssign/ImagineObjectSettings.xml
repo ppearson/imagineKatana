@@ -1,18 +1,18 @@
 <args format='1.0' scope='/root/world//* /root/world'>
 	<group name='imagineStatements' hideTitle='True' closed='False'>
-		<page name="Geometry">
-
-
+		<page name="geometry">
+			<float name="crease_angle" default="0.8"/>
+			<int name="subdiv_levels" default="2"/>
 		</page>
 
 
-		<page name="Visibility">
-			<int name="object_visibility_camera" default="1" widget='checkBox'/>
-			<int name="object_visibility_shadow" default="1" widget='checkBox'/>
-			<int name="object_visibility_diffuse" default="1" widget='checkBox'/>
-			<int name="object_visibility_glossy" default="1" widget='checkBox'/>
-			<int name="object_visibility_reflection" default="1" widget='checkBox'/>
-			<int name="object_visibility_refraction" default="1" widget='checkBox'/>
-		</page>
+		<group name="visibility">
+			<int name="camera" default="1" widget='checkBox'/>
+			<int name="shadow" default="1" widget='checkBox'/>
+			<int name="diffuse" default="1" widget='checkBox'/>
+			<int name="glossy" default="1" widget='checkBox'/>
+			<int name="reflection" default="1" widget='checkBox'/>
+			<int name="refraction" default="1" widget='checkBox'/>
+		</group>
 	</group>
 </args>

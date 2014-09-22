@@ -14,7 +14,7 @@
 			<int name="enable_volumetrics" default="0" widget="checkBox" help="Enable the Volumetrics integrator. Needed for SSS and volumes."/>
 			<int name="use_mis" default="1" widget="checkBox" help="Enable use of MIS."/>
 			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final image noise variance levels reach a certain level."/>
-			<float name="adaptive_variance_threshold" default="0.02" conditionalVisOp='equalTo' conditionalVisPath='adaptive' conditionalVisValue='1'/>
+			<float name="adaptive_variance_threshold" default="0.02" conditionalVisOp='equalTo' conditionalVisPath='../adaptive' conditionalVisValue='1'/>
 
 			<int name="light_sampling" widget="mapper" default="0">
 				<hintdict name='options'>
@@ -45,7 +45,7 @@
 			<int name="depth_of_field" default="0" widget="checkBox"/>
 			<int name="motion_blur" default="0" widget="checkBox"/>
 		</page>
-		<page name='light_paths' open="True">
+		<page name='light paths' open="True">
 			<int name="max_depth_overall" default="4" help="Maximum ray bounce count"/>
 			<int name="max_depth_diffuse" default="3" help=""/>
 			<int name="max_depth_glossy" default="3" help=""/>
@@ -67,6 +67,7 @@
 				</hintdict>
 			</int>
 			<float name="ray_epsilon" default="0.0001"/>
+			<float name="shadow_ray_epsilon" default="0.0001"/>
 		</page>
 
 		<page name='advanced' open="False">
