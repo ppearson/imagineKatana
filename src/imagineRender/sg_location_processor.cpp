@@ -948,6 +948,9 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	return pNewCO;
 }
 
+#define USE_COMPACT_FOR_COMPOUND 1
+#define USE_COMPACT_FOR_INSTANCE 1
+
 void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects,
 																	unsigned int baseLevelDepth, unsigned int currentDepth)
 {
@@ -977,6 +980,18 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			return;
 		}
 
+#if USE_COMPACT_FOR_COMPOUND
+		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD);
+
+		if (!pNewGeoInstance)
+		{
+			return;
+		}
+
+		CompactMesh* pNewMeshObject = new CompactMesh();
+
+		pNewMeshObject->setCompactGeometryInstance(pNewGeoInstance);
+#else
 		StandardGeometryInstance* pNewGeoInstance = createGeometryInstanceFromLocation(iterator, isSubD);
 
 		if (!pNewGeoInstance)
@@ -987,7 +1002,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		Mesh* pNewMeshObject = new Mesh();
 
 		pNewMeshObject->setGeometryInstance(pNewGeoInstance);
-
+#endif
 		FnKat::GroupAttribute materialAttrib = m_materialHelper.getMaterialForLocation(iterator);
 		std::string materialHash = m_materialHelper.getMaterialHash(materialAttrib);
 
@@ -1085,10 +1100,13 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		}
 		else
 		{
+#if USE_COMPACT_FOR_INSTANCE
+			CompactMesh* pNewMesh = new CompactMesh();
+			pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(ii.pGeoInstance));
+#else
 			Mesh* pNewMesh = new Mesh();
-
-			pNewMesh->setGeometryInstance(ii.pGeoInstance);
-
+			pNewMesh->setGeometryInstance(static_cast<StandardGeometryInstance*>(ii.pGeoInstance));
+#endif
 			pNewObject = pNewMesh;
 		}
 	}
@@ -1104,7 +1122,11 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			bool isSubD = m_enableSubd && itInstanceSource.getType() == "subdmesh";
 
+#if USE_COMPACT_FOR_INSTANCE
+			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD);
+#else
 			StandardGeometryInstance* pNewInstance = createGeometryInstanceFromLocation(itInstanceSource, isSubD);
+#endif
 
 			InstanceInfo ii;
 			ii.m_compound = false;
@@ -1112,10 +1134,13 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			m_aInstances[instanceSourcePath] = ii;
 
+#if USE_COMPACT_FOR_INSTANCE
+			CompactMesh* pNewMesh = new CompactMesh();
+			pNewMesh->setCompactGeometryInstance(pNewInstance);
+#else
 			Mesh* pNewMesh = new Mesh();
-
 			pNewMesh->setGeometryInstance(pNewInstance);
-
+#endif
 			pNewObject = pNewMesh;
 		}
 		else

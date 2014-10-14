@@ -15,6 +15,7 @@
 
 class StandardGeometryInstance;
 class CompactGeometryInstance;
+class GeometryInstance;
 class CompoundObject;
 class Object;
 
@@ -29,7 +30,7 @@ public:
 
 		union
 		{
-			StandardGeometryInstance*	pGeoInstance;
+			GeometryInstance*			pGeoInstance;
 			CompoundObject*				pCompoundObject;
 		};
 	};

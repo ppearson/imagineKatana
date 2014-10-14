@@ -229,7 +229,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		lightSamplingType = lightSamplingAttribute.getValue(0, false);
 
 	FnKat::IntAttribute lightSamplesAttribute = imagineGSAttribute.getChildByName("light_samples");
-	unsigned int lightSamples = 0;
+	unsigned int lightSamples = 1;
 	if (lightSamplesAttribute.isValid())
 		lightSamples = lightSamplesAttribute.getValue(1, false);
 
@@ -1010,18 +1010,21 @@ void ImagineRender::renderFinished()
 
 		fprintf(stderr, "\n\nStatistics:\n-----------\n");
 
-		std::string sourceGeoSize = formatSize(info.getTotalSourceSize());
+		std::string totalSourceGeoSize = formatSize(info.getTotalSourceSize());
+		std::string uniqueSourceGeoSize = formatSize(info.getUniqueSourceSize());
 		std::string totalTrianglesSize = formatSize(info.getTotalTrianglesSize());
 		std::string uniqueTrianglesSize = formatSize(info.getUniqueTrianglesSize());
 		std::string totalTriangleIndicesSize = formatSize(info.getTotalTriangleIndicesSize());
 		std::string uniqueTriangleIndicesSize = formatSize(info.getUniqueTriangleIndicesSize());
 		std::string otherSize = formatSize(info.getOtherSize() + m_rendererOtherMemory);
 		std::string accelSize = formatSize(info.getAccelerationStructureSize());
+
 		unsigned int numImages = 0;
 		size_t imageTextureSize = ImageCache::instance().getImageCacheMemorySize(&numImages);
 		std::string strImageTextureSize = formatSize(imageTextureSize);
 
-		fprintf(stderr, "Total source Geo memory size: %s\n", sourceGeoSize.c_str());
+		fprintf(stderr, "Total source Geo memory size: %s\n", totalSourceGeoSize.c_str());
+		fprintf(stderr, "Unique source Geo memory size: %s\n", uniqueSourceGeoSize.c_str());
 		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), totalTrianglesSize.c_str());
 		fprintf(stderr, "Unique triangle count: %u, unique triangles memory size: %s\n", info.getUniqueTrianglesCount(), uniqueTrianglesSize.c_str());
 		fprintf(stderr, "Total triangle indices memory size: %s\n", totalTriangleIndicesSize.c_str());
