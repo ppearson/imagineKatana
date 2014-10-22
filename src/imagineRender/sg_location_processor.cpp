@@ -18,7 +18,7 @@
 #include "lights/light.h"
 
 SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_applyMaterials(true), m_scene(scene), m_useTextures(true), m_enableSubd(true),
-	m_deduplicateVertexNormals(true), m_specialiseAssemblies(true), m_flipT(false)
+	m_deduplicateVertexNormals(true), m_specialiseAssemblies(true), m_flipT(false), m_triangleType(0)
 {
 }
 
@@ -209,6 +209,11 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	if (!pNewGeoInstance)
 	{
 		return;
+	}
+
+	if (m_triangleType == 1)
+	{
+		pNewGeoInstance->setCustomFlags(1);
 	}
 
 	CompactMesh* pNewMeshObject = new CompactMesh();

@@ -60,6 +60,13 @@
 			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and uses more memory, and doesn't support instancing or transform motion blur, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
 			<int name="specialise_assembly_types" default="1" widget="checkBox" help="Detect locations of assembly type and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly."/>
 			<int name="deduplicate_vertex_normals" default="1" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
+
+			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the same intersection algorithm, but calculates everything on-the-fly, requiring 8 or 16 bytes per triangle, depending on the context used.">
+				<hintdict name='options'>
+					<int name="Fast" value="0"/>
+					<int name="Compact" value="1"/>
+				</hintdict>
+			</int>
 			<int name="scene_accel_structure" widget="mapper" default="1" help="Scene acceleration type to use. KDTree is generally faster for more sparse scenes with lots of empty space. For dense scenes with lots of overlapping objects, BVH can be significantly faster.">
 				<hintdict name='options'>
 					<int name="KDTree" value="0"/>

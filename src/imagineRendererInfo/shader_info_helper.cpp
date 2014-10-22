@@ -87,7 +87,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	}
 	else if (name == "Metallic Paint")
 	{
-		buildBrushedMetalShaderParams(iri, rendererObjectInfo);
+		buildMetallicPaintShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Translucent")
 	{

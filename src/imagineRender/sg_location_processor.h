@@ -55,6 +55,11 @@ public:
 		m_flipT = flipT;
 	}
 
+	void setTriangleType(unsigned int triangleType)
+	{
+		m_triangleType = triangleType;
+	}
+
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
@@ -91,6 +96,8 @@ protected:
 	bool				m_deduplicateVertexNormals;
 	bool				m_specialiseAssemblies;
 	bool				m_flipT;
+
+	unsigned int		m_triangleType;
 
 	Scene&				m_scene;
 

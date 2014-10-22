@@ -28,7 +28,7 @@
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
 	RenderBase(rootIterator, arguments), m_pScene(NULL), m_deduplicateVertexNormals(false), m_printStatistics(false),
-	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false), m_fastLiveRenders(false)
+	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false), m_triangleType(0), m_fastLiveRenders(false)
 {
 #if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
@@ -342,6 +342,13 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_enableSubdivision = (enableSubDAttribute.getValue(0, false) == 1);
 
 
+	FnKat::IntAttribute triangleTypeAttribute = imagineGSAttribute.getChildByName("triangle_type");
+	m_triangleType = 0;
+	if (triangleTypeAttribute.isValid())
+	{
+		m_triangleType = triangleTypeAttribute.getValue(0, false);
+	}
+
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = imagineGSAttribute.getChildByName("bake_down_scene");
 	unsigned int bakeDownScene = 0;
@@ -562,6 +569,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	locProcessor.setDeduplicateVertexNormals(m_deduplicateVertexNormals);
 	locProcessor.setSpecialiseAssemblies(m_specialiseAssembies);
 	locProcessor.setFlipT(m_flipT);
+	locProcessor.setTriangleType(m_triangleType);
 
 	locProcessor.processSGForceExpand(rootIterator);
 

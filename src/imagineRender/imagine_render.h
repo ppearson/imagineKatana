@@ -116,6 +116,9 @@ protected:
 	bool						m_specialiseAssembies;
 	bool						m_flipT;
 	bool						m_enableSubdivision;
+
+	unsigned int				m_triangleType;
+
 	bool						m_fastLiveRenders;
 
 	bool						m_ROIActive;
