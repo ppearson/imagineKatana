@@ -61,7 +61,7 @@
 			<int name="specialise_assembly_types" default="1" widget="checkBox" help="Detect locations of assembly type and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly."/>
 			<int name="deduplicate_vertex_normals" default="1" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
 
-			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the same intersection algorithm, but calculates everything on-the-fly, requiring 8 or 16 bytes per triangle, depending on the context used.">
+			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the Moller intersection algorithm, which calculates everything on-the-fly, requiring 4 bytes per triangle. Compact is on average 30-65% slower than Fast.">
 				<hintdict name='options'>
 					<int name="Fast" value="0"/>
 					<int name="Compact" value="1"/>

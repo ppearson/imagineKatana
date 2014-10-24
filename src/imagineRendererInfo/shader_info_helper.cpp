@@ -302,7 +302,7 @@ void ShaderInfoHelper::buildWireframeShaderParams(const ImagineRendererInfo& iri
 	helper.addColourParam("line_colour", Col3f(0.01f, 0.01f, 0.01f));
 	helper.addFloatSliderParam("edge_softness", 0.3f);
 
-	helper.addIntParam("edge_type", 0);
+	helper.addIntParam("edge_type", 1);
 }
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

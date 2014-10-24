@@ -471,7 +471,7 @@ Material* MaterialHelper::createWireframeMaterial(const FnKat::GroupAttribute& s
 	float edgeSoftness = ah.getFloatParam("edge_softness", 0.3f);
 	pNewMaterial->setEdgeSoftness(edgeSoftness);
 
-	int edgeType = ah.getIntParam("edge_type", 0);
+	int edgeType = ah.getIntParam("edge_type", 1);
 	pNewMaterial->setEdgeType(edgeType);
 
 	return pNewMaterial;
