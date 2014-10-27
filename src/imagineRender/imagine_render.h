@@ -10,6 +10,7 @@
 #include "image/output_image.h"
 #endif
 
+#include "misc_helpers.h"
 #include "live_render_helpers.h"
 
 namespace FnKat = Foundry::Katana;
@@ -110,14 +111,9 @@ protected:
 #endif
 
 	//
+	CreationSettings			m_creationSettings;
 
-	bool						m_deduplicateVertexNormals;
 	bool						m_printStatistics;
-	bool						m_specialiseAssembies;
-	bool						m_flipT;
-	bool						m_enableSubdivision;
-
-	unsigned int				m_triangleType;
 
 	bool						m_fastLiveRenders;
 

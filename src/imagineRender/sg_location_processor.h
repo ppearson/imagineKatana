@@ -9,6 +9,7 @@
 
 #include "material_helper.h"
 #include "light_helpers.h"
+#include "misc_helpers.h"
 
 #include "materials/material.h"
 #include "scene.h"
@@ -22,7 +23,7 @@ class Object;
 class SGLocationProcessor
 {
 public:
-	SGLocationProcessor(Scene& scene);
+	SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings);
 
 	struct InstanceInfo
 	{
@@ -34,31 +35,6 @@ public:
 			CompoundObject*				pCompoundObject;
 		};
 	};
-
-	void setEnableSubD(bool enableSubD)
-	{
-		m_enableSubd = enableSubD;
-	}
-
-	void setDeduplicateVertexNormals(bool ddVN)
-	{
-		m_deduplicateVertexNormals = ddVN;
-	}
-
-	void setSpecialiseAssemblies(bool sa)
-	{
-		m_specialiseAssemblies = sa;
-	}
-
-	void setFlipT(bool flipT)
-	{
-		m_flipT = flipT;
-	}
-
-	void setTriangleType(unsigned int triangleType)
-	{
-		m_triangleType = triangleType;
-	}
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
@@ -88,21 +64,15 @@ protected:
 
 	void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject);
 
+	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<UV>& aUVs);
+
 protected:
-	// TODO: this is getting a bit silly...
-	bool				m_applyMaterials;
-	bool				m_useTextures;
-	bool				m_enableSubd;
-	bool				m_deduplicateVertexNormals;
-	bool				m_specialiseAssemblies;
-	bool				m_flipT;
+	const CreationSettings&		m_creationSettings;
 
-	unsigned int		m_triangleType;
+	Scene&						m_scene;
 
-	Scene&				m_scene;
-
-	MaterialHelper		m_materialHelper;
-	LightHelpers		m_lightHelper;
+	MaterialHelper				m_materialHelper;
+	LightHelpers				m_lightHelper;
 
 	std::map<std::string, InstanceInfo>	m_aInstances;
 };

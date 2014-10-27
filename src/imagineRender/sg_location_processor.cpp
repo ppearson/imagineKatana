@@ -17,8 +17,7 @@
 
 #include "lights/light.h"
 
-SGLocationProcessor::SGLocationProcessor(Scene& scene) : m_applyMaterials(true), m_scene(scene), m_useTextures(true), m_enableSubd(true),
-	m_deduplicateVertexNormals(true), m_specialiseAssemblies(true), m_flipT(false), m_triangleType(0)
+SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings)
 {
 }
 
@@ -43,7 +42,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 {
 	std::string type = iterator.getType();
 
-	if (m_enableSubd)
+	if (m_creationSettings.m_enableSubdivision)
 	{
 		if (type == "polymesh")
 		{
@@ -90,7 +89,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	{
 		return;
 	}
-	if (m_specialiseAssemblies && type == "assembly")
+	if (m_creationSettings.m_specialiseAssemblies && type == "assembly")
 	{
 		processAssembly(iterator, currentDepth);
 		return;
@@ -160,7 +159,7 @@ void SGLocationProcessor::processGeometryPolymesh(FnKat::FnScenegraphIterator it
 	if (!pMaterial)
 	{
 		// create it
-		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+		pMaterial = m_materialHelper.createNewMaterial(materialAttrib);
 
 		m_materialHelper.addMaterialInstance(materialHash, pMaterial);
 	}
@@ -211,7 +210,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		return;
 	}
 
-	if (m_triangleType == 1)
+	if (m_creationSettings.m_triangleType == 1)
 	{
 		pNewGeoInstance->setCustomFlags(1);
 	}
@@ -229,7 +228,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	if (!pMaterial)
 	{
 		// create it
-		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+		pMaterial = m_materialHelper.createNewMaterial(materialAttrib);
 
 		m_materialHelper.addMaterialInstance(materialHash, pMaterial);
 	}
@@ -422,53 +421,8 @@ StandardGeometryInstance* SGLocationProcessor::createGeometryInstanceFromLocatio
 	{
 		hasUVs = true;
 		std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
-
 		FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
-		unsigned int numItems = uvlist.size();
-
-		numUVValues = numItems / 2;
-
-		aUVs.resize(numUVValues);
-
-		std::vector<UV>::iterator itUV = aUVs.begin();
-
-		if (!m_flipT)
-		{
-			for (unsigned int i = 0; i < numItems; i += 2)
-			{
-				UV& uv = *itUV++;
-				uv.u = uvlist[i];
-				uv.v = uvlist[i + 1];
-			}
-		}
-		else
-		{
-			// flip the T (V) value over.
-			// because of using UDIMs, we can't just flip it directly with 1.0, we need to make sure we
-			// get the local space, flip it, then add it back again...
-
-			for (unsigned int i = 0; i < numItems; i += 2)
-			{
-				UV& uv = *itUV++;
-				uv.u = uvlist[i];
-				float tempV = uvlist[i + 1];
-
-				float majorValue = 0.0f;
-				float minorValue = modff(tempV, &majorValue);
-
-				// hack for whole values...
-//				if (minorValue == 0.0f && majorValue > 0.0f)
-//				{
-//					majorValue -= 1.0f;
-//					minorValue += 1.0f;
-//				}
-
-				float finalValue = 1.0f - minorValue;
-				finalValue += majorValue;
-
-				uv.v = finalValue;
-			}
-		}
+		numUVValues = processUVs(uvlist, aUVs);
 	}
 
 	// set any UV indices if necessary
@@ -553,7 +507,7 @@ StandardGeometryInstance* SGLocationProcessor::createGeometryInstanceFromLocatio
 
 	// TODO: pull in normals from poly geo if they exist...
 
-	if (m_deduplicateVertexNormals)
+	if (m_creationSettings.m_deduplicateVertexNormals)
 	{
 		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS_DD;
 	}
@@ -725,7 +679,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	}
 	else
 	{
-		if (m_deduplicateVertexNormals)
+		if (m_creationSettings.m_deduplicateVertexNormals)
 		{
 			geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS_DD;
 		}
@@ -779,53 +733,8 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	{
 		hasUVs = true;
 		std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
-
 		FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
-		unsigned int numItems = uvlist.size();
-
-		numUVValues = numItems / 2;
-
-		aUVs.resize(numUVValues);
-
-		std::vector<UV>::iterator itUV = aUVs.begin();
-
-		if (!m_flipT)
-		{
-			for (unsigned int i = 0; i < numItems; i += 2)
-			{
-				UV& uv = *itUV++;
-				uv.u = uvlist[i];
-				uv.v = uvlist[i + 1];
-			}
-		}
-		else
-		{
-			// flip the T (V) value over.
-			// because of using UDIMs, we can't just flip it directly with 1.0, we need to make sure we
-			// get the local space, flip it, then add it back again...
-
-			for (unsigned int i = 0; i < numItems; i += 2)
-			{
-				UV& uv = *itUV++;
-				uv.u = uvlist[i];
-				float tempV = uvlist[i + 1];
-
-				float majorValue = 0.0f;
-				float minorValue = modff(tempV, &majorValue);
-
-				// hack for whole values...
-//				if (minorValue == 0.0f && majorValue > 0.0f)
-//				{
-//					majorValue -= 1.0f;
-//					minorValue += 1.0f;
-//				}
-
-				float finalValue = 1.0f - minorValue;
-				finalValue += majorValue;
-
-				uv.v = finalValue;
-			}
-		}
+		numUVValues = processUVs(uvlist, aUVs);
 	}
 
 	// set any UV indices if necessary
@@ -971,7 +880,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 	else if (type == "subdmesh")
 	{
 		isGeo = true;
-		isSubD = m_enableSubd;
+		isSubD = m_creationSettings.m_enableSubdivision;
 	}
 
 	if (isGeo)
@@ -1017,7 +926,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		if (!pMaterial)
 		{
 			// create it
-			pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+			pMaterial = m_materialHelper.createNewMaterial(materialAttrib);
 
 			m_materialHelper.addMaterialInstance(materialHash, pMaterial);
 		}
@@ -1125,7 +1034,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		{
 			// just build the source geometry and link to it....
 
-			bool isSubD = m_enableSubd && itInstanceSource.getType() == "subdmesh";
+			bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
 
 #if USE_COMPACT_FOR_INSTANCE
 			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD);
@@ -1188,7 +1097,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		if (!pMaterial)
 		{
 			// create it
-			pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+			pMaterial = m_materialHelper.createNewMaterial(materialAttrib);
 		}
 
 		pNewObject->setMaterial(pMaterial);
@@ -1228,7 +1137,6 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 	}
 
 	FnKat::DoubleAttribute radiusAttr = geometryAttribute.getChildByName("radius");
-
 	if (!radiusAttr.isValid())
 		return;
 
@@ -1245,7 +1153,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 	if (!pMaterial)
 	{
 		// create it
-		pMaterial = m_materialHelper.createNewMaterial(materialHash, materialAttrib);
+		pMaterial = m_materialHelper.createNewMaterial(materialAttrib);
 	}
 
 	pSphere->setMaterial(pMaterial);
@@ -1342,4 +1250,55 @@ void SGLocationProcessor::processVisibilityAttributes(const FnKat::GroupAttribut
 
 		pObject->setRenderVisibilityFlags(finalVisibility);
 	}
+}
+
+unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, std::vector<UV>& aUVs)
+{
+	unsigned int numItems = uvlist.size();
+
+	unsigned int numUVValues = numItems / 2;
+
+	aUVs.resize(numUVValues);
+
+	std::vector<UV>::iterator itUV = aUVs.begin();
+
+	if (m_creationSettings.m_flipT == 0) // do nothing
+	{
+		for (unsigned int i = 0; i < numItems; i += 2)
+		{
+			UV& uv = *itUV++;
+			uv.u = uvlist[i];
+			uv.v = uvlist[i + 1];
+		}
+	}
+	else if (m_creationSettings.m_flipT == 1)
+	{
+		// fully flip t
+		for (unsigned int i = 0; i < numItems; i += 2)
+		{
+			UV& uv = *itUV++;
+			uv.u = uvlist[i];
+			uv.v = 1.0 - uvlist[i + 1];
+		}
+	}
+	else
+	{
+		// flip the t value over within the UDIM tile space.
+		for (unsigned int i = 0; i < numItems; i += 2)
+		{
+			UV& uv = *itUV++;
+			uv.u = uvlist[i];
+			float tempV = uvlist[i + 1];
+
+			float majorValue = 0.0f;
+			float minorValue = modff(tempV, &majorValue);
+
+			float finalValue = 1.0f - minorValue;
+			finalValue += majorValue;
+
+			uv.v = finalValue;
+		}
+	}
+
+	return numUVValues;
 }

@@ -13,7 +13,7 @@
 
 			<int name="enable_volumetrics" default="0" widget="checkBox" help="Enable the Volumetrics integrator. Needed for SSS and volumes."/>
 			<int name="use_mis" default="1" widget="checkBox" help="Enable use of MIS."/>
-			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final image noise variance levels reach a certain level."/>
+			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final pixel noise variance levels reach a certain level."/>
 			<float name="adaptive_variance_threshold" default="0.02" conditionalVisOp='equalTo' conditionalVisPath='../adaptive' conditionalVisValue='1'/>
 
 			<int name="light_sampling" widget="mapper" default="0">
@@ -53,7 +53,13 @@
 			<int name="max_depth_refraction" default="5" help=""/>
 		</page>
 		<page name='geometry' open="True">
-			<int name="flip_t" default="0" widget="checkBox" help="Flip the t (V) coordinate of st texture coordinates."/>
+			<int name="flip_t" default="0" widget="mapper" help="Flip the t (V) coordinate of st texture coordinates.">
+				<hintdict name='options'>
+					<int name="None" value="0"/>
+					<int name="Full" value="1"/>
+					<int name="Component-wise" value="2"/>
+				</hintdict>
+			</int>
 			<int name="enable_subdivision" default="0" widget="checkBox" help="Enable using subdivision surfaces. With this off, subdmesh types will be interpreted as standard polygons."/>
 		</page>
 		<page name='scene' open="True">
@@ -65,6 +71,13 @@
 				<hintdict name='options'>
 					<int name="Fast" value="0"/>
 					<int name="Compact" value="1"/>
+				</hintdict>
+			</int>
+			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets">
+				<hintdict name='options'>
+					<int name="Triangle Packets" value="0"/>
+					<int name="Fast" value="1"/>
+					<int name="Compact" value="2"/>
 				</hintdict>
 			</int>
 			<int name="scene_accel_structure" widget="mapper" default="1" help="Scene acceleration type to use. KDTree is generally faster for more sparse scenes with lots of empty space. For dense scenes with lots of overlapping objects, BVH can be significantly faster.">
@@ -86,15 +99,18 @@
 					<int name="48" value="48"/>
 					<int name="64" value="64"/>
 					<int name="96" value="96"/>
+					<int name="128" value="128"/>
 				</hintdict>
 			</int>
-			<int name="bucket_order" widget="mapper" default="2">
+			<int name="bucket_order" widget="mapper" default="4">
 				<hintdict name='options'>
-					<int name="rows" value="0"/>
-					<int name="rows_bounce" value="1"/>
-					<int name="spiral" value="2"/>
-					<int name="spread" value="3"/>
-					<int name="hilbert" value="4"/>
+					<int name="horizontal rows" value="0"/>
+					<int name="horizontal rows bounce" value="1"/>
+					<int name="vertical rows" value="2"/>
+					<int name="vertical rows bounce" value="3"/>
+					<int name="spiral" value="4"/>
+					<int name="horizontal spread" value="5"/>
+					<int name="hilbert" value="6"/>
 				</hintdict>
 			</int>
 		</page>

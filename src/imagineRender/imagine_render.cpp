@@ -27,8 +27,8 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_deduplicateVertexNormals(false), m_printStatistics(false),
-	m_ROIActive(false), m_specialiseAssembies(false), m_flipT(false), m_enableSubdivision(false), m_triangleType(0), m_fastLiveRenders(false)
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printStatistics(false),
+	m_ROIActive(false), m_fastLiveRenders(false)
 {
 #if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
@@ -160,6 +160,11 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 	m_renderHeight = settings.getResolutionY();
 
 //	fprintf(stderr, "Render dimensions: %d, %d\n", m_renderWidth, m_renderHeight);
+
+	int dataWindow[4];
+	settings.getDataWindow(dataWindow);
+
+//	fprintf(stderr, "Data window: (%i, %i, %i, %i)\n", dataWindow[0], dataWindow[1], dataWindow[2], dataWindow[3]);
 
 	m_renderSettings.add("width", m_renderWidth);
 	m_renderSettings.add("height", m_renderHeight);
@@ -332,21 +337,21 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 
 	FnKat::IntAttribute flipTAttribute = imagineGSAttribute.getChildByName("flip_t");
-	m_flipT = false;
+	m_creationSettings.m_flipT = false;
 	if (flipTAttribute.isValid())
-		m_flipT = (flipTAttribute.getValue(0, false) == 1);
+		m_creationSettings.m_flipT = (flipTAttribute.getValue(0, false) == 1);
 
 	FnKat::IntAttribute enableSubDAttribute = imagineGSAttribute.getChildByName("enable_subdivision");
-	m_enableSubdivision = false;
+	m_creationSettings.m_enableSubdivision = false;
 	if (enableSubDAttribute.isValid())
-		m_enableSubdivision = (enableSubDAttribute.getValue(0, false) == 1);
+		m_creationSettings.m_enableSubdivision = (enableSubDAttribute.getValue(0, false) == 1);
 
 
 	FnKat::IntAttribute triangleTypeAttribute = imagineGSAttribute.getChildByName("triangle_type");
-	m_triangleType = 0;
+	m_creationSettings.m_triangleType = 0;
 	if (triangleTypeAttribute.isValid())
 	{
-		m_triangleType = triangleTypeAttribute.getValue(0, false);
+		m_creationSettings.m_triangleType = triangleTypeAttribute.getValue(0, false);
 	}
 
 	//
@@ -356,14 +361,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		bakeDownScene = bakeDownSceneAttribute.getValue(0, false);
 
 	FnKat::IntAttribute deduplicateVertexNormalsAttribute = imagineGSAttribute.getChildByName("deduplicate_vertex_normals");
-	m_deduplicateVertexNormals = true;
+	m_creationSettings.m_deduplicateVertexNormals = true;
 	if (deduplicateVertexNormalsAttribute.isValid())
-		m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
+		m_creationSettings.m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
 
 	FnKat::IntAttribute specialiseAssembliesAttribute = imagineGSAttribute.getChildByName("specialise_assembly_types");
-	m_specialiseAssembies = true;
+	m_creationSettings.m_specialiseAssemblies = true;
 	if (specialiseAssembliesAttribute.isValid())
-		m_specialiseAssembies = (specialiseAssembliesAttribute.getValue(1, false) == 1);
+		m_creationSettings.m_specialiseAssemblies = (specialiseAssembliesAttribute.getValue(1, false) == 1);
 
 	FnKat::IntAttribute sceneAccelStructureAttribute = imagineGSAttribute.getChildByName("scene_accel_structure");
 	unsigned int sceneAccelStructure = 1;
@@ -386,9 +391,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		shadowRayEpsilon = shadowRayEpsilonAttribute.getValue(0.0001f, false);
 
 	FnKat::IntAttribute bucketOrderAttribute = imagineGSAttribute.getChildByName("bucket_order");
-	unsigned int bucketOrder = 2;
+	unsigned int bucketOrder = 4;
 	if (bucketOrderAttribute.isValid())
-		bucketOrder = bucketOrderAttribute.getValue(2, false);
+		bucketOrder = bucketOrderAttribute.getValue(4, false);
 
 	FnKat::IntAttribute bucketSizeAttribute = imagineGSAttribute.getChildByName("bucket_size");
 	unsigned int bucketSize = 48;
@@ -500,8 +505,6 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		return;
 	}
 
-	FnKat::StringAttribute cameraProjectionTypeAttribute = cameraGeometryAttribute.getChildByName("projection");
-
 	// screen window - for the moment, it's just the render res, with no overscan or crop....
 	FnKat::DoubleAttribute leftAttrib = cameraGeometryAttribute.getChildByName("left");
 	FnKat::DoubleAttribute rightAttrib = cameraGeometryAttribute.getChildByName("right");
@@ -556,6 +559,20 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		pRenderCamera->setApertureRadius(apertureSize);
 	}
 
+	FnKat::StringAttribute cameraProjectionTypeAttribute = cameraGeometryAttribute.getChildByName("projection");
+	if (cameraProjectionTypeAttribute.isValid())
+	{
+		std::string projectionType = cameraProjectionTypeAttribute.getValue("", false);
+		if (projectionType == "spherical")
+		{
+			pRenderCamera->setProjectionType(Camera::eSpherical);
+		}
+		else if (projectionType == "orthographic")
+		{
+			pRenderCamera->setProjectionType(Camera::eOrthographic);
+		}
+	}
+
 	m_pScene->setDefaultCamera(pRenderCamera);
 }
 
@@ -563,13 +580,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 {
 	// force expand for the moment, instead of using lazy procedurals...
 
-	SGLocationProcessor locProcessor(*m_pScene);
-
-	locProcessor.setEnableSubD(m_enableSubdivision);
-	locProcessor.setDeduplicateVertexNormals(m_deduplicateVertexNormals);
-	locProcessor.setSpecialiseAssemblies(m_specialiseAssembies);
-	locProcessor.setFlipT(m_flipT);
-	locProcessor.setTriangleType(m_triangleType);
+	SGLocationProcessor locProcessor(*m_pScene, m_creationSettings);
 
 	locProcessor.processSGForceExpand(rootIterator);
 
