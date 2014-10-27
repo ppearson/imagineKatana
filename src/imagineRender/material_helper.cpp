@@ -23,9 +23,7 @@ MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL)
 
 	m_terminatorNodes = tnBuilder.build();
 
-#ifndef STAND_ALONE
 	m_pDefaultMaterial = new StandardMaterial();
-#endif
 }
 
 FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const
@@ -57,7 +55,7 @@ void MaterialHelper::addMaterialInstance(const std::string& hash, Material* pMat
 	m_aMaterials.push_back(pMaterial);
 }
 
-Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat::GroupAttribute& attribute)
+Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute)
 {
 	// only add to map if we created material and attribute had a valid material, otherwise, return default
 	// material
@@ -98,11 +96,11 @@ Material* MaterialHelper::createNewMaterial(const std::string& hash, const FnKat
 	}
 	else if (shaderName == "Brushed Metal")
 	{
-		pNewMaterial = createBrushedMetalMaterial(shaderParamsAttr);
+		pNewMaterial = createBrushedMetalMaterial(shaderParamsAttr, bumpParamsAttr);
 	}
 	else if (shaderName == "Metallic Paint")
 	{
-		pNewMaterial = createMetallicPaintMaterial(shaderParamsAttr);
+		pNewMaterial = createMetallicPaintMaterial(shaderParamsAttr, bumpParamsAttr);
 	}
 	else if (shaderName == "Translucent")
 	{
@@ -336,7 +334,7 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	return pNewMaterial;
 }
 
-Material* MaterialHelper::createBrushedMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+Material* MaterialHelper::createBrushedMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr)
 {
 	BrushedMetalMaterial* pNewMaterial = new BrushedMetalMaterial();
 
@@ -360,10 +358,24 @@ Material* MaterialHelper::createBrushedMetalMaterial(const FnKat::GroupAttribute
 		pNewMaterial->setDoubleSided(true);
 	}
 
+	if (bumpParamsAttr.isValid())
+	{
+		KatanaAttributeHelper ahBump(bumpParamsAttr);
+
+		std::string bumpTexture = ahBump.getStringParam("bump_texture_path");
+		if (!bumpTexture.empty())
+		{
+			pNewMaterial->setBumpTextureMapPath(bumpTexture, true);
+
+			float bumpIntensity = ahBump.getFloatParam("bump_texture_intensity", 0.8f);
+			pNewMaterial->setBumpIntensity(bumpIntensity);
+		}
+	}
+
 	return pNewMaterial;
 }
 
-Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr)
 {
 	MetallicPaintMaterial* pNewMaterial = new MetallicPaintMaterial();
 
@@ -389,6 +401,20 @@ Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribut
 
 	float fresnelCoefficient = ah.getFloatParam("fresnel_coef", 0.0f);
 	pNewMaterial->setFresnelCoefficient(fresnelCoefficient);
+
+	if (bumpParamsAttr.isValid())
+	{
+		KatanaAttributeHelper ahBump(bumpParamsAttr);
+
+		std::string bumpTexture = ahBump.getStringParam("bump_texture_path");
+		if (!bumpTexture.empty())
+		{
+			pNewMaterial->setBumpTextureMapPath(bumpTexture, true);
+
+			float bumpIntensity = ahBump.getFloatParam("bump_texture_intensity", 0.8f);
+			pNewMaterial->setBumpIntensity(bumpIntensity);
+		}
+	}
 
 	return pNewMaterial;
 }
@@ -416,6 +442,20 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setTransmittance(transmittance);
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);
+
+	if (bumpParamsAttr.isValid())
+	{
+		KatanaAttributeHelper ahBump(bumpParamsAttr);
+
+		std::string bumpTexture = ahBump.getStringParam("bump_texture_path");
+		if (!bumpTexture.empty())
+		{
+			pNewMaterial->setBumpTextureMapPath(bumpTexture, true);
+
+			float bumpIntensity = ahBump.getFloatParam("bump_texture_intensity", 0.8f);
+			pNewMaterial->setBumpIntensity(bumpIntensity);
+		}
+	}
 
 	return pNewMaterial;
 }
