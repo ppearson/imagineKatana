@@ -24,6 +24,7 @@
 
 #include "utilities.h"
 
+#include "katana_helpers.h"
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
@@ -522,20 +523,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 
 	// get Camera transform matrix
 
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(cameraIterator);
-
-	std::set<float> sampleTimes;
-	sampleTimes.insert(0);
-	std::vector<float> relevantSampleTimes;
-	std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
-
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
-
-	bool isAbsolute = false;
-	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
-												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
-
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(cameraIterator);
 	const double* pMatrix = xforms[0].getValues();
 
 //	fprintf(stderr, "Camera Matrix:\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f,\n%f, %f, %f, %f\n", pMatrix[0], pMatrix[1], pMatrix[2], pMatrix[3],
@@ -572,6 +560,10 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 			pRenderCamera->setProjectionType(Camera::eOrthographic);
 		}
 	}
+
+	// get some things from renderSettings
+	m_shutterOpen = settings.getShutterOpen();
+	m_shutterClose = settings.getShutterClose();
 
 	m_pScene->setDefaultCamera(pRenderCamera);
 }

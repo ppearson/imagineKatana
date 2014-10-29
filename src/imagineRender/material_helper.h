@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 
+#define KATANA_2 0
+
 #include <FnAttribute/FnAttribute.h>
 #include <FnAttribute/FnDataBuilder.h>
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
@@ -19,20 +21,19 @@ class MaterialHelper
 public:
 	MaterialHelper();
 
+	Material* getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator);
+
 	FnKat::GroupAttribute getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const;
-
-	static std::string getMaterialHash(const FnKat::GroupAttribute& attribute);
-
-	Material* getExistingMaterial(const std::string& hash) const;
-
-	void addMaterialInstance(const std::string& hash, Material* pMaterial);
-
-	// this adds to the instances map itself
-	Material* createNewMaterial(const FnKat::GroupAttribute& attribute);
 
 	std::vector<Material*>& getMaterialsVector() { return m_aMaterials; }
 
 	Material* getDefaultMaterial() { return m_pDefaultMaterial; }
+
+protected:
+	static std::string getMaterialHash(const FnKat::GroupAttribute& attribute);
+
+	// this adds to the instances map itself
+	Material* createNewMaterial(const FnKat::GroupAttribute& attribute);
 
 protected:
 	static Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,

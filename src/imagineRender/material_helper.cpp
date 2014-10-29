@@ -26,6 +26,35 @@ MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL)
 	m_pDefaultMaterial = new StandardMaterial();
 }
 
+Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator)
+{
+	FnKat::GroupAttribute materialAttrib = getMaterialForLocation(iterator);
+
+	Material* pMaterial = NULL;
+
+	// calculate a hash for the material
+	std::string materialHash = getMaterialHash(materialAttrib);
+
+	// see if we've got it already
+	std::map<std::string, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
+	if (itFind != m_aMaterialInstances.end())
+	{
+		pMaterial = (*itFind).second;
+
+		if (pMaterial)
+			return pMaterial;
+	}
+
+	// otherwise, create a new material
+	pMaterial = createNewMaterial(materialAttrib);
+
+	// add this new material to our list of material instances
+	m_aMaterialInstances[materialHash] = pMaterial;
+	m_aMaterials.push_back(pMaterial);
+
+	return pMaterial;
+}
+
 FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const
 {
 	return FnKat::RenderOutputUtils::getFlattenedMaterialAttr(iterator, m_terminatorNodes);
@@ -34,25 +63,6 @@ FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraph
 std::string MaterialHelper::getMaterialHash(const FnKat::GroupAttribute& attribute)
 {
 	return FnKat::RenderOutputUtils::hashAttr(attribute);
-}
-
-Material* MaterialHelper::getExistingMaterial(const std::string& hash) const
-{
-	std::map<std::string, Material*>::const_iterator itFind = m_aMaterialInstances.find(hash);
-
-	if (itFind == m_aMaterialInstances.end())
-		return NULL;
-
-	Material* pMaterial = (*itFind).second;
-
-	return pMaterial;
-}
-
-void MaterialHelper::addMaterialInstance(const std::string& hash, Material* pMaterial)
-{
-	m_aMaterialInstances[hash] = pMaterial;
-
-	m_aMaterials.push_back(pMaterial);
 }
 
 Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute)

@@ -7,6 +7,8 @@
 
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
+#include <RenderOutputUtils/XFormMatrix.h>
+
 #include "colour/colour3f.h"
 
 class KatanaHelpers
@@ -15,6 +17,10 @@ public:
 	KatanaHelpers();
 
 	static FnKat::GroupAttribute buildLocationXformList(FnKat::FnScenegraphIterator iterator, int depthLimit);
+
+	static Foundry::Katana::RenderOutputUtils::XFormMatrixVector getXFormMatrixStatic(FnKat::FnScenegraphIterator iterator);
+	static Foundry::Katana::RenderOutputUtils::XFormMatrixVector getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
+																				  bool clampWithinShutter, float shutterOpen, float shutterClose);
 
 };
 

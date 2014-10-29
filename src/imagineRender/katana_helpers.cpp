@@ -2,7 +2,10 @@
 
 #include <stdio.h>
 
+#include <set>
+
 #include <FnAttribute/FnGroupBuilder.h>
+#include <RenderOutputUtils/RenderOutputUtils.h>
 
 KatanaHelpers::KatanaHelpers()
 {
@@ -52,6 +55,63 @@ FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(FnKat::FnScenegraphI
 	}
 
 	return gb.build();
+}
+
+Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(FnKat::FnScenegraphIterator iterator)
+{
+	FnKat::GroupAttribute xformAttr;
+	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+	std::vector<float> relevantSampleTimes;
+	relevantSampleTimes.push_back(0.0f);
+
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+	return xforms;
+}
+
+Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
+																					  bool clampWithinShutter, float shutterOpen, float shutterClose)
+{
+	FnKat::GroupAttribute xformAttr;
+	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
+
+	bool isCoherentSampleSet = true;
+	std::set<float> sampleTimes;
+
+	FnKat::RenderOutputUtils::findAllMotionRelevantTimesForGroupAttr(sampleTimes, isCoherentSampleSet, xformAttr);
+	if (sampleTimes.empty())
+	{
+		sampleTimes.insert(0.0f);
+	}
+
+	if (!isCoherentSampleSet)
+	{
+		// print warning?
+	}
+
+	std::vector<float> relevantSampleTimes;
+
+	if (clampWithinShutter)
+	{
+		FnKat::RenderOutputUtils::findSampleTimesRelevantToShutterRange(relevantSampleTimes, sampleTimes, shutterOpen, shutterClose);
+	}
+	else
+	{
+		std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
+	}
+
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+
+	return xforms;
 }
 
 

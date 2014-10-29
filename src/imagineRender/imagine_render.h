@@ -84,7 +84,6 @@ protected:
 	void renderFinished();
 
 protected:
-
 	Scene*						m_pScene;
 	Params						m_renderSettings;
 
@@ -116,6 +115,9 @@ protected:
 	bool						m_printStatistics;
 
 	bool						m_fastLiveRenders;
+
+	float						m_shutterOpen;
+	float						m_shutterClose;
 
 	bool						m_ROIActive;
 	unsigned int				m_ROIStartX;
