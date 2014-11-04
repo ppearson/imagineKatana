@@ -2,7 +2,12 @@
 
 #include <stdio.h>
 
+#ifdef KAT_V_2
+#include <FnRenderOutputUtils/FnRenderOutputUtils.h>
+#include <FnGeolibServices/FnArbitraryOutputAttr.h>
+#else
 #include <RenderOutputUtils/RenderOutputUtils.h>
+#endif
 
 #include "katana_helpers.h"
 
@@ -269,11 +274,9 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		geoBuildFlags |= GeometryInstance::GEO_BUILD_SUBDIVIDE;
 	}
 
-	bool useNormals = false;
-
 	// see if we've got any Normals....
 	FnKat::FloatAttribute normalsAttribute = iterator.getAttribute("geometry.vertex.N");
-	if (useNormals && normalsAttribute.isValid())
+	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid())
 	{
 		FnKat::FloatConstVector normalsData = normalsAttribute.getNearestSample(0.0f);
 
@@ -288,9 +291,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		for (unsigned int i = 0; i < numItems; i += 3)
 		{
 			Normal& normal = aNormals[normalCount++];
-			normal.x = normalsData[i];
-			normal.y = normalsData[i + 1];
-			normal.z = normalsData[i + 2];
+
+			// need to reverse the normals as the winding order is opposite
+			normal.x = -normalsData[i];
+			normal.y = -normalsData[i + 1];
+			normal.z = -normalsData[i + 2];
 		}
 #else
 		aNormals.reserve(numItems / 3);
@@ -301,7 +306,8 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			float y = normalsData[i + 1];
 			float z = normalsData[i + 2];
 
-			aNormals.push_back(Normal(x, y, z));
+			// we need to reverse the normals as the winding order is opposite...
+			aNormals.push_back(-Normal(x, y, z));
 		}
 #endif
 	}
@@ -325,7 +331,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::FloatAttribute uvItemAttribute;
 	if (stAttribute.isValid())
 	{
+#ifdef KAT_V_2
+		FnKat::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
+#else
 		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
+#endif
 
 		if (arbitraryAttribute.isValid())
 		{
@@ -547,16 +557,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 
 		FnKat::GroupAttribute xformAttr = KatanaHelpers::buildLocationXformList(iterator, depthLimit);
 
-		std::set<float> sampleTimes;
-		sampleTimes.insert(0.0f);
-		std::vector<float> relevantSampleTimes;
-		std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
-
-		FnKat::RenderOutputUtils::XFormMatrixVector xforms;
-
-		bool isAbsolute = false;
-		FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
-													 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+		FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(xformAttr);
 
 		const double* pMatrix = xforms[0].getValues();
 

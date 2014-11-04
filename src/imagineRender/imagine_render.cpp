@@ -2,9 +2,15 @@
 
 #include <stdio.h>
 
+#ifdef KAT_V_2
+#include <FnRender/plugin/GlobalSettings.h>
+#include <FnRendererInfo/plugin/RenderMethod.h>
+#include <FnRenderOutputUtils/FnRenderOutputUtils.h>
+#else
 #include <Render/GlobalSettings.h>
 #include <RendererInfo/RenderMethod.h>
 #include <RenderOutputUtils/RenderOutputUtils.h>
+#endif
 
 // include any Imagine headers directly from the source directory as Imagine hasn't got an API yet...
 #include "objects/camera.h"
@@ -28,7 +34,7 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printStatistics(false),
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printStatistics(0),
 	m_ROIActive(false), m_fastLiveRenders(false)
 {
 #if ENABLE_PREVIEW_RENDERS
@@ -366,6 +372,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (deduplicateVertexNormalsAttribute.isValid())
 		m_creationSettings.m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
 
+	FnKat::IntAttribute useGeoAttrNormalsAttribute = imagineGSAttribute.getChildByName("use_geo_normals");
+	m_creationSettings.m_useGeoNormals = true;
+	if (useGeoAttrNormalsAttribute.isValid())
+		m_creationSettings.m_useGeoNormals = (useGeoAttrNormalsAttribute.getValue(1, false) == 1);
+
 	FnKat::IntAttribute specialiseAssembliesAttribute = imagineGSAttribute.getChildByName("specialise_assembly_types");
 	m_creationSettings.m_specialiseAssemblies = true;
 	if (specialiseAssembliesAttribute.isValid())
@@ -377,9 +388,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		sceneAccelStructure = sceneAccelStructureAttribute.getValue(1, false);
 
 	FnKat::IntAttribute printStatisticsAttribute = imagineGSAttribute.getChildByName("print_statistics");
-	m_printStatistics = true;
+	m_printStatistics = 1;
 	if (printStatisticsAttribute.isValid())
-		m_printStatistics = (printStatisticsAttribute.getValue(1, false) == 1);
+		m_printStatistics = printStatisticsAttribute.getValue(1, false);
 
 	FnKat::FloatAttribute rayEpsilonAttribute = imagineGSAttribute.getChildByName("ray_epsilon");
 	float rayEpsilon = 0.0001f;
@@ -502,7 +513,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	FnKat::GroupAttribute cameraGeometryAttribute = cameraIterator.getAttribute("geometry");
 	if (!cameraGeometryAttribute.isValid())
 	{
-		fprintf(stderr, "Error: Can't find geometry attribute on the camera...\n");
+		fprintf(stderr, "Error: Can't find geometry attribute on the camera: %s...\n", cameraIterator.getFullName().c_str());
 		return;
 	}
 
@@ -516,13 +527,9 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 
 	float fovValue = fovAttribute.getValue(45.0f, false);
 
-	FnKat::FloatAttribute focusDistanceAttribute = cameraGeometryAttribute.getChildByName("focus_distance");
-	FnKat::FloatAttribute apertureSizeAttribute = cameraGeometryAttribute.getChildByName("aperture_size");
-
 	// TODO: other camera attribs
 
 	// get Camera transform matrix
-
 	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(cameraIterator);
 	const double* pMatrix = xforms[0].getValues();
 
@@ -534,30 +541,48 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	pRenderCamera->setFOV(fovValue);
 	pRenderCamera->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
+	FnKat::FnScenegraphIterator itRoot = cameraIterator.getRoot();
+
+	// try and find these camera attributes first on the camera, if not look for backup global settings
+	FnKat::FloatAttribute focusDistanceAttribute = cameraGeometryAttribute.getChildByName("focus_distance");
+	if (!focusDistanceAttribute.isValid() && itRoot.isValid())
+	{
+		// try and find it next in the global settings
+		focusDistanceAttribute = itRoot.getAttribute("imagineGlobalStatements.cam_focal_distance");
+	}
 	if (focusDistanceAttribute.isValid())
 	{
-		float focusDistance = focusDistanceAttribute.getValue(0.0f, false);
+		float focusDistance = focusDistanceAttribute.getValue(16.0f, false);
 		// Imagine currently needs negative value...
 		pRenderCamera->setFocusDistance(-focusDistance);
 	}
 
+	FnKat::FloatAttribute apertureSizeAttribute = cameraGeometryAttribute.getChildByName("aperture_size");
+	if (!apertureSizeAttribute.isValid() && itRoot.isValid())
+	{
+		// try and find it next in the global settings
+		apertureSizeAttribute = itRoot.getAttribute("imagineGlobalStatements.cam_aperture_size");
+	}
 	if (apertureSizeAttribute.isValid())
 	{
 		float apertureSize = apertureSizeAttribute.getValue(0.0f, false);
 		pRenderCamera->setApertureRadius(apertureSize);
 	}
 
-	FnKat::StringAttribute cameraProjectionTypeAttribute = cameraGeometryAttribute.getChildByName("projection");
-	if (cameraProjectionTypeAttribute.isValid())
+	if (itRoot.isValid())
 	{
-		std::string projectionType = cameraProjectionTypeAttribute.getValue("", false);
-		if (projectionType == "spherical")
+		FnKat::IntAttribute cameraProjectionAttr = itRoot.getAttribute("imagineGlobalStatements.cam_projection_type");
+		if (cameraGeometryAttribute.isValid())
 		{
-			pRenderCamera->setProjectionType(Camera::eSpherical);
-		}
-		else if (projectionType == "orthographic")
-		{
-			pRenderCamera->setProjectionType(Camera::eOrthographic);
+			int cameraProjectionType = cameraProjectionAttr.getValue(0, false);
+			if (cameraProjectionType == 1)
+			{
+				pRenderCamera->setProjectionType(Camera::eSpherical);
+			}
+			else if (cameraProjectionType == 2)
+			{
+				pRenderCamera->setProjectionType(Camera::eOrthographic);
+			}
 		}
 	}
 
@@ -741,13 +766,16 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	{
 		const FnKat::Render::RenderSettings::ChannelBuffer& buffer = (*itBuffer).second;
 
+		const std::string& channelName = (*itBuffer).first;
+		m_aInteractiveChannelNames.push_back(channelName);
+
 		int frameID = atoi(buffer.bufferId.c_str());
 		m_aInteractiveFrameIDs.push_back(frameID);
 
-		std::string channelName = buffer.channelName;
-		m_aInteractiveChannelNames.push_back(channelName);
+		std::string channelType = buffer.channelName;
+		m_aInteractiveChannelTypes.push_back(channelType);
 
-//		fprintf(stderr, "Buffers: %i, %s\n", m_frameID, m_channelName.c_str());
+//		fprintf(stderr, "Buffers: %s: %i, %s\n", channelName.c_str(), frameID, m_channelType.c_str());
 	}
 
 	if (m_aInteractiveFrameIDs.empty() || m_aInteractiveChannelNames.empty())
@@ -1005,7 +1033,7 @@ void ImagineRender::renderFinished()
 #endif
 	fprintf(stderr, "Render complete.\n");
 
-	if (m_printStatistics)
+	if (m_printStatistics != 0)
 	{
 		// run through all objects in the scene, building up geometry info
 
@@ -1041,6 +1069,33 @@ void ImagineRender::renderFinished()
 		fprintf(stderr, "Total triangle indices memory size: %s\n", totalTriangleIndicesSize.c_str());
 		fprintf(stderr, "Unique triangle indices memory size: %s\n", uniqueTriangleIndicesSize.c_str());
 		fprintf(stderr, "Total other memory size: %s\n", otherSize.c_str());
+
+		if (m_printStatistics == 2)
+		{
+			fprintf(stderr, "\nHistograms:");
+
+			fprintf(stderr, "Total num meshes: %u\n", info.getMeshCount());
+
+			unsigned int meshTrianglesUChar, meshTrianglesUShort, meshTrianglesUInt;
+			info.getMeshTrianglesCounts(meshTrianglesUChar, meshTrianglesUShort, meshTrianglesUInt);
+			fprintf(stderr, "Triangle counts:\nuchar:\t\t%u\nushort:\t\t%u\nuint:\t\t%u\n\n", meshTrianglesUChar, meshTrianglesUShort, meshTrianglesUInt);
+
+			unsigned int meshPointsUChar, meshPointsUShort, meshPointsUInt;
+			info.getMeshPointsCounts(meshPointsUChar, meshPointsUShort, meshPointsUInt);
+			fprintf(stderr, "Point counts:\nuchar:\t\t%u\nushort:\t\t%u\nuint:\t\t%u\n\n", meshPointsUChar, meshPointsUShort, meshPointsUInt);
+
+			unsigned int meshNormalsUChar, meshNormalsUShort, meshNormalsUInt;
+			info.getMeshNormalsCounts(meshNormalsUChar, meshNormalsUShort, meshNormalsUInt);
+			fprintf(stderr, "Normal counts:\nuchar:\t\t%u\nushort:\t\t%u\nuint:\t\t%u\n\n", meshNormalsUChar, meshNormalsUShort, meshNormalsUInt);
+
+			unsigned int meshUVsUChar, meshUVsUShort, meshUVsUInt;
+			info.getMeshUVsCounts(meshUVsUChar, meshUVsUShort, meshUVsUInt);
+			fprintf(stderr, "UV counts:\nuchar:\t\t%u\nushort:\t\t%u\nuint:\t\t%u\n\n", meshUVsUChar, meshUVsUShort, meshUVsUInt);
+
+			fprintf(stderr, "Full Normals count:\t%u\n", info.getFullNormalsCount());
+			fprintf(stderr, "Full UVs count:\t%u\n\n", info.getFullUVsCount());
+		}
+
 		fprintf(stderr, "Total accel structure memory size: %s\n", accelSize.c_str());
 		fprintf(stderr, "Total image texture count: %u, total image texture memory size: %s\n\n", numImages, strImageTextureSize.c_str());
 	}

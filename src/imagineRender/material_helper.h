@@ -5,12 +5,15 @@
 #include <vector>
 #include <string>
 
-#define KATANA_2 0
-
 #include <FnAttribute/FnAttribute.h>
 #include <FnAttribute/FnDataBuilder.h>
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
+
+#ifdef KAT_V_2
+#include <FnRenderOutputUtils/FnRenderOutputUtils.h>
+#else
 #include <RenderOutputUtils/RenderOutputUtils.h>
+#endif
 
 #include "colour/colour3f.h"
 
@@ -30,7 +33,9 @@ public:
 	Material* getDefaultMaterial() { return m_pDefaultMaterial; }
 
 protected:
+#ifndef KAT_V_2
 	static std::string getMaterialHash(const FnKat::GroupAttribute& attribute);
+#endif
 
 	// this adds to the instances map itself
 	Material* createNewMaterial(const FnKat::GroupAttribute& attribute);
@@ -49,7 +54,11 @@ protected:
 protected:
 	FnKat::StringAttribute		m_terminatorNodes;
 
+#ifdef KAT_V_2
+	std::map<FnAttribute::Hash, Material*> m_aMaterialInstances; // all materials with hashes
+#else
 	std::map<std::string, Material*>	m_aMaterialInstances; // all materials with hashes
+#endif
 	std::vector<Material*>				m_aMaterials; // all material instances in std::vector
 
 	Material*					m_pDefaultMaterial;

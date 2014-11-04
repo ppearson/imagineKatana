@@ -32,11 +32,17 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 
 	Material* pMaterial = NULL;
 
+#ifdef KAT_V_2
+	FnAttribute::Hash materialHash = materialAttrib.getHash();
+
+	std::map<FnAttribute::Hash, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
+#else
 	// calculate a hash for the material
 	std::string materialHash = getMaterialHash(materialAttrib);
 
 	// see if we've got it already
 	std::map<std::string, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
+#endif
 	if (itFind != m_aMaterialInstances.end())
 	{
 		pMaterial = (*itFind).second;
@@ -60,10 +66,12 @@ FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraph
 	return FnKat::RenderOutputUtils::getFlattenedMaterialAttr(iterator, m_terminatorNodes);
 }
 
+#ifndef KAT_V_2
 std::string MaterialHelper::getMaterialHash(const FnKat::GroupAttribute& attribute)
 {
 	return FnKat::RenderOutputUtils::hashAttr(attribute);
 }
+#endif
 
 Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute)
 {

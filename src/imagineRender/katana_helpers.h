@@ -7,7 +7,12 @@
 
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
+#ifdef KAT_V_2
+#include <FnRenderOutputUtils/XFormMatrix.h>
+#else
 #include <RenderOutputUtils/XFormMatrix.h>
+#endif
+
 
 #include "colour/colour3f.h"
 
@@ -18,6 +23,7 @@ public:
 
 	static FnKat::GroupAttribute buildLocationXformList(FnKat::FnScenegraphIterator iterator, int depthLimit);
 
+	static Foundry::Katana::RenderOutputUtils::XFormMatrixVector getXFormMatrixStatic(FnKat::GroupAttribute xformAttr);
 	static Foundry::Katana::RenderOutputUtils::XFormMatrixVector getXFormMatrixStatic(FnKat::FnScenegraphIterator iterator);
 	static Foundry::Katana::RenderOutputUtils::XFormMatrixVector getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
 																				  bool clampWithinShutter, float shutterOpen, float shutterClose);

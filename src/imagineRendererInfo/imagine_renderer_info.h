@@ -1,7 +1,12 @@
 #ifndef IMAGINERENDERERINFO_H
 #define IMAGINERENDERERINFO_H
 
+#ifdef KAT_V_2
+#include <FnRendererInfo/plugin/RendererInfoBase.h>
+#else
 #include <RendererInfo/RendererInfoBase.h>
+#endif
+
 #include "FnAttribute/FnAttribute.h"
 #include "FnAttribute/FnGroupBuilder.h"
 

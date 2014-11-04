@@ -36,8 +36,13 @@ ENDIF(${MODERN_GCC} MATCHES "1")
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 
+SET(KATANA_VERSION 1)
+IF(${KATANA_VERSION} MATCHES 1)
 # Katana APIs
-SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api")
+	SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api")
+ELSE()
+	SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api_2")
+ENDIF(${KATANA_VERSION} MATCHES 1)
 
 SET(DISPLAY_DRIVER 1) # set this to 1 to build with zeromq support (and preview and liverender support) - this
 #					#   includes zeromq support (which is embedded as a separate project which gets built by this CMakeLists.txt),
@@ -268,6 +273,10 @@ ADD_LIBRARY(katanaImagineRender SHARED ${katanaImagineRender_SOURCES})
 IF(${HAVE_LIBTIFF} MATCHES 1)
 	ADD_DEFINITIONS(-DHAVE_TIFF_SUPPORT)
 ENDIF(${HAVE_LIBTIFF} MATCHES 1)
+
+IF(${KATANA_VERSION} MATCHES 2)
+	ADD_DEFINITIONS(-DKAT_V_2)
+ENDIF(${KATANA_VERSION} MATCHES 2)
 
 ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
 SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")

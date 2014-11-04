@@ -66,6 +66,7 @@
 			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and uses more memory, and doesn't support instancing or transform motion blur, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
 			<int name="specialise_assembly_types" default="1" widget="checkBox" help="Detect locations of assembly type and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly."/>
 			<int name="deduplicate_vertex_normals" default="1" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
+			<int name="use_geo_normals" default="1" widget="checkBox" help="Use normals from geo attributes"/>
 
 			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the Moller intersection algorithm, which calculates everything on-the-fly, requiring 4 bytes per triangle. Compact is on average 30-65% slower than Fast.">
 				<hintdict name='options'>
@@ -91,7 +92,13 @@
 		</page>
 
 		<page name='advanced' open="False">
-			<int name="print_statistics" default="1" widget="checkBox"/>
+			<int name="print_statistics" default="1" widget="mapper">
+				<hintdict name='options'>
+					<int name="None" value="0"/>
+					<int name="Normal" value="1"/>
+					<int name="Verbose" value="2"/>
+				</hintdict>
+			</int>
 			<int name="bucket_size" widget="mapper" default="48">
 				<hintdict name='options'>
 					<int name="16" value="16"/>
@@ -111,6 +118,24 @@
 					<int name="spiral" value="4"/>
 					<int name="horizontal spread" value="5"/>
 					<int name="hilbert" value="6"/>
+				</hintdict>
+			</int>
+		</page>
+
+		<page name='camera' open="False">
+			<int name="cam_projection_type" widget="mapper" default="0">
+				<hintdict name='options'>
+					<int name="perspective" value="0"/>
+					<int name="spherical" value="1"/>
+					<int name="orthographic" value="2"/>
+				</hintdict>
+			</int>
+			<float name="cam_focal_distance" default="16.0"/>
+			<float name="cam_aperture_size" default="0.0"/>
+			<int name="cam_aperture_type" widget="mapper" default="0">
+				<hintdict name='options'>
+					<int name="circle" value="0"/>
+					<int name="polygon (blades)" value="1"/>
 				</hintdict>
 			</int>
 		</page>

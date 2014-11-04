@@ -1,7 +1,11 @@
 #ifndef IMAGINE_RENDER_H
 #define IMAGINE_RENDER_H
 
+#ifdef KAT_V_2
+#include <FnRender/plugin/RenderBase.h>
+#else
 #include <Render/RenderBase.h>
+#endif
 
 #define ENABLE_PREVIEW_RENDERS 1
 
@@ -107,12 +111,13 @@ protected:
 
 	std::vector<int>			m_aInteractiveFrameIDs;
 	std::vector<std::string>	m_aInteractiveChannelNames;
+	std::vector<std::string>	m_aInteractiveChannelTypes;
 #endif
 
 	//
 	CreationSettings			m_creationSettings;
 
-	bool						m_printStatistics;
+	unsigned int				m_printStatistics;
 
 	bool						m_fastLiveRenders;
 

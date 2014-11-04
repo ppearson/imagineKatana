@@ -2,7 +2,12 @@
 
 #include <vector>
 
+#ifdef KAT_V_2
+#include <FnRendererInfo/plugin/RendererInfoBase.h>
+#else
 #include <RendererInfo/RendererInfoBase.h>
+#endif
+
 #include <FnAttribute/FnDataBuilder.h>
 
 #include "imagine_renderer_info.h"
@@ -72,7 +77,10 @@ bool RenderObjectInfoHelper::buildRenderOutput(const ImagineRendererInfo& iri, F
 	if (name == kFnRendererOutputTypeColor)
 	{
 		FnKat::StringBuilder outputChannelAttributeBuilder;
-		outputChannelAttributeBuilder.push_back("rgba");
+		outputChannelAttributeBuilder.push_back("z");
+		outputChannelAttributeBuilder.push_back("zN");
+		outputChannelAttributeBuilder.push_back("wpp");
+		outputChannelAttributeBuilder.push_back("n");
 
 		EnumPairVector enums;
 		FnKat::StringBuilder channelAttributeBuilder;

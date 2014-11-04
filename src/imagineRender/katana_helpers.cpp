@@ -5,7 +5,13 @@
 #include <set>
 
 #include <FnAttribute/FnGroupBuilder.h>
+
+#ifdef KAT_V_2
+#include <FnRenderOutputUtils/FnRenderOutputUtils.h>
+#include <FnGeolibServices/FnXFormUtil.h>
+#else
 #include <RenderOutputUtils/RenderOutputUtils.h>
+#endif
 
 KatanaHelpers::KatanaHelpers()
 {
@@ -57,8 +63,35 @@ FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(FnKat::FnScenegraphI
 	return gb.build();
 }
 
+Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(FnKat::GroupAttribute xformAttr)
+{
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
+
+#ifdef KAT_V_2
+	std::pair<FnAttribute::DoubleAttribute, bool> res = Foundry::Katana::FnXFormUtil::CalcTransformMatrixAtTime(xformAttr, 0.0f);
+
+	FnKat::RenderOutputUtils::XFormMatrix matrix(res.first.getNearestSample(0.0f).data());
+	xforms.push_back(matrix);
+#else
+	std::vector<float> relevantSampleTimes;
+	relevantSampleTimes.push_back(0.0f);
+
+	bool isAbsolute = false;
+	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
+												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
+#endif
+
+	return xforms;
+}
+
 Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(FnKat::FnScenegraphIterator iterator)
 {
+#ifdef KAT_V_2
+	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
+
+	return getXFormMatrixStatic(xformAttr);
+
+#else
 	FnKat::GroupAttribute xformAttr;
 	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
@@ -72,11 +105,16 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
 
 	return xforms;
+#endif
 }
 
 Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
 																					  bool clampWithinShutter, float shutterOpen, float shutterClose)
 {
+#ifdef KAT_V_2
+
+
+#else
 	FnKat::GroupAttribute xformAttr;
 	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
 
@@ -112,6 +150,7 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
 
 	return xforms;
+#endif
 }
 
 
