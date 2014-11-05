@@ -477,6 +477,8 @@ bool ImagineRender::configureRenderOutputs(Foundry::Katana::Render::RenderSettin
 		{
 			// main primary / beauty pass
 			m_diskRenderOutputPath = renderOutput.renderLocation;
+
+			m_diskRenderConvertFromLinear = renderOutput.colorConvert;
 		}
 		else if (outputName == "z")
 		{
@@ -902,7 +904,17 @@ void ImagineRender::startDiskRenderer()
 	m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
 
 	renderImage.normaliseProgressive();
-	renderImage.applyExposure(1.1f);
+
+	if (m_diskRenderConvertFromLinear)
+	{
+		// this doesn't really make sense as we're writing to .exr which should be in linear anyway, but doing this
+		// matches other renderers...
+		renderImage.applyExposure(2.2f);
+	}
+	else
+	{
+		renderImage.applyExposure(1.1f);
+	}
 
 	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
 

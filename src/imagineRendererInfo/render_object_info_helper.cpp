@@ -77,14 +77,17 @@ bool RenderObjectInfoHelper::buildRenderOutput(const ImagineRendererInfo& iri, F
 	if (name == kFnRendererOutputTypeColor)
 	{
 		FnKat::StringBuilder outputChannelAttributeBuilder;
+		outputChannelAttributeBuilder.push_back("primary");
 		outputChannelAttributeBuilder.push_back("z");
-		outputChannelAttributeBuilder.push_back("zN");
+		outputChannelAttributeBuilder.push_back("zn");
 		outputChannelAttributeBuilder.push_back("wpp");
 		outputChannelAttributeBuilder.push_back("n");
+		outputChannelAttributeBuilder.push_back("deep");
 
 		EnumPairVector enums;
 		FnKat::StringBuilder channelAttributeBuilder;
 		channelAttributeBuilder.push_back("rgba");
+		channelAttributeBuilder.push_back("rgb");
 		FnKat::GroupBuilder channelGroupBuilder;
 		channelGroupBuilder.set("widget", FnKat::StringAttribute("popup"));
 		channelGroupBuilder.set("options", outputChannelAttributeBuilder.build());

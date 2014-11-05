@@ -98,6 +98,7 @@ protected:
 	std::string					m_renderCameraLocation;
 
 	std::string					m_diskRenderOutputPath;
+	bool						m_diskRenderConvertFromLinear;
 
 	//
 	std::string					m_katanaHost;
