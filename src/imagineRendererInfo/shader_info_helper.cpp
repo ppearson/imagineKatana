@@ -258,7 +258,7 @@ void ShaderInfoHelper::buildMetallicPaintShaderParams(const ImagineRendererInfo&
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("colour", Col3f(0.29f, 0.016f, 0.19f));
+	helper.addColourParam("colour", Col3f(0.29f, 0.016f, 0.019f));
 	helper.addColourParam("flake_colour", Col3f(0.39, 0.016f, 0.19f));
 	helper.addFloatSliderParam("flake_spread", 0.32f);
 	helper.addFloatSliderParam("flake_mix", 0.38f);

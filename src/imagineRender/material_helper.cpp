@@ -399,7 +399,7 @@ Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribut
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
-	Colour3f colour = ah.getColourParam("colour", Colour3f(0.29f, 0.016f, 0.19f));
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.29f, 0.016f, 0.019f));
 	pNewMaterial->setColour(colour);
 
 	Colour3f flakeColour = ah.getColourParam("flake_colour", Colour3f(0.39, 0.016f, 0.19f));
