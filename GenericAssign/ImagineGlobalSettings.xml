@@ -74,6 +74,12 @@
 					<int name="Compact" value="1"/>
 				</hintdict>
 			</int>
+			<int name="geometry_quantisation_type" widget="mapper" default="0">
+				<hintdict name='options'>
+					<int name="None" value="0"/>
+					<int name="Full" value="1"/>
+				</hintdict>
+			</int>
 			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets">
 				<hintdict name='options'>
 					<int name="Triangle Packets" value="0"/>

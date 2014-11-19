@@ -136,10 +136,23 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		return;
 	}
 
+	unsigned int customFlags = 0;
+
 	if (m_creationSettings.m_triangleType == 1)
 	{
-		pNewGeoInstance->setCustomFlags(1);
+		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_COMPACT;
 	}
+	else
+	{
+		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_FAST;
+	}
+
+	if (m_creationSettings.m_geoQuantisationType == 1)
+	{
+		customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE;
+	}
+
+	pNewGeoInstance->setCustomFlags(customFlags);
 
 	CompactMesh* pNewMeshObject = new CompactMesh();
 

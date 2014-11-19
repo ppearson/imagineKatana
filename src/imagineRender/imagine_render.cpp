@@ -361,6 +361,13 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_creationSettings.m_triangleType = triangleTypeAttribute.getValue(0, false);
 	}
 
+	FnKat::IntAttribute geoQuantisationTypeAttribute = imagineGSAttribute.getChildByName("geometry_quantisation_type");
+	m_creationSettings.m_geoQuantisationType = 0;
+	if (geoQuantisationTypeAttribute.isValid())
+	{
+		m_creationSettings.m_geoQuantisationType = geoQuantisationTypeAttribute.getValue(0, false);
+	}
+
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = imagineGSAttribute.getChildByName("bake_down_scene");
 	unsigned int bakeDownScene = 0;
