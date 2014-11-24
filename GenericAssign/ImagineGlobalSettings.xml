@@ -77,7 +77,8 @@
 			<int name="geometry_quantisation_type" widget="mapper" default="0">
 				<hintdict name='options'>
 					<int name="None" value="0"/>
-					<int name="Full" value="1"/>
+					<int name="Standard normal" value="1"/>
+					<int name="Standard normal, standard UV" value="2"/>
 				</hintdict>
 			</int>
 			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets">

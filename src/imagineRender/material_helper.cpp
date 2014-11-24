@@ -90,7 +90,7 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	// if we don't have them, the material must have default settings, so just create the default material
 	// of that type
 
-	std::string shaderName = shaderNameAttr.getValue(shaderName, false);
+	std::string shaderName = shaderNameAttr.getValue("", false);
 
 	// see if we've got any Bump or Alpha materials - this isn't great doing it this way,
 	// as Imagine's versions are (possibly wrongly) part of the below shader types, but it's the only way

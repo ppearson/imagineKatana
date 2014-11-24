@@ -147,9 +147,17 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_FAST;
 	}
 
-	if (m_creationSettings.m_geoQuantisationType == 1)
+	if (m_creationSettings.m_geoQuantisationType != 0)
 	{
-		customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE;
+		if (m_creationSettings.m_geoQuantisationType == 2)
+		{
+			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
+			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_UV_STANDARD;
+		}
+		else if (m_creationSettings.m_geoQuantisationType == 1)
+		{
+			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
+		}
 	}
 
 	pNewGeoInstance->setCustomFlags(customFlags);
