@@ -1083,8 +1083,11 @@ void ImagineRender::renderFinished()
 
 		fprintf(stderr, "Total source Geo memory size: %s\n", totalSourceGeoSize.c_str());
 		fprintf(stderr, "Unique source Geo memory size: %s\n", uniqueSourceGeoSize.c_str());
-		fprintf(stderr, "Total triangle count: %u, total triangles memory size: %s\n", info.getTotalTrianglesCount(), totalTrianglesSize.c_str());
-		fprintf(stderr, "Unique triangle count: %u, unique triangles memory size: %s\n", info.getUniqueTrianglesCount(), uniqueTrianglesSize.c_str());
+
+		std::string totalTrianglesCount = formatNumberThousandsSeparator(info.getTotalTrianglesCount());
+		std::string uniqueTrianglesCount = formatNumberThousandsSeparator(info.getUniqueTrianglesCount());
+		fprintf(stderr, "Total triangle count: %s, total triangles memory size: %s\n", totalTrianglesCount.c_str(), totalTrianglesSize.c_str());
+		fprintf(stderr, "Unique triangle count: %s, unique triangles memory size: %s\n", uniqueTrianglesCount.c_str(), uniqueTrianglesSize.c_str());
 		fprintf(stderr, "Total triangle indices memory size: %s\n", totalTriangleIndicesSize.c_str());
 		fprintf(stderr, "Unique triangle indices memory size: %s\n", uniqueTriangleIndicesSize.c_str());
 		fprintf(stderr, "Total other memory size: %s\n", otherSize.c_str());

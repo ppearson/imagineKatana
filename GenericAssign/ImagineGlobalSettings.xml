@@ -74,14 +74,14 @@
 					<int name="Compact" value="1"/>
 				</hintdict>
 			</int>
-			<int name="geometry_quantisation_type" widget="mapper" default="0">
+			<int name="geometry_quantisation_type" widget="mapper" default="0" help="Geometry compression. Standard normal compresses 96-bit float normals to 32-bit normals. Standard UV compresses UV coords to a limited range of -10.0 - 10.0, but at constant accuracy across that range.">
 				<hintdict name='options'>
 					<int name="None" value="0"/>
 					<int name="Standard normal" value="1"/>
 					<int name="Standard normal, standard UV" value="2"/>
 				</hintdict>
 			</int>
-			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets">
+			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets is fastest, but uses most memory. Fast uses 48-byte trianges, compact uses 4/0 bytes per triangle depending on properties/attributes of shapes.">
 				<hintdict name='options'>
 					<int name="Triangle Packets" value="0"/>
 					<int name="Fast" value="1"/>
