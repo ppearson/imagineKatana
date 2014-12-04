@@ -419,6 +419,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (bucketSizeAttribute.isValid())
 		bucketSize = bucketSizeAttribute.getValue(48, false);
 
+	FnKat::IntAttribute deterministicSamplesAttribute = imagineGSAttribute.getChildByName("deterministic_samples");
+	bool deterministicSamples = false;
+	if (deterministicSamplesAttribute.isValid())
+		deterministicSamples = deterministicSamplesAttribute.getValue(0, false) == 1;
+
 	m_renderSettings.add("integrator", integratorType);
 	m_renderSettings.add("useMIS", (bool)useMIS);
 
@@ -447,6 +452,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	m_renderSettings.add("tile_order", bucketOrder);
 	m_renderSettings.add("tile_size", bucketSize);
+	m_renderSettings.add("deterministicSamples", deterministicSamples);;
 
 	if (sceneAccelStructure == 1)
 	{

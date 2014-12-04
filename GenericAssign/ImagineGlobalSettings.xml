@@ -127,6 +127,7 @@
 					<int name="hilbert" value="6"/>
 				</hintdict>
 			</int>
+			<int name="deterministic_samples" default="0" widget="checkBox" />
 		</page>
 
 		<page name='camera' open="False">
