@@ -60,7 +60,7 @@ bool RenderObjectInfoHelper::buildOutputChannel(const ImagineRendererInfo& iri, 
 																		  driverAttributeBuilder.build(), driverGroupBuilder.build(), enums);
 
 	FnKat::StringBuilder channelAttributeBuilder;
-	channelAttributeBuilder.push_back("RGBA");
+	channelAttributeBuilder.push_back("rgba");
 	FnKat::GroupBuilder channelGroupBuilder;
 
 	iri.localAddRenderObjectParam(rendererObjectInfo, "channel", kFnRendererObjectValueTypeString, 0, channelAttributeBuilder.build(),
@@ -77,12 +77,15 @@ bool RenderObjectInfoHelper::buildRenderOutput(const ImagineRendererInfo& iri, F
 	if (name == kFnRendererOutputTypeColor)
 	{
 		FnKat::StringBuilder outputChannelAttributeBuilder;
-		outputChannelAttributeBuilder.push_back("primary");
+/*		outputChannelAttributeBuilder.push_back("primary");
 		outputChannelAttributeBuilder.push_back("z");
 		outputChannelAttributeBuilder.push_back("zn");
 		outputChannelAttributeBuilder.push_back("wpp");
 		outputChannelAttributeBuilder.push_back("n");
 		outputChannelAttributeBuilder.push_back("deep");
+*/
+		outputChannelAttributeBuilder.push_back("rgba");
+		outputChannelAttributeBuilder.push_back("rgb");
 
 		EnumPairVector enums;
 		FnKat::StringBuilder channelAttributeBuilder;

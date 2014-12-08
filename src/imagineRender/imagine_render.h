@@ -70,7 +70,7 @@ protected:
 
 	bool configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender);
 	bool configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender);
-	bool configureRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	bool configureDiskRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
 	void buildCamera(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator cameraIterator);
 	void buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
@@ -108,11 +108,11 @@ protected:
 	OutputImage*				m_pOutputImage;
 	FnKat::KatanaPipe*			m_pDataPipe;
 	FnKat::NewFrameMessage*		m_pFrame;
-	FnKat::NewChannelMessage*	m_pChannel;
+	FnKat::NewChannelMessage*	m_pPrimaryChannel;
 
 	std::vector<int>			m_aInteractiveFrameIDs;
 	std::vector<std::string>	m_aInteractiveChannelNames;
-	std::vector<std::string>	m_aInteractiveChannelTypes;
+	std::vector<std::string>	m_aExtraInteractiveChannelTypes;
 #endif
 
 	//

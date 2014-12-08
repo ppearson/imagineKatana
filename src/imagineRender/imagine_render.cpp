@@ -41,7 +41,7 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 	m_pOutputImage = NULL;
 	m_pDataPipe = NULL;
 	m_pFrame = NULL;
-	m_pChannel = NULL;
+	m_pPrimaryChannel = NULL;
 #endif
 
 	m_pRaytracer = NULL;
@@ -94,7 +94,7 @@ int ImagineRender::start()
 
 	if (renderMethodName == FnKat::RendererInfo::DiskRenderMethod::kDefaultName)
 	{
-		if (!configureRenderOutputs(renderSettings, rootIterator))
+		if (!configureDiskRenderOutputs(renderSettings, rootIterator))
 		{
 			fprintf(stderr, "Error: Can't find any valid Render Outputs for Disk Render...\n");
 			return -1;
@@ -468,7 +468,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	return true;
 }
 
-bool ImagineRender::configureRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+bool ImagineRender::configureDiskRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
 	// for the moment, just use the first "color" type as the main primary AOV
 	FnKatRender::RenderSettings::RenderOutputs outputs = settings.getRenderOutputs();
@@ -476,7 +476,8 @@ bool ImagineRender::configureRenderOutputs(Foundry::Katana::Render::RenderSettin
 	if (outputs.empty())
 		return false;
 
-	// TODO: this assumes that all outputs are to the same file for the moment, which won't necessarily be the case...
+	// TODO: this assumes that all outputs are to the same file for the moment, which won't necessarily be the case,
+	//		 so this only works with merged RenderOutputDefines...
 
 	std::vector<std::string> renderOutputNames = settings.getRenderOutputNames();
 	std::vector<std::string>::const_iterator it = renderOutputNames.begin();
@@ -771,6 +772,9 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	// call, leaving renderBoot orphaned doing the render in the background...
 	m_katanaPort += 100;
 
+	// customise channels we're going to do from settings...
+	bool doExtaChannels = true;
+
 	//
 #if ENABLE_PREVIEW_RENDERS
 	FnKat::Render::RenderSettings::ChannelBuffers interactiveRenderBuffers;
@@ -788,12 +792,15 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		m_aInteractiveFrameIDs.push_back(frameID);
 
 		std::string channelType = buffer.channelName;
-		m_aInteractiveChannelTypes.push_back(channelType);
 
-//		fprintf(stderr, "Buffers: %s: %i, %s\n", channelName.c_str(), frameID, m_channelType.c_str());
+		// TODO: detect extra AOVs...
+
+		m_aExtraInteractiveChannelTypes.push_back(channelType);
+
+//		fprintf(stderr, "Buffers: %s: %i, %s\n", channelName.c_str(), frameID, channelType.c_str());
 	}
 
-	if (m_aInteractiveFrameIDs.empty() || m_aInteractiveChannelNames.empty())
+	if (m_aInteractiveFrameIDs.empty())
 	{
 		fprintf(stderr, "Error: no channel buffers specified for interactive rendering...\n");
 		return false;
@@ -849,24 +856,35 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 	m_pDataPipe->send(*m_pFrame);
 
-	if (m_pChannel)
+	// build up channels we're going to do - always do the primary
+
+	if (m_pPrimaryChannel)
 	{
-		delete m_pChannel;
-		m_pChannel = NULL;
+		delete m_pPrimaryChannel;
+		m_pPrimaryChannel = NULL;
 	}
 
 	int channelID = 0;
-	m_pChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
+	m_pPrimaryChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
 
 	std::string channelName;
 	FnKat::encodeLegacyName(fFrameName, localFrameID, channelName);
-	m_pChannel->setChannelName(channelName);
+	m_pPrimaryChannel->setChannelName(channelName);
 
 	// total size of a pixel for a single channel (RGBA * float) = 16
 	// this is used by Katana to work out how many Channels there are in the image...
-	m_pChannel->setDataSize(sizeof(float) * 4);
+	m_pPrimaryChannel->setDataSize(sizeof(float) * 4);
 
-	m_pDataPipe->send(*m_pChannel);
+	m_pDataPipe->send(*m_pPrimaryChannel);
+
+	// now do any extra AOVs...
+	unsigned int extraAOVsToDo = ImageWriter::NORMALS;
+	extraAOVsToDo |= ImageWriter::WPP;
+
+	if (extraAOVsToDo)
+	{
+
+	}
 #endif
 
 	return true;
@@ -920,8 +938,8 @@ void ImagineRender::startDiskRenderer()
 
 	if (m_diskRenderConvertFromLinear)
 	{
-		// this doesn't really make sense as we're writing to .exr which should be in linear anyway, but doing this
-		// matches other renderers...
+		// TODO: this doesn't really make sense as we're writing to .exr which should be in linear anyway, but doing this
+		// matches other renderers... Need to fix this properly at some point, but should only affect light AOVs anyway...
 		renderImage.applyExposure(2.2f);
 	}
 	else
@@ -1007,7 +1025,7 @@ void ImagineRender::renderFinished()
 		imageCopy.normaliseProgressive();
 		imageCopy.applyExposure(1.1f);
 
-		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
+		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
 		pNewTileMessage->setStartCoordinates(0, 0);
 		pNewTileMessage->setDataDimensions(origWidth, origHeight);
 
@@ -1052,8 +1070,8 @@ void ImagineRender::renderFinished()
 
 		delete pNewTileMessage;
 
-		m_pDataPipe->flushPipe(*m_pChannel);
-		m_pDataPipe->closeChannel(*m_pChannel);
+		m_pDataPipe->flushPipe(*m_pPrimaryChannel);
+		m_pDataPipe->closeChannel(*m_pPrimaryChannel);
 	}
 #endif
 	fprintf(stderr, "Render complete.\n");
@@ -1337,7 +1355,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		imageCopy.normaliseProgressive();
 		imageCopy.applyExposure(1.1f);
 
-		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pChannel));
+		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
 
 		if (!pNewTileMessage)
 			return;

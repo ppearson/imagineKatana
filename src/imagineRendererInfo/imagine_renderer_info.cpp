@@ -70,7 +70,7 @@ std::string ImagineRendererInfo::getRendererObjectDefaultType(const std::string&
 	}
 	else if (type == kFnRendererObjectTypeRenderOutput)
 	{
-		return "color";
+		return kFnRendererOutputTypeColor;
 	}
 
 	return "";
