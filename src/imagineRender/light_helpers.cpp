@@ -28,7 +28,7 @@ Light* LightHelpers::createLight(const FnKat::GroupAttribute& lightMaterialAttr)
 
 	Light* pNewLight = NULL;
 
-	std::string shaderName = shaderNameAttr.getValue(shaderName, false);
+	std::string shaderName = shaderNameAttr.getValue("", false);
 
 	if (shaderName == "Point")
 	{

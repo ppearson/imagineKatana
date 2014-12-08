@@ -2,7 +2,7 @@
 	<group name='imagineStatements' hideTitle='True' closed='False'>
 		<page name="geometry">
 			<float name="crease_angle" default="0.8"/>
-			<int name="subdiv_levels" default="2"/>
+			<int name="subdiv_levels" default="1"/>
 		</page>
 
 

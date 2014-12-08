@@ -130,7 +130,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	//       to have to check here if there are any children of type faceset/polymesh below this iterator. If so, we'd
 	//       need to ignore this location and just process the children.
 
-	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD);
+	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD, imagineStatements);
 	if (!pNewGeoInstance)
 	{
 		return;
@@ -194,7 +194,8 @@ void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator, 
 	m_scene.addObject(pCO, false, false);
 }
 
-CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD)
+CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
+																						const FnKat::GroupAttribute& imagineStatements)
 {
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
 	if (!geometryAttribute.isValid())
@@ -293,6 +294,18 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	if (asSubD)
 	{
 		geoBuildFlags |= GeometryInstance::GEO_BUILD_SUBDIVIDE;
+
+		if (imagineStatements.isValid())
+		{
+			FnKat::IntAttribute subDivLevelsAttribute = imagineStatements.getChildByName("subdiv_levels");
+			if (subDivLevelsAttribute.isValid())
+			{
+				unsigned int numSubdivLevels = subDivLevelsAttribute.getValue(1, false);
+				pNewGeoInstance->setSubdivisionLevels(numSubdivLevels);
+			}
+		}
+
+		// TODO: pull in crease values...
 	}
 
 	// see if we've got any Normals....
@@ -550,7 +563,9 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			return;
 		}
 
-		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD);
+		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
+		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD, imagineStatements);
 
 		if (!pNewGeoInstance)
 		{
@@ -654,7 +669,9 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
 
-			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD);
+			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
+			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
 
 			InstanceInfo ii;
 			ii.m_compound = false;
