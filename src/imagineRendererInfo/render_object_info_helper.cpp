@@ -87,6 +87,12 @@ bool RenderObjectInfoHelper::buildRenderOutput(const ImagineRendererInfo& iri, F
 		outputChannelAttributeBuilder.push_back("rgba");
 		outputChannelAttributeBuilder.push_back("rgb");
 
+		// add other available AOVs - TODO: pull from globalSettings...
+		outputChannelAttributeBuilder.push_back("z");
+		outputChannelAttributeBuilder.push_back("zn");
+		outputChannelAttributeBuilder.push_back("wpp");
+		outputChannelAttributeBuilder.push_back("n");
+
 		EnumPairVector enums;
 		FnKat::StringBuilder channelAttributeBuilder;
 		channelAttributeBuilder.push_back("rgba");
