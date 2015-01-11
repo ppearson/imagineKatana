@@ -224,6 +224,9 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	float reflection = ah.getFloatParam("reflection", 0.0f);
 	pNewStandardMaterial->setReflection(reflection);
 
+	float reflectionRoughness = ah.getFloatParam("reflection_roughness", 0.0f);
+	pNewStandardMaterial->setReflectionRoughness(reflectionRoughness);
+
 	float refractionIndex = ah.getFloatParam("refraction_index", 1.0f);
 
 	int fresnelEnabled = ah.getIntParam("fresnel", 0);
@@ -294,8 +297,8 @@ Material* MaterialHelper::createGlassMaterial(const FnKat::GroupAttribute& shade
 
 	float reflection = ah.getFloatParam("reflection", 1.0f);
 	pNewMaterial->setReflection(reflection);
-	float gloss = ah.getFloatParam("gloss", 1.0f);
-	pNewMaterial->setGloss(gloss);
+	float roughness = ah.getFloatParam("roughness", 0.0f);
+	pNewMaterial->setRoughness(roughness);
 	float transparency = ah.getFloatParam("transparency", 1.0f);
 	pNewMaterial->setTransparency(transparency);
 	float transmittance = ah.getFloatParam("transmittance", 1.0f);
@@ -446,6 +449,9 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.7f, 0.7f, 0.7f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
 
+	Colour3f specularColour = ah.getColourParam("specular_col", Colour3f(0.1f, 0.1f, 0.1f));
+	pNewMaterial->setSpecularColour(specularColour);
+
 	float surfaceRoughness = ah.getFloatParam("surface_roughness", 0.05f);
 	pNewMaterial->setSurfaceRoughness(surfaceRoughness);
 
@@ -456,7 +462,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
 	float samplingSensity = ah.getFloatParam("sampling_density", 0.35f);
 	pNewMaterial->setSamplingDensity(samplingSensity);
-	float transmittance = ah.getFloatParam("transmittance", 0.6f);
+	float transmittance = ah.getFloatParam("transmittance", 0.41f);
 	pNewMaterial->setTransmittance(transmittance);
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);

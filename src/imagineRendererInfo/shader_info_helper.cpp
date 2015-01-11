@@ -166,6 +166,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	helper.addFloatSliderParam("spec_roughness", 0.9f);
 
 	helper.addFloatSliderParam("reflection", 0.0f);
+	helper.addFloatSliderParam("reflection_roughness", 0.0f);
 
 	helper.addBoolParam("fresnel", false);
 	helper.addFloatSliderParam("fresnel_coef", 0.0f);
@@ -200,6 +201,7 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 	helper.addStringParam("spec_roughness_texture");
 
 	helper.addFloatSliderParam("reflection", 0.0f);
+	helper.addFloatSliderParam("reflection_roughness", 0.0f);
 
 	helper.addBoolParam("fresnel", false);
 	helper.addFloatSliderParam("fresnel_coef", 0.0f);
@@ -218,7 +220,7 @@ void ShaderInfoHelper::buildGlassShaderParams(const ImagineRendererInfo& iri, Fn
 
 	helper.addColourParam("colour", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addFloatSliderParam("reflection", 1.0f);
-	helper.addFloatSliderParam("gloss", 1.0f);
+	helper.addFloatSliderParam("roughness", 0.0f);
 	helper.addFloatSliderParam("transparency", 1.0f);
 	helper.addFloatSliderParam("transmittance", 1.0f);
 
@@ -275,11 +277,13 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addColourParam("surface_col", Col3f(0.7f, 0.7f, 0.7f));
 	helper.addFloatParam("surface_roughness", 0.05f);
 
+	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
+
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addFloatParam("subsurface_density", 3.1f);
 	helper.addFloatParam("sampling_density", 0.35f);
 
-	helper.addFloatSliderParam("transmittance", 0.6f);
+	helper.addFloatSliderParam("transmittance", 0.41f);
 
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 }
