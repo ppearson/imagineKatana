@@ -368,6 +368,13 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_creationSettings.m_geoQuantisationType = geoQuantisationTypeAttribute.getValue(0, false);
 	}
 
+	FnKat::IntAttribute specialisedTriangleTypeAttribute = imagineGSAttribute.getChildByName("specialised_triangle_type");
+	m_creationSettings.m_specialisedTriangleType = 0;
+	if (specialisedTriangleTypeAttribute.isValid())
+	{
+		m_creationSettings.m_specialisedTriangleType = specialisedTriangleTypeAttribute.getValue(0, false);
+	}
+
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = imagineGSAttribute.getChildByName("bake_down_scene");
 	unsigned int bakeDownScene = 0;
@@ -793,9 +800,20 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 		std::string channelType = buffer.channelName;
 
-		// TODO: detect extra AOVs...
+		// detect extra AOVs...
 
-		m_aExtraInteractiveChannelTypes.push_back(channelType);
+		if (doExtaChannels && channelName == "n")
+		{
+			channelType = "rgb";
+			m_aExtraInteractiveAOVs.push_back(RenderAOV(channelName, channelType, 3, frameID));
+			m_renderSettings.add("output_normals", true);
+			m_extraAOVsFlags |= COMPONENT_NORMAL;
+		}
+		else if (doExtaChannels && channelName == "wpp")
+		{
+			m_renderSettings.add("output_wpp", true);
+			m_extraAOVsFlags |= COMPONENT_WPP;
+		}
 
 //		fprintf(stderr, "Buffers: %s: %i, %s\n", channelName.c_str(), frameID, channelType.c_str());
 	}
@@ -878,12 +896,26 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	m_pDataPipe->send(*m_pPrimaryChannel);
 
 	// now do any extra AOVs...
-	unsigned int extraAOVsToDo = ImageWriter::NORMALS;
-	extraAOVsToDo |= ImageWriter::WPP;
 
-	if (extraAOVsToDo)
+	if (!m_aExtraInteractiveAOVs.empty())
 	{
+		std::vector<RenderAOV>::iterator itRenderAOV = m_aExtraInteractiveAOVs.begin();
+		for (; itRenderAOV != m_aExtraInteractiveAOVs.end(); ++itRenderAOV)
+		{
+			RenderAOV& rAOV = *itRenderAOV;
 
+			// should channelID be 0 again??
+			rAOV.pChannelMessage = new FnKat::NewChannelMessage(*m_pFrame, ++channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
+
+//			FnKat::encodeLegacyName(rAOV.name, localFrameID, channelName);
+			rAOV.pChannelMessage->setChannelName(channelName);
+
+			// total size of a pixel for a single channel (numchannels * float)
+			// this is used by Katana to work out how many channels there are in the image...
+			rAOV.pChannelMessage->setDataSize(sizeof(float) * rAOV.numChannels);
+
+			m_pDataPipe->send(*rAOV.pChannelMessage);
+		}
 	}
 #endif
 
@@ -956,6 +988,7 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 {
 #if ENABLE_PREVIEW_RENDERS
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
+	imageFlags |= m_extraAOVsFlags;
 
 	if (!m_ROIActive)
 	{
@@ -1417,6 +1450,74 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		pData = NULL;
 
 		delete pNewTileMessage;
+
+		// now do any extra AOVS
+
+		std::vector<RenderAOV>::iterator itRenderAOV = m_aExtraInteractiveAOVs.begin();
+		for (; itRenderAOV != m_aExtraInteractiveAOVs.end(); ++itRenderAOV)
+		{
+			RenderAOV& rAOV = *itRenderAOV;
+
+			pNewTileMessage = new FnKat::DataMessage(*(rAOV.pChannelMessage));
+
+			if (!pNewTileMessage)
+				continue;
+
+			if (m_ROIActive)
+			{
+				// if ROI rendering is enabled, we annoyingly seem to have to handle offsetting this into the full
+				// image format for Katana...
+	//			pNewTileMessage->setStartCoordinates(x + m_ROIStartX, y + m_ROIStartY);
+				pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
+			}
+			else
+			{
+				pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
+			}
+			pNewTileMessage->setDataDimensions(width, height);
+
+			unsigned int skipSize = rAOV.numChannels * sizeof(float);
+			unsigned int dataSize = width * height * skipSize;
+			unsigned char* pData = new unsigned char[dataSize];
+
+			unsigned char* pDstRow = pData;
+
+			//
+			x = 0;
+			y = 0;
+
+			for (unsigned int i = 0; i < height; i++)
+			{
+				const Colour3f* pSrcRow = imageCopy.normalRowPtr(y + i);
+				const Colour3f* pSrcPixel = pSrcRow + x;
+
+				unsigned char* pDstPixel = pDstRow;
+
+				for (unsigned int j = 0; j < width; j++)
+				{
+					memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
+					pDstPixel += sizeof(float);
+					memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
+					pDstPixel += sizeof(float);
+					memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
+					pDstPixel += sizeof(float);
+
+					pSrcPixel += 1;
+				}
+
+				pDstRow += width * skipSize;
+			}
+
+			pNewTileMessage->setData(pData, dataSize);
+			pNewTileMessage->setByteSkip(skipSize);
+
+			m_pDataPipe->send(*pNewTileMessage);
+
+			delete [] pData;
+			pData = NULL;
+
+			delete pNewTileMessage;
+		}
 	}
 #endif
 }

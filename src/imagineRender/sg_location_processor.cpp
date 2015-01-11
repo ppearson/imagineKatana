@@ -529,6 +529,9 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 
 	pNewCO->setType(CompoundObject::eBaked);
 
+	unsigned char bakedFlags = m_creationSettings.m_specialisedTriangleType;
+	pNewCO->setBakedFlags(bakedFlags);
+
 	processVisibilityAttributes(imagineStatements, pNewCO);
 
 	return pNewCO;

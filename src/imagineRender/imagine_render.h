@@ -29,6 +29,26 @@ class ImagineRender : public Foundry::Katana::Render::RenderBase, RaytracerHost
 public:
 	ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments);
 
+	struct RenderAOV
+	{
+		RenderAOV() : pChannelMessage(NULL), pFrameMessage(NULL)
+		{
+		}
+
+		RenderAOV(const std::string& nm, const std::string& tp, unsigned int nc, int fid) : name(nm), type(tp), numChannels(nc),
+			frameID(fid), pChannelMessage(NULL), pFrameMessage(NULL)
+		{
+		}
+
+		std::string			name;
+		std::string			type;
+		unsigned int		numChannels;
+		int					frameID;
+
+		FnKat::NewFrameMessage*		pFrameMessage;
+		FnKat::NewChannelMessage*	pChannelMessage;
+	};
+
 	virtual int start();
 	virtual int stop();
 
@@ -112,7 +132,7 @@ protected:
 
 	std::vector<int>			m_aInteractiveFrameIDs;
 	std::vector<std::string>	m_aInteractiveChannelNames;
-	std::vector<std::string>	m_aExtraInteractiveChannelTypes;
+	std::vector<RenderAOV>		m_aExtraInteractiveAOVs;
 #endif
 
 	//
