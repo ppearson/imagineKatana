@@ -214,33 +214,64 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	// linear list of components of Vec3 points
 	FnKat::FloatAttribute pAttr = pointAttribute.getChildByName("P");
 
-	FnKat::FloatConstVector sampleData = pAttr.getNearestSample(0.0f);
+	if (!m_creationSettings.m_motionBlur || pAttr.getSampleTimes().size() <= 1)
+	{
+		FnKat::FloatConstVector sampleData = pAttr.getNearestSample(0.0f);
 
-	unsigned int numItems = sampleData.size();
+		unsigned int numItems = sampleData.size();
 
 #if FAST
-	aPoints.resize(numItems / 3);
-	// convert to Point items
-	unsigned int pointCount = 0;
-	for (unsigned int i = 0; i < numItems; i += 3)
-	{
-		Point& point = aPoints[pointCount++];
-		point.x = sampleData[i];
-		point.y = sampleData[i + 1];
-		point.z = sampleData[i + 2];
-	}
+		aPoints.resize(numItems / 3);
+		// convert to Point items
+		unsigned int pointCount = 0;
+		for (unsigned int i = 0; i < numItems; i += 3)
+		{
+			Point& point = aPoints[pointCount++];
+			point.x = sampleData[i];
+			point.y = sampleData[i + 1];
+			point.z = sampleData[i + 2];
+		}
 #else
-	aPoints.reserve(numItems / 3);
-	// convert to Point items
-	for (unsigned int i = 0; i < numItems; i += 3)
-	{
-		float x = sampleData[i];
-		float y = sampleData[i + 1];
-		float z = sampleData[i + 2];
+		aPoints.reserve(numItems / 3);
+		// convert to Point items
+		for (unsigned int i = 0; i < numItems; i += 3)
+		{
+			float x = sampleData[i];
+			float y = sampleData[i + 1];
+			float z = sampleData[i + 2];
 
-		aPoints.push_back(Point(x, y, z));
-	}
+			aPoints.push_back(Point(x, y, z));
+		}
 #endif
+	}
+	else
+	{
+		FnKat::FloatConstVector sampleData0 = pAttr.getNearestSample(0.0f);
+		FnKat::FloatConstVector sampleData1 = pAttr.getNearestSample(1.0f);
+
+		unsigned int numItems = sampleData0.size();
+
+		aPoints.reserve((numItems / 3) * 2);
+		// convert to Point items
+		for (unsigned int i = 0; i < numItems; i += 3)
+		{
+			float x = sampleData0[i];
+			float y = sampleData0[i + 1];
+			float z = sampleData0[i + 2];
+
+			aPoints.push_back(Point(x, y, z));
+
+			// second sample
+
+			x = sampleData1[i];
+			y = sampleData1[i + 1];
+			z = sampleData1[i + 2];
+
+			aPoints.push_back(Point(x, y, z));
+		}
+
+		pNewGeoInstance->setTimeSamples(2);
+	}
 
 	// work out the faces...
 	FnKat::GroupAttribute polyAttribute = geometryAttribute.getChildByName("poly");
@@ -312,38 +343,44 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::FloatAttribute normalsAttribute = iterator.getAttribute("geometry.vertex.N");
 	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid())
 	{
-		FnKat::FloatConstVector normalsData = normalsAttribute.getNearestSample(0.0f);
+		if (!m_creationSettings.m_motionBlur)
+		{
+			FnKat::FloatConstVector normalsData = normalsAttribute.getNearestSample(0.0f);
 
-		unsigned int numItems = normalsData.size();
+			unsigned int numItems = normalsData.size();
 
-		std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
-
+			std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
 #if FAST
-		aNormals.resize(numItems / 3);
-		// convert to Normal items
-		unsigned int normalCount = 0;
-		for (unsigned int i = 0; i < numItems; i += 3)
-		{
-			Normal& normal = aNormals[normalCount++];
+			aNormals.resize(numItems / 3);
+			// convert to Normal items
+			unsigned int normalCount = 0;
+			for (unsigned int i = 0; i < numItems; i += 3)
+			{
+				Normal& normal = aNormals[normalCount++];
 
-			// need to reverse the normals as the winding order is opposite
-			normal.x = -normalsData[i];
-			normal.y = -normalsData[i + 1];
-			normal.z = -normalsData[i + 2];
-		}
+				// need to reverse the normals as the winding order is opposite
+				normal.x = -normalsData[i];
+				normal.y = -normalsData[i + 1];
+				normal.z = -normalsData[i + 2];
+			}
 #else
-		aNormals.reserve(numItems / 3);
-		// convert to Normal items
-		for (unsigned int i = 0; i < numItems; i += 3)
-		{
-			float x = normalsData[i];
-			float y = normalsData[i + 1];
-			float z = normalsData[i + 2];
+			aNormals.reserve(numItems / 3);
+			// convert to Normal items
+			for (unsigned int i = 0; i < numItems; i += 3)
+			{
+				float x = normalsData[i];
+				float y = normalsData[i + 1];
+				float z = normalsData[i + 2];
 
-			// we need to reverse the normals as the winding order is opposite...
-			aNormals.push_back(-Normal(x, y, z));
-		}
+				// we need to reverse the normals as the winding order is opposite...
+				aNormals.push_back(-Normal(x, y, z));
+			}
 #endif
+		}
+		else
+		{
+
+		}
 	}
 	else
 	{

@@ -142,6 +142,8 @@ protected:
 
 	bool						m_fastLiveRenders;
 
+	bool						m_motionBlur;
+
 	float						m_shutterOpen;
 	float						m_shutterClose;
 

@@ -34,8 +34,8 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printStatistics(0),
-	m_ROIActive(false), m_fastLiveRenders(false)
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printStatistics(0), m_fastLiveRenders(false), m_motionBlur(false),
+	m_ROIActive(false)
 {
 #if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
@@ -342,6 +342,13 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	m_renderSettings.add("depthOfField", (depthOfField == 1)); // needs to be bool
 
+	FnKat::IntAttribute motionBlurAttribute = imagineGSAttribute.getChildByName("motion_blur");
+	unsigned int motionBlur = 0;
+	if (motionBlurAttribute.isValid())
+		motionBlur = motionBlurAttribute.getValue(0, false);
+
+	m_creationSettings.m_motionBlur = (motionBlur == 1);
+	m_renderSettings.add("motionBlur", m_creationSettings.m_motionBlur); // needs to be bool
 
 	FnKat::IntAttribute flipTAttribute = imagineGSAttribute.getChildByName("flip_t");
 	m_creationSettings.m_flipT = false;
@@ -382,9 +389,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		bakeDownScene = bakeDownSceneAttribute.getValue(0, false);
 
 	FnKat::IntAttribute deduplicateVertexNormalsAttribute = imagineGSAttribute.getChildByName("deduplicate_vertex_normals");
-	m_creationSettings.m_deduplicateVertexNormals = true;
+	m_creationSettings.m_deduplicateVertexNormals = false;
 	if (deduplicateVertexNormalsAttribute.isValid())
-		m_creationSettings.m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(1, false) == 1);
+		m_creationSettings.m_deduplicateVertexNormals = (deduplicateVertexNormalsAttribute.getValue(0, false) == 1);
 
 	FnKat::IntAttribute useGeoAttrNormalsAttribute = imagineGSAttribute.getChildByName("use_geo_normals");
 	m_creationSettings.m_useGeoNormals = true;
@@ -756,6 +763,8 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 //	renderFinished();
 }
 
+#define SEND_ALL_FRAMES 1
+
 bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
 {
 	std::string katHost = getKatanaHost();
@@ -904,10 +913,22 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		{
 			RenderAOV& rAOV = *itRenderAOV;
 
-			// should channelID be 0 again??
+#if SEND_ALL_FRAMES
+			FnKat::NewFrameMessage* pLocalFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, originX, originY);
+
+			localFrameID = rAOV.frameID;
+
+			// set the name
+			std::string frameName;
+			FnKat::encodeLegacyName(fFrameName, localFrameID, frameName);
+			pLocalFrame->setFrameName(frameName);
+
+			m_pDataPipe->send(*pLocalFrame);
+#endif
+
 			rAOV.pChannelMessage = new FnKat::NewChannelMessage(*m_pFrame, ++channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
 
-//			FnKat::encodeLegacyName(rAOV.name, localFrameID, channelName);
+			FnKat::encodeLegacyName(rAOV.name, localFrameID, channelName);
 			rAOV.pChannelMessage->setChannelName(channelName);
 
 			// total size of a pixel for a single channel (numchannels * float)
