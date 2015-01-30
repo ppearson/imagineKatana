@@ -617,8 +617,17 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	}
 
 	// get some things from renderSettings
-	m_shutterOpen = settings.getShutterOpen();
-	m_shutterClose = settings.getShutterClose();
+	m_creationSettings.m_shutterOpen = settings.getShutterOpen();
+	m_creationSettings.m_shutterClose = settings.getShutterClose();
+
+	if (m_creationSettings.m_motionBlur)
+	{
+		float clampedShutterOpen = m_creationSettings.m_shutterOpen;
+		float clampedShutterClose = m_creationSettings.m_shutterClose;
+		clampedShutterOpen = clamp(clampedShutterOpen, 0.0f, clampedShutterOpen);
+		clampedShutterClose = clamp(clampedShutterClose, clampedShutterClose, 1.0f);
+		pRenderCamera->setRelativeShutterTimes(clampedShutterOpen, clampedShutterClose);
+	}
 
 	m_pScene->setDefaultCamera(pRenderCamera);
 }

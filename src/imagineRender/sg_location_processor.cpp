@@ -246,8 +246,10 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	}
 	else
 	{
-		FnKat::FloatConstVector sampleData0 = pAttr.getNearestSample(0.0f);
-		FnKat::FloatConstVector sampleData1 = pAttr.getNearestSample(1.0f);
+		std::vector<float> aSampleTimes;
+		KatanaHelpers::getRelevantSampleTimes(pAttr, aSampleTimes, m_creationSettings.m_shutterOpen, m_creationSettings.m_shutterClose);
+		FnKat::FloatConstVector sampleData0 = pAttr.getNearestSample(aSampleTimes[0]);
+		FnKat::FloatConstVector sampleData1 = pAttr.getNearestSample(aSampleTimes[1]);
 
 		unsigned int numItems = sampleData0.size();
 
@@ -341,9 +343,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 	// see if we've got any Normals....
 	FnKat::FloatAttribute normalsAttribute = iterator.getAttribute("geometry.vertex.N");
+	// TODO: don't do for SubD's? Shouldn't have them anyway, but...
 	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid())
 	{
-		if (!m_creationSettings.m_motionBlur)
+		// check if the points had more than one time sample...
+		if (!m_creationSettings.m_motionBlur || pNewGeoInstance->getTimeSamples() == 1)
 		{
 			FnKat::FloatConstVector normalsData = normalsAttribute.getNearestSample(0.0f);
 
@@ -379,7 +383,34 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		}
 		else
 		{
+			std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
 
+			std::vector<float> aSampleTimes;
+			KatanaHelpers::getRelevantSampleTimes(normalsAttribute, aSampleTimes, m_creationSettings.m_shutterOpen, m_creationSettings.m_shutterClose);
+
+			FnKat::FloatConstVector sampleData0 = normalsAttribute.getNearestSample(aSampleTimes[0]);
+			FnKat::FloatConstVector sampleData1 = normalsAttribute.getNearestSample(aSampleTimes[1]);
+
+			unsigned int numItems = sampleData0.size();
+
+			aNormals.reserve((numItems / 3) * 2);
+			// convert to Point items
+			for (unsigned int i = 0; i < numItems; i += 3)
+			{
+				float x = sampleData0[i];
+				float y = sampleData0[i + 1];
+				float z = sampleData0[i + 2];
+
+				aNormals.push_back(Normal(x, y, z));
+
+				// second sample
+
+				x = sampleData1[i];
+				y = sampleData1[i + 1];
+				z = sampleData1[i + 2];
+
+				aNormals.push_back(Normal(x, y, z));
+			}
 		}
 	}
 	else

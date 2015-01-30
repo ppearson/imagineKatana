@@ -28,6 +28,8 @@ public:
 	static Foundry::Katana::RenderOutputUtils::XFormMatrixVector getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
 																				  bool clampWithinShutter, float shutterOpen, float shutterClose);
 
+	static void getRelevantSampleTimes(FnKat::DataAttribute attribute, std::vector<float>& aSampleTimes, float shutterOpen, float shutterClose);
+
 };
 
 // helpers to easily get attributes with fallback defaults

@@ -144,9 +144,6 @@ protected:
 
 	bool						m_motionBlur;
 
-	float						m_shutterOpen;
-	float						m_shutterClose;
-
 	bool						m_ROIActive;
 	unsigned int				m_ROIStartX;
 	unsigned int				m_ROIStartY;
