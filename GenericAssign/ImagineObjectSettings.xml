@@ -1,7 +1,7 @@
 <args format='1.0' scope='/root/world//* /root/world'>
 	<group name='imagineStatements' hideTitle='True' closed='False'>
 		<page name="geometry">
-			<float name="crease_angle" default="0.8"/>
+			<float name="crease_angle" default="0.8" help="Limit angle to use when calculating smooth per-vertex normals for meshes. Adjacent faces with normals above this value (dot product of the two normals) will be averaged."/>
 			<int name="subdiv_levels" default="1"/>
 		</page>
 
