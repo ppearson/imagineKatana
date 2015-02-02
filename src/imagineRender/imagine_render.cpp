@@ -24,6 +24,7 @@
 #include "utils/memory.h"
 #include "utils/string_helpers.h"
 #include "utils/timer.h"
+#include "utils/system.h"
 
 #include "global_context.h"
 
@@ -45,6 +46,8 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 #endif
 
 	m_pRaytracer = NULL;
+
+	m_renderThreads = System::getNumberOfCores() - 1;
 
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -190,8 +193,6 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 		return false;
 	}
 
-	buildCamera(settings, cameraIterator);
-
 	FnKat::GroupAttribute renderSettingsAttribute = rootIterator.getAttribute("renderSettings");
 
 	FnKat::IntAttribute regionOfInterestAttribute = renderSettingsAttribute.getChildByName("ROI");
@@ -218,6 +219,9 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 	}
 
 	configureRenderSettings(settings, rootIterator, diskRender);
+
+	// build camera at the end (after motion blur settings have been loaded by above)
+	buildCamera(settings, cameraIterator);
 
 	return true;
 }
