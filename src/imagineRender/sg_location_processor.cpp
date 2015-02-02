@@ -249,7 +249,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		std::vector<float> aSampleTimes;
 		KatanaHelpers::getRelevantSampleTimes(pAttr, aSampleTimes, m_creationSettings.m_shutterOpen, m_creationSettings.m_shutterClose);
 		FnKat::FloatConstVector sampleData0 = pAttr.getNearestSample(aSampleTimes[0]);
-		FnKat::FloatConstVector sampleData1 = pAttr.getNearestSample(aSampleTimes[1]);
+		FnKat::FloatConstVector sampleData1 = pAttr.getNearestSample(aSampleTimes[aSampleTimes.size() - 1]);
 
 		unsigned int numItems = sampleData0.size();
 
@@ -389,7 +389,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			KatanaHelpers::getRelevantSampleTimes(normalsAttribute, aSampleTimes, m_creationSettings.m_shutterOpen, m_creationSettings.m_shutterClose);
 
 			FnKat::FloatConstVector sampleData0 = normalsAttribute.getNearestSample(aSampleTimes[0]);
-			FnKat::FloatConstVector sampleData1 = normalsAttribute.getNearestSample(aSampleTimes[1]);
+			FnKat::FloatConstVector sampleData1 = normalsAttribute.getNearestSample(aSampleTimes[aSampleTimes.size() - 1]);
 
 			unsigned int numItems = sampleData0.size();
 
@@ -568,6 +568,17 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		// on the basis that we're force-expanding everything currently anyway...
 
 		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_BBOX;
+	}
+
+	// object settings...
+	if (imagineStatements.isValid())
+	{
+		FnKat::FloatAttribute creaseAngleAttribute = imagineStatements.getChildByName("crease_angle");
+		if (creaseAngleAttribute.isValid())
+		{
+			float creaseAngle = creaseAngleAttribute.getValue(0.8f, false);
+			pNewGeoInstance->setCreaseAngle(creaseAngle);
+		}
 	}
 
 	geoBuildFlags |= GeometryInstance::GEO_BUILD_FREE_SOURCE_DATA;
