@@ -127,7 +127,14 @@
 					<int name="hilbert" value="6"/>
 				</hintdict>
 			</int>
-			<int name="deterministic_samples" default="0" widget="checkBox" />
+			<int name="deterministic_samples" default="1" widget="mapper">
+				<hintdict name='options'>
+					<int name="off" value="0"/>
+					<int name="frame deterministic" value="1"/>
+					<int name="full deterministic" value="2"/>
+				</hintdict>
+			</int>
+			<int name="debug_popup" default="0" widget="checkBox" help="Pops up xmessage box so debugger can be attached to renderboot."/>
 		</page>
 
 		<page name='camera' open="False">

@@ -155,11 +155,15 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 
 void KatanaHelpers::getRelevantSampleTimes(FnKat::DataAttribute attribute, std::vector<float>& aSampleTimes, float shutterOpen, float shutterClose)
 {
+#ifdef KAT_V_2
+
+#else
 	FnKat::FloatConstVector attributeSampleTimes = attribute.getSampleTimes();
 
 	std::set<float> sampleTimes(attributeSampleTimes.begin(), attributeSampleTimes.end());
 
 	FnKat::RenderOutputUtils::findSampleTimesRelevantToShutterRange(aSampleTimes, sampleTimes, shutterOpen, shutterClose);
+#endif
 }
 
 

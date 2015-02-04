@@ -143,6 +143,7 @@ protected:
 	bool						m_fastLiveRenders;
 
 	bool						m_motionBlur;
+	bool						m_frameDeterministic;
 
 	bool						m_ROIActive;
 	unsigned int				m_ROIStartX;

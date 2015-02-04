@@ -55,9 +55,16 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 
 int ImagineRender::start()
 {
-//	system("xmessage test1\n");
-
 	FnKat::FnScenegraphIterator rootIterator = getRootIterator();
+	FnKat::GroupAttribute imagineGSAttribute = rootIterator.getAttribute("imagineGlobalStatements");
+	if (imagineGSAttribute.isValid())
+	{
+		FnKat::IntAttribute useAdaptiveAttribute = imagineGSAttribute.getChildByName("debug_popup");
+		if (useAdaptiveAttribute.isValid() && useAdaptiveAttribute.getValue(0, false) == 1)
+		{
+			system("xmessage debug\n");
+		}
+	}
 
 	std::string renderMethodName = getRenderMethodName();
 
@@ -438,9 +445,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		bucketSize = bucketSizeAttribute.getValue(48, false);
 
 	FnKat::IntAttribute deterministicSamplesAttribute = imagineGSAttribute.getChildByName("deterministic_samples");
-	bool deterministicSamples = false;
+	int deterministicSamples = 1;
 	if (deterministicSamplesAttribute.isValid())
-		deterministicSamples = deterministicSamplesAttribute.getValue(0, false) == 1;
+		deterministicSamples = deterministicSamplesAttribute.getValue(1, false);
 
 	m_renderSettings.add("integrator", integratorType);
 	m_renderSettings.add("useMIS", (bool)useMIS);
@@ -470,7 +477,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	m_renderSettings.add("tile_order", bucketOrder);
 	m_renderSettings.add("tile_size", bucketSize);
-	m_renderSettings.add("deterministicSamples", deterministicSamples);;
+	m_renderSettings.add("deterministicSamples", deterministicSamples);
 
 	if (sceneAccelStructure == 1)
 	{

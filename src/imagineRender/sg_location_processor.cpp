@@ -397,19 +397,21 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			// convert to Point items
 			for (unsigned int i = 0; i < numItems; i += 3)
 			{
+				// first sample
 				float x = sampleData0[i];
 				float y = sampleData0[i + 1];
 				float z = sampleData0[i + 2];
 
-				aNormals.push_back(Normal(x, y, z));
+				// we need to reverse the normals as the winding order is opposite...
+				aNormals.push_back(-Normal(x, y, z));
 
 				// second sample
-
 				x = sampleData1[i];
 				y = sampleData1[i + 1];
 				z = sampleData1[i + 2];
 
-				aNormals.push_back(Normal(x, y, z));
+				// we need to reverse the normals as the winding order is opposite...
+				aNormals.push_back(-Normal(x, y, z));
 			}
 		}
 	}
@@ -556,11 +558,25 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
 	if (boundAttr.isValid())
 	{
-		FnKat::DoubleConstVector doubleValues = boundAttr.getNearestSample(0.0f);
-		BoundaryBox bbox;
-		bbox.getMinimum() = Vector(doubleValues.at(0), doubleValues.at(2), doubleValues.at(4));
-		bbox.getMaximum() = Vector(doubleValues.at(1), doubleValues.at(3), doubleValues.at(5));
-		pNewGeoInstance->setBoundaryBox(bbox);
+		if (!m_creationSettings.m_motionBlur || pNewGeoInstance->getTimeSamples() == 1)
+		{
+			BoundaryBox bbox;
+			FnKat::DoubleConstVector doubleValues = boundAttr.getNearestSample(0.0f);
+			bbox.getMinimum() = Vector(doubleValues.at(0), doubleValues.at(2), doubleValues.at(4));
+			bbox.getMaximum() = Vector(doubleValues.at(1), doubleValues.at(3), doubleValues.at(5));
+			pNewGeoInstance->setBoundaryBox(bbox);
+		}
+		else
+		{
+			// if we've got motion blur, we've got a bit of a problem: we could get multiple time samples
+			// for the bounds and union them, but for shutter angles clipped from the sample times, the
+			// bounds would be too big making renders potentially much slower. We could do this shutter
+			// angle interpolation/clamping work here (and it would be cheaper than getting Imagine to
+			// brute force the bounds based on the point positions), but for the moment it's easier to
+			// just get Imagine to do it, as at least we'll get tight accurate bboxes...
+
+			geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_BBOX;
+		}
 	}
 	else
 	{
