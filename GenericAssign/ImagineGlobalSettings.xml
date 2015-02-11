@@ -28,7 +28,7 @@
 			<int name="spp" default="64" help="The overall number of samples per pixel. Perfect square numbers (49, 64, 144) will give slightly better sample stratification."/>
 			<int name="iterations" default="1" help="The number of iteration passes to split the above samples into"/>
 
-			<int name="fast_live_renders" default="0" help="Use a smaller number of samples per pixel for live renders, making each iteration much faster."/>
+			<int name="fast_live_renders" default="0" widget="checkBox" help="Use a smaller number of samples per pixel for live renders, making each iteration much faster."/>
 
 			<int name="reconstruction_filter" widget="mapper" default="3">
 				<hintdict name='options'>

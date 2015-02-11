@@ -16,6 +16,7 @@ public:
 	Light* createPointLight(const FnKat::GroupAttribute& shaderParamsAttr);
 	Light* createSpotLight(const FnKat::GroupAttribute& shaderParamsAttr);
 	Light* createAreaLight(const FnKat::GroupAttribute& shaderParamsAttr);
+	Light* createDistantLight(const FnKat::GroupAttribute& shaderParamsAttr);
 
 	Light* createSkydomeLight(const FnKat::GroupAttribute& shaderParamsAttr);
 	Light* createEnvironmentLight(const FnKat::GroupAttribute& shaderParamsAttr);

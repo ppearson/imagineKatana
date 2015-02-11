@@ -67,7 +67,17 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 			return;
 		}
 	}
+/*
+	if (type[0] == 'i')
+	{
+		// excessive, but...
+		const std::string& firstInstancePart = type.substr(1, 7);
+		if (firstInstancePart == "nstance")
+		{
 
+		}
+	}
+*/
 	if (type == "instance")
 	{
 		processInstance(iterator);
@@ -82,12 +92,12 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		processAssembly(iterator, currentDepth);
 		return;
 	}
-/*	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
+	else if (/*type == "sphere" || */type == "nurbspatch") // hack, but works for now...
 	{
 		processSphere(iterator);
 		return;
 	}
-*/	else if (type == "light")
+	else if (type == "light")
 	{
 		// see if it's muted...
 		FnKat::IntAttribute mutedAttribute = iterator.getAttribute("mute");
@@ -169,12 +179,32 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator);
 	pNewMeshObject->setMaterial(pMaterial);
 
-	// do transform
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
+	if (!m_creationSettings.m_motionBlur)
+	{
+		// do transform
+		FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
 
-	const double* pMatrix = xforms[0].getValues();
-
-	pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		const double* pMatrix = xform[0].getValues();
+		pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	}
+	else
+	{
+		// see if we've got multiple xform samples
+		FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixMB(iterator, true, m_creationSettings.m_shutterOpen,
+																							 m_creationSettings.m_shutterClose);
+		if (xforms.size() == 1)
+		{
+			// we haven't, so just assign transform normally...
+			const double* pMatrix = xforms[0].getValues();
+			pNewMeshObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		}
+		else
+		{
+			const double* pMatrix0 = xforms[0].getValues();
+			const double* pMatrix1 = xforms[1].getValues();
+			pNewMeshObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true); // invert the matrix for transpose
+		}
+	}
 
 	processVisibilityAttributes(imagineStatements, pNewMeshObject);
 
@@ -214,7 +244,15 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	// linear list of components of Vec3 points
 	FnKat::FloatAttribute pAttr = pointAttribute.getChildByName("P");
 
-	if (!m_creationSettings.m_motionBlur || pAttr.getSampleTimes().size() <= 1)
+	unsigned int numPointTimeSamples = 1;
+
+#ifdef KAT_V_2
+	numPointTimeSamples = (unsigned int)pAttr.getNumberOfTimeSamples();
+#else
+	numPointTimeSamples = pAttr.getSampleTimes().size();
+#endif
+
+	if (!m_creationSettings.m_motionBlur || numPointTimeSamples <= 1)
 	{
 		FnKat::FloatConstVector sampleData = pAttr.getNearestSample(0.0f);
 
@@ -838,11 +876,13 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 		return;
 	}
 
-	FnKat::DoubleAttribute radiusAttr = geometryAttribute.getChildByName("radius");
-	if (!radiusAttr.isValid())
-		return;
+	float radius = 1.0f;
 
-	double radius = radiusAttr.getValue(1.0f, false);
+	FnKat::DoubleAttribute radiusAttr = geometryAttribute.getChildByName("radius");
+	if (radiusAttr.isValid())
+	{
+		radius = radiusAttr.getValue(1.0f, false);
+	}
 
 	Sphere* pSphere = new Sphere((float)radius, 24);
 

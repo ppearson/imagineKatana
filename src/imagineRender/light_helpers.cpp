@@ -6,6 +6,7 @@
 #include "lights/sky_dome.h"
 #include "lights/physical_sky.h"
 #include "lights/environment_light.h"
+#include "lights/distant_light.h"
 
 #include "katana_helpers.h"
 
@@ -42,6 +43,10 @@ Light* LightHelpers::createLight(const FnKat::GroupAttribute& lightMaterialAttr)
 	{
 		pNewLight = createAreaLight(shaderParamsAttr);
 	}
+	else if (shaderName == "Distant")
+	{
+		pNewLight = createDistantLight(shaderParamsAttr);
+	}
 	else if (shaderName == "SkyDome")
 	{
 		pNewLight = createSkydomeLight(shaderParamsAttr);
@@ -67,10 +72,12 @@ Light* LightHelpers::createPointLight(const FnKat::GroupAttribute& shaderParamsA
 	float intensity = ah.getFloatParam("intensity", 1.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
 	int shadowType = ah.getIntParam("shadow_type", 0);
+	int falloffType = ah.getIntParam("falloff", 0);
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setColour(colour);
 	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 
 	return pNewLight;
 }
@@ -85,6 +92,7 @@ Light* LightHelpers::createSpotLight(const FnKat::GroupAttribute& shaderParamsAt
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
 	int shadowType = ah.getIntParam("shadow_type", 0);
 	int numSamples = ah.getIntParam("num_samples", 1);
+	int falloffType = ah.getIntParam("falloff", 0);
 
 	float coneAngle = ah.getFloatParam("cone_angle", 30.0f);
 	float penumbraAngle = ah.getFloatParam("penumbra_angle", 5.0f);
@@ -93,6 +101,7 @@ Light* LightHelpers::createSpotLight(const FnKat::GroupAttribute& shaderParamsAt
 	pNewLight->setIntensity(intensity);
 	pNewLight->setColour(colour);
 	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 	pNewLight->setSamples(numSamples);
 
 	pNewLight->setConeAngle(coneAngle);
@@ -111,6 +120,7 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	float intensity = ah.getFloatParam("intensity", 1.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
 	int shadowType = ah.getIntParam("shadow_type", 0);
+	int falloffType = ah.getIntParam("falloff", 2);
 	int numSamples = ah.getIntParam("num_samples", 1);
 
 	float width = ah.getFloatParam("width", 1.0f);
@@ -124,12 +134,38 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	pNewLight->setIntensity(intensity);
 	pNewLight->setColour(colour);
 	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setVisible(isVisible);
 	pNewLight->setDimensions(width, depth);
 	pNewLight->setScale(isScale);
 
 	pNewLight->setShapeType((AreaLight::ShapeType)shapeType);
+
+	return pNewLight;
+}
+
+Light* LightHelpers::createDistantLight(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	DistantLight* pNewLight = new DistantLight();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	float intensity = ah.getFloatParam("intensity", 1.0f);
+	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
+	int shadowType = ah.getIntParam("shadow_type", 0);
+	int falloffType = ah.getIntParam("falloff", 0);
+	int numSamples = ah.getIntParam("num_samples", 1);
+
+	float angle = ah.getFloatParam("spread_angle", 1.0f);
+
+	pNewLight->setIntensity(intensity);
+	pNewLight->setColour(colour);
+	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setFalloffType((Light::FalloffType)falloffType);
+	pNewLight->setSamples(numSamples);
+//	pNewLight->setVisible(isVisible);
+	pNewLight->setSpreadAngle(angle);
 
 	return pNewLight;
 }
@@ -196,6 +232,8 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	float skyIntensity = ah.getFloatParam("sky_intensity", 1.0f);
 	float sunIntensity = ah.getFloatParam("sun_intensity", 1.0f);
 
+	float turbidity = ah.getFloatParam("turbidity", 3.0f);
+
 	int hemisphereExtend = ah.getIntParam("hemisphere_extension", 0);
 
 	pNewLight->setIntensity(intensity);
@@ -203,6 +241,8 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
 	pNewLight->setVisible(isVisible == 1);
+
+	pNewLight->setTurbidity(turbidity);
 
 	pNewLight->setDayOfYear(dayOfYear);
 	pNewLight->setTimeOfDay(time);

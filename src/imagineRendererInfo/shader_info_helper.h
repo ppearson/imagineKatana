@@ -37,6 +37,7 @@ public:
 	static void buildStandardImageShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildGlassShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildPlasticShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildBrushedMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildMetallicPaintShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildTranslucentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
@@ -44,6 +45,8 @@ public:
 	static void buildWireframeShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 
 
+	static void buildCommonLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo,
+											 bool addColour, bool visibleOn);
 	static void buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildSpotLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildAreaLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
@@ -62,8 +65,10 @@ public:
 	void addFloatSliderParam(const std::string& name, float defaultValue, float sliderMin = 0.0f, float sliderMax = 1.0f);
 	void addColourParam(const std::string& name, Col3f defaultValue);
 	void addIntParam(const std::string& name, int defaultValue);
+	void addIntEnumParam(const std::string& name, int defaultValue, const char** options, unsigned int size);
 	void addBoolParam(const std::string& name, bool defaultValue);
 	void addStringParam(const std::string& name);
+	void addStringPopupParam(const std::string& name, const std::string& defaultValue, const char** options, unsigned int size);
 
 protected:
 	const ImagineRendererInfo&				m_iri;

@@ -62,7 +62,7 @@ int ImagineRender::start()
 		FnKat::IntAttribute useAdaptiveAttribute = imagineGSAttribute.getChildByName("debug_popup");
 		if (useAdaptiveAttribute.isValid() && useAdaptiveAttribute.getValue(0, false) == 1)
 		{
-			system("xmessage debug\n");
+			int ret = system("xmessage debug\n");
 		}
 	}
 

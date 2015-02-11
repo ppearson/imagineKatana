@@ -5,6 +5,7 @@
 #include "materials/standard_material.h"
 #include "materials/glass_material.h"
 #include "materials/metal_material.h"
+#include "materials/plastic_material.h"
 #include "materials/translucent_material.h"
 #include "materials/brushed_metal_material.h"
 #include "materials/metalic_paint_material.h"
@@ -111,6 +112,10 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	else if (shaderName == "Metal")
 	{
 		pNewMaterial = createMetalMaterial(shaderParamsAttr, bumpParamsAttr);
+	}
+	else if (shaderName == "Plastic")
+	{
+		pNewMaterial = createPlasticMaterial(shaderParamsAttr, bumpParamsAttr);
 	}
 	else if (shaderName == "Brushed Metal")
 	{
@@ -355,6 +360,41 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	return pNewMaterial;
 }
 
+Material* MaterialHelper::createPlasticMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr)
+{
+	PlasticMaterial* pNewMaterial = new PlasticMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.5f, 0.5f, 1.0f));
+	pNewMaterial->setColour(colour);
+
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.39f);
+	pNewMaterial->setRefractionIndex(refractionIndex);
+
+	float roughness = ah.getFloatParam("roughness", 0.01f);
+	pNewMaterial->setRoughness(roughness);
+
+	float fresnelCoefficient = ah.getFloatParam("fresnel_coef", 0.0f);
+	pNewMaterial->setFresnelCoefficient(fresnelCoefficient);
+/*
+	if (bumpParamsAttr.isValid())
+	{
+		KatanaAttributeHelper ahBump(bumpParamsAttr);
+
+		std::string bumpTexture = ahBump.getStringParam("bump_texture_path");
+		if (!bumpTexture.empty())
+		{
+			pNewMaterial->setBumpTextureMapPath(bumpTexture, true);
+
+			float bumpIntensity = ahBump.getFloatParam("bump_texture_intensity", 0.8f);
+			pNewMaterial->setBumpIntensity(bumpIntensity);
+		}
+	}
+*/
+	return pNewMaterial;
+}
+
 Material* MaterialHelper::createBrushedMetalMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr)
 {
 	BrushedMetalMaterial* pNewMaterial = new BrushedMetalMaterial();
@@ -466,6 +506,9 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setTransmittance(transmittance);
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);
+
+	float refractionIndex = ah.getFloatParam("refractionIndex", 1.42f);
+	pNewMaterial->setRefractionIndex(refractionIndex);
 
 	if (bumpParamsAttr.isValid())
 	{

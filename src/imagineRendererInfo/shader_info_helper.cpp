@@ -21,6 +21,9 @@
 typedef std::pair<std::string, int> EnumPair;
 typedef std::vector<EnumPair> EnumPairVector;
 
+const char* falloffTypeOptions[] = { "None", "Linear", "Quadratic", 0 };
+const char* shadowTypeOptions[] = { "Normal", "Transparent", "None", 0 };
+
 ShaderInfoHelper::ShaderInfoHelper(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo) : m_iri(iri),
 	m_rendererObjectInfo(rendererObjectInfo)
 {
@@ -243,6 +246,16 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addBoolParam("double_sided", 0);
 }
 
+void ShaderInfoHelper::buildPlasticShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(0.5f, 0.5f, 1.0f));
+	helper.addFloatSliderParam("roughness", 0.1f);
+	helper.addFloatSliderParam("fresnel_coef", 0.0f);
+	helper.addFloatParam("refraction_index", 1.39f);
+}
+
 void ShaderInfoHelper::buildBrushedMetalShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
@@ -280,12 +293,14 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
 
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
-	helper.addFloatParam("subsurface_density", 3.1f);
-	helper.addFloatParam("sampling_density", 0.35f);
+	helper.addFloatSliderParam("subsurface_density", 3.1f, 0.0001f, 10.0f);
+	helper.addFloatSliderParam("sampling_density", 0.35f, 0.001f, 2.0f);
 
 	helper.addFloatSliderParam("transmittance", 0.41f);
 
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
+
+	helper.addFloatParam("refractionIndex", 1.42f);
 }
 
 void ShaderInfoHelper::buildVelvetShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -314,7 +329,8 @@ void ShaderInfoHelper::buildWireframeShaderParams(const ImagineRendererInfo& iri
 	helper.addIntParam("edge_type", 1);
 }
 
-void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo,
+													bool addColour, bool visibleOn)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
@@ -322,40 +338,46 @@ void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& ir
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 
 	helper.addIntParam("shadow_type", 0);
+	helper.addIntParam("num_samples", 1);
+
+	helper.addBoolParam("visible", visibleOn);
+}
+
+void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addIntParam("falloff", 0);
 }
 
 void ShaderInfoHelper::buildSpotLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
-	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
-	helper.addIntParam("shadow_type", 0);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true, true);
 
-	helper.addIntParam("num_samples", 1);
+	helper.addIntParam("falloff", 1);
 
 	helper.addFloatSliderParam("cone_angle", 30.0f, 0.0f, 90.0f);
-	helper.addFloatParam("penumbra_angle", 5.0f);
+	helper.addFloatSliderParam("penumbra_angle", 5.0f, 0.0f, 90.0f);
 
 	helper.addBoolParam("is_area", true);
 }
 
 void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
-
-	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
-	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
-	helper.addIntParam("shadow_type", 0);
-
-	helper.addIntParam("num_samples", 1);
-
-	helper.addBoolParam("visible", false);
 
 	helper.addFloatSliderParam("width", 1.0f, 0.01f, 20.0f);
 	helper.addFloatSliderParam("depth", 1.0f, 0.01f, 20.0f);
 
 	helper.addIntParam("shape_type", 0);
+
+	helper.addIntParam("falloff", 2);
 
 	helper.addBoolParam("scale", true);
 	helper.addBoolParam("bi-directional", false);
@@ -363,25 +385,16 @@ void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri
 
 void ShaderInfoHelper::buildDistantLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatParam("intensity", 1.0f);
-	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
-	helper.addIntParam("shadow_type", 0);
-
-	helper.addFloatParam("spread_angle", 4.0f);
+	helper.addFloatSliderParam("spread_angle", 1.0f, 0.0f, 33.0f);
 }
 
 void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	ShaderInfoHelper helper(iri, rendererObjectInfo);
-
-	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 5.0f);
-	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
-	helper.addIntParam("shadow_type", 0);
-	helper.addIntParam("num_samples", 1);
-
-	helper.addBoolParam("visible", true);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
 }
 
 void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -409,6 +422,8 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 	helper.addFloatSliderParam("sun_intensity", 1.0f, 0.0f, 5.0f);
 
 	helper.addIntParam("hemisphere_extension", 0);
+
+	helper.addFloatSliderParam("turbidity", 3.0f, 0.001f, 20.0f);
 
 	helper.addFloatSliderParam("time", 17.1f, 0.0f, 24.0f);
 	helper.addIntParam("day", 174);
@@ -505,6 +520,25 @@ void ShaderInfoHelper::addIntParam(const std::string& name, int defaultValue)
 	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeInt, 0, defaultAttribute, hintsAttribute, enums);
 }
 
+void ShaderInfoHelper::addIntEnumParam(const std::string& name, int defaultValue, const char** options, unsigned int size)
+{
+	EnumPairVector enums;
+
+	FnKat::IntBuilder ib(1);
+	ib.push_back(defaultValue);
+
+	FnKat::Attribute defaultAttribute = ib.build();
+	FnKat::GroupBuilder params;
+	params.set("isDynamicArray", FnKat::IntAttribute(0));
+
+	params.set("options", FnKat::StringAttribute(options, size, 1));
+	params.set("widget", FnKat::StringAttribute("popup"));
+
+	FnKat::Attribute hintsAttribute = params.build();
+
+	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeInt, 0, defaultAttribute, hintsAttribute, enums);
+}
+
 void ShaderInfoHelper::addBoolParam(const std::string& name, bool defaultValue)
 {
 	EnumPairVector enums;
@@ -532,6 +566,25 @@ void ShaderInfoHelper::addStringParam(const std::string& name)
 	FnKat::GroupBuilder params;
 	params.set("isDynamicArray", FnKat::IntAttribute(0));
 	params.set("widget", FnKat::StringAttribute("assetIdInput"));
+
+	FnKat::Attribute hintsAttribute = params.build();
+
+	m_iri.localAddRenderObjectParam(m_rendererObjectInfo, name, kFnRendererObjectValueTypeString, 0, defaultAttribute, hintsAttribute, enums);
+}
+
+void ShaderInfoHelper::addStringPopupParam(const std::string& name, const std::string& defaultValue, const char** options, unsigned int size)
+{
+	EnumPairVector enums;
+
+	FnKat::StringBuilder sb(1);
+	sb.push_back(defaultValue);
+
+	FnKat::Attribute defaultAttribute = sb.build();
+	FnKat::GroupBuilder params;
+
+	params.set("options", FnKat::StringAttribute(options, size, 1));
+	params.set("isDynamicArray", FnKat::IntAttribute(0));
+	params.set("widget", FnKat::StringAttribute("popup"));
 
 	FnKat::Attribute hintsAttribute = params.build();
 
