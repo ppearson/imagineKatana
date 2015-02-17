@@ -70,13 +70,17 @@ Light* LightHelpers::createPointLight(const FnKat::GroupAttribute& shaderParamsA
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
-	int shadowType = ah.getIntParam("shadow_type", 0);
-	int falloffType = ah.getIntParam("falloff", 0);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
+	std::string falloff = ah.getStringParam("falloff", "quadratic");
+	int falloffType = getFalloffEnumValFromString(falloff);
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setExposure(exposure);
 	pNewLight->setColour(colour);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 
 	return pNewLight;
@@ -89,18 +93,22 @@ Light* LightHelpers::createSpotLight(const FnKat::GroupAttribute& shaderParamsAt
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
-	int shadowType = ah.getIntParam("shadow_type", 0);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
-	int falloffType = ah.getIntParam("falloff", 0);
+	std::string falloff = ah.getStringParam("falloff", "quadratic");
+	int falloffType = getFalloffEnumValFromString(falloff);
 
 	float coneAngle = ah.getFloatParam("cone_angle", 30.0f);
 	float penumbraAngle = ah.getFloatParam("penumbra_angle", 5.0f);
 	bool isArea = ah.getIntParam("is_area", 1) == 1;
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setExposure(exposure);
 	pNewLight->setColour(colour);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 	pNewLight->setSamples(numSamples);
 
@@ -118,9 +126,12 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
-	int shadowType = ah.getIntParam("shadow_type", 0);
-	int falloffType = ah.getIntParam("falloff", 2);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
+	std::string falloff = ah.getStringParam("falloff", "quadratic");
+	int falloffType = getFalloffEnumValFromString(falloff);
 	int numSamples = ah.getIntParam("num_samples", 1);
 
 	float width = ah.getFloatParam("width", 1.0f);
@@ -132,8 +143,9 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	bool isVisible = ah.getIntParam("visible", 1) == 1;
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setExposure(exposure);
 	pNewLight->setColour(colour);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setVisible(isVisible);
@@ -152,17 +164,17 @@ Light* LightHelpers::createDistantLight(const FnKat::GroupAttribute& shaderParam
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
-	int shadowType = ah.getIntParam("shadow_type", 0);
-	int falloffType = ah.getIntParam("falloff", 0);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
-
 	float angle = ah.getFloatParam("spread_angle", 1.0f);
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setExposure(exposure);
 	pNewLight->setColour(colour);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
-	pNewLight->setFalloffType((Light::FalloffType)falloffType);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 //	pNewLight->setVisible(isVisible);
 	pNewLight->setSpreadAngle(angle);
@@ -177,14 +189,17 @@ Light* LightHelpers::createSkydomeLight(const FnKat::GroupAttribute& shaderParam
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
 	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f));
-	int shadowType = ah.getIntParam("shadow_type", 0);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
 	bool isVisible = ah.getIntParam("visible", 1) == 1;
 
 	pNewLight->setIntensity(intensity);
+	pNewLight->setExposure(exposure);
 	pNewLight->setColour(colour);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
 	pNewLight->setVisible(isVisible);
@@ -199,14 +214,17 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
-	int shadowType = ah.getIntParam("shadow_type", 0);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
 	int isVisible = ah.getIntParam("visible", 1);
 
 	std::string envMapPath = ah.getStringParam("env_map_path");
 
 	pNewLight->setIntensity(intensity);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setExposure(exposure);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setEnvMapPath(envMapPath);
 	pNewLight->setRadius(2000.0f);
@@ -222,7 +240,9 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
 	float intensity = ah.getFloatParam("intensity", 1.0f);
-	int shadowType = ah.getIntParam("shadow_type", 0);
+	float exposure = ah.getFloatParam("exposure", 0.0f);
+	std::string shadowType = ah.getStringParam("shadow_type", "normal");
+	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
 	int isVisible = ah.getIntParam("visible", 1);
 
@@ -237,7 +257,8 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	int hemisphereExtend = ah.getIntParam("hemisphere_extension", 0);
 
 	pNewLight->setIntensity(intensity);
-	pNewLight->setShadowType((Light::ShadowType)shadowType);
+	pNewLight->setExposure(exposure);
+	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
 	pNewLight->setVisible(isVisible == 1);
@@ -252,4 +273,24 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setHemiExtend((unsigned char)hemisphereExtend);
 
 	return pNewLight;
+}
+
+int LightHelpers::getFalloffEnumValFromString(const std::string& falloff)
+{
+	if (falloff == "none")
+		return 0;
+	else if (falloff == "linear")
+		return 1;
+	else
+		return 2;
+}
+
+int LightHelpers::getShadowTypeEnumValFromString(const std::string& shadowType)
+{
+	if (shadowType == "transparent")
+		return 1;
+	else if (shadowType == "none")
+		return 2;
+	else
+		return 0;
 }

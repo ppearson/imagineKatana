@@ -146,7 +146,7 @@ std::string ImagineRendererInfo::getRegisteredRendererName() const
 
 std::string ImagineRendererInfo::getRegisteredRendererVersion() const
 {
-	return "0.94";
+	return "0.96";
 }
 
 bool ImagineRendererInfo::isNodeTypeSupported(const std::string& nodeType) const

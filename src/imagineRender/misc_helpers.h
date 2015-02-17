@@ -4,7 +4,7 @@
 struct CreationSettings
 {
 	CreationSettings() : m_applyMaterials(true), m_useTextures(true), m_enableSubdivision(false), m_deduplicateVertexNormals(false),
-		m_specialiseAssemblies(false), m_useGeoNormals(true), m_motionBlur(false), m_flipT(0), m_triangleType(0),
+		m_specialiseAssemblies(false), m_useGeoNormals(true), m_motionBlur(false), m_decomposeXForms(false), m_flipT(0), m_triangleType(0),
 		m_geoQuantisationType(0), m_specialisedTriangleType(0), m_shutterOpen(0.0f), m_shutterClose(0.0f)
 	{
 	}
@@ -17,6 +17,7 @@ struct CreationSettings
 	bool				m_useGeoNormals;
 
 	bool				m_motionBlur;
+	bool				m_decomposeXForms;
 
 	unsigned int		m_flipT;
 	unsigned int		m_triangleType;

@@ -21,6 +21,9 @@ public:
 	Light* createSkydomeLight(const FnKat::GroupAttribute& shaderParamsAttr);
 	Light* createEnvironmentLight(const FnKat::GroupAttribute& shaderParamsAttr);
 	Light* createPhysicalSkyLight(const FnKat::GroupAttribute& shaderParamsAttr);
+
+	static int getFalloffEnumValFromString(const std::string& falloff);
+	static int getShadowTypeEnumValFromString(const std::string& shadowType);
 };
 
 #endif // LIGHT_HELPERS_H

@@ -43,14 +43,14 @@ public:
 	float getFloatParam(const std::string& name, float defaultValue) const;
 	int getIntParam(const std::string& name, int defaultValue) const;
 	Colour3f getColourParam(const std::string& name, const Colour3f& defaultValue) const;
-	std::string getStringParam(const std::string& name) const;
+	std::string getStringParam(const std::string& name, const std::string& defaultValue = "") const;
 
 
 	// static versions that can be used stand-alone
 	static float getFloatParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, float defaultValue);
 	static int getIntParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, int defaultValue);
 	static Colour3f getColourParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, const Colour3f& defaultValue);
-	static std::string getStringParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name);
+	static std::string getStringParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name, const std::string& defaultValue);
 
 protected:
 	const FnKat::GroupAttribute&	m_attribute;

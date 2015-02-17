@@ -202,7 +202,8 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		{
 			const double* pMatrix0 = xforms[0].getValues();
 			const double* pMatrix1 = xforms[1].getValues();
-			pNewMeshObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true); // invert the matrix for transpose
+			bool decompose = m_creationSettings.m_decomposeXForms;
+			pNewMeshObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
 		}
 	}
 
@@ -857,10 +858,33 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 	// do transform
 
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
-	const double* pMatrix = xforms[0].getValues();
+	if (!m_creationSettings.m_motionBlur)
+	{
+		// do transform
+		FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
 
-	pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		const double* pMatrix = xform[0].getValues();
+		pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	}
+	else
+	{
+		// see if we've got multiple xform samples
+		FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixMB(iterator, true, m_creationSettings.m_shutterOpen,
+																							 m_creationSettings.m_shutterClose);
+		if (xforms.size() == 1)
+		{
+			// we haven't, so just assign transform normally...
+			const double* pMatrix = xforms[0].getValues();
+			pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		}
+		else
+		{
+			const double* pMatrix0 = xforms[0].getValues();
+			const double* pMatrix1 = xforms[1].getValues();
+			bool decompose = m_creationSettings.m_decomposeXForms;
+			pNewObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
+		}
+	}
 
 	m_scene.addObject(pNewObject, false, false);
 }
@@ -891,10 +915,33 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 
 	// do transform
 
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
-	const double* pMatrix = xforms[0].getValues();
+	if (!m_creationSettings.m_motionBlur)
+	{
+		// do transform
+		FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
 
-	pSphere->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		const double* pMatrix = xform[0].getValues();
+		pSphere->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	}
+	else
+	{
+		// see if we've got multiple xform samples
+		FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixMB(iterator, true, m_creationSettings.m_shutterOpen,
+																							 m_creationSettings.m_shutterClose);
+		if (xforms.size() == 1)
+		{
+			// we haven't, so just assign transform normally...
+			const double* pMatrix = xforms[0].getValues();
+			pSphere->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		}
+		else
+		{
+			const double* pMatrix0 = xforms[0].getValues();
+			const double* pMatrix1 = xforms[1].getValues();
+			bool decompose = m_creationSettings.m_decomposeXForms;
+			pSphere->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
+		}
+	}
 
 	m_scene.addObject(pSphere, false, false);
 }

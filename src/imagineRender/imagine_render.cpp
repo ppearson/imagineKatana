@@ -449,6 +449,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (deterministicSamplesAttribute.isValid())
 		deterministicSamples = deterministicSamplesAttribute.getValue(1, false);
 
+	FnKat::IntAttribute decomposeXFormsAttribute = imagineGSAttribute.getChildByName("decompose_xforms");
+	if (decomposeXFormsAttribute.isValid())
+		m_creationSettings.m_decomposeXForms = (decomposeXFormsAttribute.getValue(0, false) == 1);
+
 	m_renderSettings.add("integrator", integratorType);
 	m_renderSettings.add("useMIS", (bool)useMIS);
 

@@ -146,6 +146,9 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
 
 	bool isAbsolute = false;
+
+	// specifying kAttributeInterpolation_Linear seems to give us absolute values for the shutter open/close
+	// time from Katana's animcurves
 	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
 												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
 
@@ -201,9 +204,9 @@ Colour3f KatanaAttributeHelper::getColourParam(const std::string& name, const Co
 	return getColourParam(m_attribute, name, defaultValue);
 }
 
-std::string KatanaAttributeHelper::getStringParam(const std::string& name) const
+std::string KatanaAttributeHelper::getStringParam(const std::string& name, const std::string& defaultValue) const
 {
-	return getStringParam(m_attribute, name);
+	return getStringParam(m_attribute, name, defaultValue);
 }
 
 
@@ -248,12 +251,13 @@ Colour3f KatanaAttributeHelper::getColourParam(const FnKat::GroupAttribute& shad
 	return returnValue;
 }
 
-std::string KatanaAttributeHelper::getStringParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name)
+std::string KatanaAttributeHelper::getStringParam(const FnKat::GroupAttribute& shaderParamsAttr, const std::string& name,
+												  const std::string& defaultValue)
 {
 	FnKat::StringAttribute stringAttrib = shaderParamsAttr.getChildByName(name);
 
 	if (!stringAttrib.isValid())
-		return "";
+		return defaultValue;
 
-	return stringAttrib.getValue("", false);
+	return stringAttrib.getValue(defaultValue, false);
 }

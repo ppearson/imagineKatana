@@ -20,7 +20,9 @@
 				<hintdict name='options'>
 					<int name="Fully sample all lights" value="0"/>
 					<int name="Importance sample lights (uniform)" value="1"/>
-					<int name="Importance sample lights (weighted)" value="2"/>
+					<int name="Importance sample lights (weighted on samples)" value="2"/>
+					<int name="Importance sample lights (weighted radiance)" value="3"/>
+					<int name="Importance sample lights (weighted radiance) + localised" value="4"/>
 				</hintdict>
 			</int>
 			<int name="light_samples" default="1" conditionalVisOp='notEqualTo' conditionalVisPath='../light_sampling' conditionalVisValue='0' help="The number of light samples to use per pixel sample."/>
@@ -81,7 +83,7 @@
 					<int name="Standard normal, standard UV" value="2"/>
 				</hintdict>
 			</int>
-			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets is fastest, but uses most memory (especially peak). Fast uses 48-byte trianges, compact uses 4/0 bytes per triangle depending on properties/attributes of shapes.">
+			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets is fastest, but uses most memory (especially peak). Fast uses 48-byte trianges, compact uses 4/1/0 bytes per triangle depending on properties/attributes of shapes.">
 				<hintdict name='options'>
 					<int name="Triangle Packets" value="0"/>
 					<int name="Fast" value="1"/>
@@ -134,6 +136,7 @@
 					<int name="full deterministic" value="2"/>
 				</hintdict>
 			</int>
+			<int name="decompose_xforms" default="0" widget="checkBox" help="When enabled, Imagine will attempt to decompose xform matrices used for motion blur. This doesn't always work (pivoted rotation, skew, shear), but otherwise provides accurate quaternion-based rotation with just two xform samples."/>
 			<int name="debug_popup" default="0" widget="checkBox" help="Pops up xmessage box so debugger can be attached to renderboot."/>
 		</page>
 
