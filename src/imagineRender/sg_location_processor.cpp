@@ -755,13 +755,14 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
 	{
+		// we can't do anything...
 		return;
 	}
 
 	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
-	FnKat::FnScenegraphIterator itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
-	if (!itInstanceSource.isValid())
+	if (instanceSourcePath.empty())
 	{
+		// we can't do anything
 		return;
 	}
 
@@ -793,9 +794,20 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			pNewObject = pNewMesh;
 		}
+
+		// TODO: add per-instance attributes...
 	}
 	else
 	{
+		// do the expensive lookup of the item...
+		FnKat::FnScenegraphIterator itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
+		if (!itInstanceSource.isValid())
+		{
+			// TODO: maybe add a placeholder to the map so that we don't try to uselessly attempt to find
+			// it using getByPath() (which is expensive) in the future?
+			return;
+		}
+
 		bool isLeaf = !itInstanceSource.getFirstChild().isValid();
 		// check two levels down, as that's more conventional...
 		bool hasSubLeaf = isLeaf && (itInstanceSource.getFirstChild().getFirstChild().isValid());
