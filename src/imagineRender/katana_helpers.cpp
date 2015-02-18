@@ -9,6 +9,7 @@
 #ifdef KAT_V_2
 #include <FnRenderOutputUtils/FnRenderOutputUtils.h>
 #include <FnGeolibServices/FnXFormUtil.h>
+#include <FnAttribute/FnAttributeUtils.h>
 #else
 #include <RenderOutputUtils/RenderOutputUtils.h>
 #endif
@@ -90,7 +91,6 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
 
 	return getXFormMatrixStatic(xformAttr);
-
 #else
 	FnKat::GroupAttribute xformAttr;
 	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
@@ -112,8 +112,24 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 																					  bool clampWithinShutter, float shutterOpen, float shutterClose)
 {
 #ifdef KAT_V_2
+	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
 
+	FnAttribute::DoubleAttribute matrix = FnAttribute::RemoveTimeSamplesIfAllSame(
+			FnAttribute::RemoveTimeSamplesUnneededForShutter(
+				FnGeolibServices::FnXFormUtil::CalcTransformMatrixAtExistingTimes(xformAttr).first,
+				shutterOpen, shutterClose));
 
+	Foundry::Katana::RenderOutputUtils::XFormMatrixVector finalValues;
+	for (unsigned int i = 0; i < matrix.getNumberOfTimeSamples(); i++)
+	{
+		float sampleTime = matrix.getSampleTime(i);
+		FnKat::DoubleConstVector matrixValues = matrix.getNearestSample(sampleTime);
+
+		Foundry::Katana::RenderOutputUtils::XFormMatrix newM(matrixValues.data());
+		finalValues.push_back(newM);
+	}
+
+	return finalValues;
 #else
 	FnKat::GroupAttribute xformAttr;
 	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
