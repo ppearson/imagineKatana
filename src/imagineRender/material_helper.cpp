@@ -10,6 +10,7 @@
 #include "materials/brushed_metal_material.h"
 #include "materials/metalic_paint_material.h"
 #include "materials/velvet_material.h"
+#include "materials/luminous_material.h"
 #include "materials/wireframe_material.h"
 
 #include "katana_helpers.h"
@@ -132,6 +133,10 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	else if (shaderName == "Velvet")
 	{
 		pNewMaterial = createVelvetMaterial(shaderParamsAttr);
+	}
+	else if (shaderName == "Luminous")
+	{
+		pNewMaterial = createLuminousMaterial(shaderParamsAttr);
 	}
 	else if (shaderName == "Wireframe")
 	{
@@ -445,6 +450,12 @@ Material* MaterialHelper::createMetallicPaintMaterial(const FnKat::GroupAttribut
 	Colour3f colour = ah.getColourParam("colour", Colour3f(0.29f, 0.016f, 0.019f));
 	pNewMaterial->setColour(colour);
 
+	std::string colourTexture = ah.getStringParam("col_texture");
+	if (!colourTexture.empty())
+	{
+		pNewMaterial->setColourTexture(colourTexture, true); // lazy load texture when needed
+	}
+
 	Colour3f flakeColour = ah.getColourParam("flake_colour", Colour3f(0.39, 0.016f, 0.19f));
 	pNewMaterial->setFlakeColour(flakeColour);
 
@@ -556,6 +567,40 @@ Material* MaterialHelper::createVelvetMaterial(const FnKat::GroupAttribute& shad
 
 	float backscatterFalloff = ah.getFloatParam("backscatter", 0.7f);
 	pNewMaterial->setBackScatteringFalloff(backscatterFalloff);
+
+	return pNewMaterial;
+}
+
+Material* MaterialHelper::createLuminousMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	LuminousMaterial* pNewMaterial = new LuminousMaterial();
+
+	KatanaAttributeHelper ah(shaderParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(1.0f, 1.0f, 1.0f));
+	pNewMaterial->setColour(colour);
+
+	float intensity = ah.getFloatParam("intensity", 1.0f);
+	pNewMaterial->setIntensity(intensity);
+
+	int registerAsLight = ah.getIntParam("register_as_light", 0);
+
+	if (registerAsLight == 1)
+	{
+		pNewMaterial->setRegisterAsLight(true);
+
+		float lightIntensity = ah.getFloatParam("light_intensity", 1.0f);
+		float lightExposure = ah.getFloatParam("light_exposure", 3.0f);
+
+		float fullIntensity = lightIntensity * std::pow(2.0f, lightExposure);
+		pNewMaterial->setLightIntensty(fullIntensity);
+
+		int lightQuadFalloff = ah.getIntParam("light_quadratic_falloff", 1);
+		pNewMaterial->setQuadraticFalloff(lightQuadFalloff == 1);
+
+		int weightBySurfaceArea = ah.getIntParam("light_weight_by_surface_area", 1);
+		pNewMaterial->setWeightBySurfaceArea(weightBySurfaceArea == 1);
+	}
 
 	return pNewMaterial;
 }

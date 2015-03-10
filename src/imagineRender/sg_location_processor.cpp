@@ -100,7 +100,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	else if (type == "light")
 	{
 		// see if it's muted...
-		FnKat::IntAttribute mutedAttribute = iterator.getAttribute("mute");
+		FnKat::IntAttribute mutedAttribute = iterator.getAttribute("mute", true);
 		if (mutedAttribute.isValid())
 		{
 			int mutedValue = mutedAttribute.getValue(0, false);

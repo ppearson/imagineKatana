@@ -88,7 +88,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	}
 	else if (name == "Plastic")
 	{
-
+		buildPlasticShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Brushed Metal")
 	{
@@ -105,6 +105,10 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	else if (name == "Velvet")
 	{
 		buildVelvetShaderParams(iri, rendererObjectInfo);
+	}
+	else if (name == "Luminous")
+	{
+		buildLuminousShaderParams(iri, rendererObjectInfo);
 	}
 	else if (name == "Wireframe")
 	{
@@ -275,6 +279,7 @@ void ShaderInfoHelper::buildMetallicPaintShaderParams(const ImagineRendererInfo&
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addColourParam("colour", Col3f(0.29f, 0.016f, 0.019f));
+	helper.addStringParam("col_texture");
 	helper.addColourParam("flake_colour", Col3f(0.39, 0.016f, 0.19f));
 	helper.addFloatSliderParam("flake_spread", 0.32f);
 	helper.addFloatSliderParam("flake_mix", 0.38f);
@@ -328,6 +333,22 @@ void ShaderInfoHelper::buildWireframeShaderParams(const ImagineRendererInfo& iri
 	helper.addFloatSliderParam("edge_softness", 0.3f);
 
 	helper.addIntParam("edge_type", 1);
+}
+
+void ShaderInfoHelper::buildLuminousShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
+
+	helper.addBoolParam("register_as_light", 0);
+
+	helper.addFloatSliderParam("light_intensity", 1.0f, 0.0f, 10.0f);
+	helper.addFloatSliderParam("light_exposure", 3.0f, 0.0f, 20.0f);
+
+	helper.addBoolParam("light_quadratic_falloff", 1);
+	helper.addBoolParam("light_weight_by_surface_area", 1);
 }
 
 void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo,

@@ -324,7 +324,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	FnKat::IntAttribute maxDepthReflectionAttribute = imagineGSAttribute.getChildByName("max_depth_reflection");
 	unsigned int maxDepthReflection = 5;
-	if (maxDepthRefractionAttribute.isValid())
+	if (maxDepthReflectionAttribute.isValid())
 		maxDepthReflection = maxDepthReflectionAttribute.getValue(5, false);
 
 

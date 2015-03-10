@@ -43,6 +43,7 @@ public:
 	static void buildTranslucentShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildVelvetShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildWireframeShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildLuminousShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 
 
 	static void buildCommonLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo,
