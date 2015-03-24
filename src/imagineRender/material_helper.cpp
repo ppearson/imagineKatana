@@ -323,6 +323,9 @@ Material* MaterialHelper::createGlassMaterial(const FnKat::GroupAttribute& shade
 	int ignoreRefraction = ah.getIntParam("ignore_trans_refraction", 0);
 	pNewMaterial->setIgnoreTransmissionRefraction((bool)ignoreRefraction);
 
+	int thinVolume = ah.getIntParam("thin_volume", 0);
+	pNewMaterial->setThinVolume((bool)thinVolume);
+
 	return pNewMaterial;
 }
 

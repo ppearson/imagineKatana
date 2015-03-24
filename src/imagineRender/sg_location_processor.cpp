@@ -140,7 +140,16 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	//       to have to check here if there are any children of type faceset/polymesh below this iterator. If so, we'd
 	//       need to ignore this location and just process the children.
 
-	CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD, imagineStatements);
+	CompactGeometryInstance* pNewGeoInstance = NULL;
+	if (!m_creationSettings.m_discardGeometry)
+	{
+		pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, asSubD, imagineStatements);
+	}
+	else
+	{
+		pNewGeoInstance = createCompactGeometryInstanceFromLocationDiscard(iterator, asSubD, imagineStatements);
+	}
+
 	if (!pNewGeoInstance)
 	{
 		return;
@@ -216,11 +225,38 @@ void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator, 
 {
 	CompoundObject* pCO = createCompoundObjectFromLocation(iterator, currentDepth);
 
-	// do transform
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
-	const double* pMatrix = xforms[0].getValues();
+	if (!pCO)
+	{
+		return;
+	}
 
-	pCO->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	if (!m_creationSettings.m_motionBlur)
+	{
+		// do transform
+		FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
+
+		const double* pMatrix = xform[0].getValues();
+		pCO->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	}
+	else
+	{
+		// see if we've got multiple xform samples
+		FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixMB(iterator, true, m_creationSettings.m_shutterOpen,
+																							 m_creationSettings.m_shutterClose);
+		if (xforms.size() == 1)
+		{
+			// we haven't, so just assign transform normally...
+			const double* pMatrix = xforms[0].getValues();
+			pCO->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+		}
+		else
+		{
+			const double* pMatrix0 = xforms[0].getValues();
+			const double* pMatrix1 = xforms[1].getValues();
+			bool decompose = m_creationSettings.m_decomposeXForms;
+			pCO->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
+		}
+	}
 
 	m_scene.addObject(pCO, false, false);
 }
@@ -232,6 +268,20 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	if (!geometryAttribute.isValid())
 	{
 		return NULL;
+	}
+
+	bool flipFaces = false;
+
+	FnKat::FloatAttribute creaseAngleAttribute;
+	// object settings...
+	if (imagineStatements.isValid())
+	{
+		creaseAngleAttribute = imagineStatements.getChildByName("crease_angle");
+		FnKat::IntAttribute flipFacesAttribute = imagineStatements.getChildByName("flip_faces");
+		if (flipFacesAttribute.isValid())
+		{
+			flipFaces = flipFacesAttribute.getValue(0, false);
+		}
 	}
 
 	CompactGeometryInstance* pNewGeoInstance = new CompactGeometryInstance();
@@ -361,6 +411,13 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		aPolyIndices[i] = (uint32_t)value;
 	}
 
+	// TODO: make this more efficient
+	if (flipFaces)
+	{
+		std::reverse(aPolyOffsets.begin(), aPolyOffsets.end());
+		std::reverse(aPolyIndices.begin(), aPolyIndices.end());
+	}
+
 	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;
 
 	if (asSubD)
@@ -393,32 +450,63 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			unsigned int numItems = normalsData.size();
 
 			std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
+
+			if (!flipFaces)
+			{
 #if FAST
-			aNormals.resize(numItems / 3);
-			// convert to Normal items
-			unsigned int normalCount = 0;
-			for (unsigned int i = 0; i < numItems; i += 3)
-			{
-				Normal& normal = aNormals[normalCount++];
+				aNormals.resize(numItems / 3);
+				// convert to Normal items
+				unsigned int normalCount = 0;
+				for (unsigned int i = 0; i < numItems; i += 3)
+				{
+					Normal& normal = aNormals[normalCount++];
 
-				// need to reverse the normals as the winding order is opposite
-				normal.x = -normalsData[i];
-				normal.y = -normalsData[i + 1];
-				normal.z = -normalsData[i + 2];
-			}
+					// need to reverse the normals as the winding order is opposite
+					normal.x = -normalsData[i];
+					normal.y = -normalsData[i + 1];
+					normal.z = -normalsData[i + 2];
+				}
 #else
-			aNormals.reserve(numItems / 3);
-			// convert to Normal items
-			for (unsigned int i = 0; i < numItems; i += 3)
-			{
-				float x = normalsData[i];
-				float y = normalsData[i + 1];
-				float z = normalsData[i + 2];
+				aNormals.reserve(numItems / 3);
+				// convert to Normal items
+				for (unsigned int i = 0; i < numItems; i += 3)
+				{
+					float x = normalsData[i];
+					float y = normalsData[i + 1];
+					float z = normalsData[i + 2];
 
-				// we need to reverse the normals as the winding order is opposite...
-				aNormals.push_back(-Normal(x, y, z));
-			}
+					// we need to reverse the normals as the winding order is opposite...
+					aNormals.push_back(-Normal(x, y, z));
+				}
 #endif
+			}
+			else
+			{
+#if FAST
+				aNormals.resize(numItems / 3);
+				// convert to Normal items
+				unsigned int normalCount = 0;
+				for (unsigned int i = 0; i < numItems; i += 3)
+				{
+					Normal& normal = aNormals[normalCount++];
+
+					normal.x = normalsData[i];
+					normal.y = normalsData[i + 1];
+					normal.z = normalsData[i + 2];
+				}
+#else
+				aNormals.reserve(numItems / 3);
+				// convert to Normal items
+				for (unsigned int i = 0; i < numItems; i += 3)
+				{
+					float x = normalsData[i];
+					float y = normalsData[i + 1];
+					float z = normalsData[i + 2];
+
+					aNormals.push_back(Normal(x, y, z));
+				}
+#endif
+			}
 		}
 		else
 		{
@@ -595,7 +683,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	}
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
-	if (boundAttr.isValid())
+	if (m_creationSettings.m_useBounds && boundAttr.isValid())
 	{
 		if (!m_creationSettings.m_motionBlur || pNewGeoInstance->getTimeSamples() == 1)
 		{
@@ -625,15 +713,10 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_BBOX;
 	}
 
-	// object settings...
-	if (imagineStatements.isValid())
+	if (creaseAngleAttribute.isValid())
 	{
-		FnKat::FloatAttribute creaseAngleAttribute = imagineStatements.getChildByName("crease_angle");
-		if (creaseAngleAttribute.isValid())
-		{
-			float creaseAngle = creaseAngleAttribute.getValue(0.8f, false);
-			pNewGeoInstance->setCreaseAngle(creaseAngle);
-		}
+		float creaseAngle = creaseAngleAttribute.getValue(0.8f, false);
+		pNewGeoInstance->setCreaseAngle(creaseAngle);
 	}
 
 	geoBuildFlags |= GeometryInstance::GEO_BUILD_FREE_SOURCE_DATA;
@@ -643,6 +726,155 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	return pNewGeoInstance;
 }
 
+CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocationDiscard(FnKat::FnScenegraphIterator iterator, bool asSubD,
+																						const FnKat::GroupAttribute& imagineStatements)
+{
+	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
+	if (!geometryAttribute.isValid())
+	{
+		return NULL;
+	}
+
+	FnKat::GroupAttribute pointAttribute = geometryAttribute.getChildByName("point");
+
+	// linear list of components of Vec3 points
+	FnKat::FloatAttribute pAttr = pointAttribute.getChildByName("P");
+
+	unsigned int numPointTimeSamples = 1;
+
+#ifdef KAT_V_2
+	numPointTimeSamples = (unsigned int)pAttr.getNumberOfTimeSamples();
+#else
+	numPointTimeSamples = pAttr.getSampleTimes().size();
+#endif
+
+	if (!m_creationSettings.m_motionBlur || numPointTimeSamples <= 1)
+	{
+		FnKat::FloatConstVector sampleData = pAttr.getNearestSample(0.0f);
+
+		unsigned int numItems = sampleData.size();
+	}
+	else
+	{
+		std::vector<float> aSampleTimes;
+		KatanaHelpers::getRelevantSampleTimes(pAttr, aSampleTimes, m_creationSettings.m_shutterOpen, m_creationSettings.m_shutterClose);
+		FnKat::FloatConstVector sampleData0 = pAttr.getNearestSample(aSampleTimes[0]);
+		FnKat::FloatConstVector sampleData1 = pAttr.getNearestSample(aSampleTimes[aSampleTimes.size() - 1]);
+
+		unsigned int numItems = sampleData0.size();
+	}
+
+	// work out the faces...
+	FnKat::GroupAttribute polyAttribute = geometryAttribute.getChildByName("poly");
+	FnKat::IntAttribute polyStartIndexAttribute = polyAttribute.getChildByName("startIndex");
+	FnKat::IntAttribute vertexListAttribute = polyAttribute.getChildByName("vertexList");
+
+	unsigned int numFaces = polyStartIndexAttribute.getNumberOfTuples() - 1;
+	FnKat::IntConstVector polyStartIndexAttributeValue = polyStartIndexAttribute.getNearestSample(0.0f);
+	FnKat::IntConstVector vertexListAttributeValue = vertexListAttribute.getNearestSample(0.0f);
+
+	unsigned int numIndices = polyStartIndexAttributeValue.size();
+
+	// see if we've got any Normals....
+	FnKat::FloatAttribute normalsAttribute = iterator.getAttribute("geometry.vertex.N");
+	// TODO: don't do for SubD's? Shouldn't have them anyway, but...
+	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid())
+	{
+		// check if the points had more than one time sample...
+		if (!m_creationSettings.m_motionBlur)
+		{
+			FnKat::FloatConstVector normalsData = normalsAttribute.getNearestSample(0.0f);
+
+			unsigned int numItems = normalsData.size();
+		}
+		else
+		{
+			std::vector<float> aSampleTimes;
+			KatanaHelpers::getRelevantSampleTimes(normalsAttribute, aSampleTimes, m_creationSettings.m_shutterOpen, m_creationSettings.m_shutterClose);
+
+			FnKat::FloatConstVector sampleData0 = normalsAttribute.getNearestSample(aSampleTimes[0]);
+			FnKat::FloatConstVector sampleData1 = normalsAttribute.getNearestSample(aSampleTimes[aSampleTimes.size() - 1]);
+
+			unsigned int numItems = sampleData0.size();
+		}
+	}
+
+	FnKat::IntAttribute uvIndexAttribute;
+	bool hasUVs = false;
+	bool indexedUVs = false;
+	// copy any UVs
+	FnKat::GroupAttribute stAttribute = iterator.getAttribute("geometry.arbitrary.st", true);
+	FnKat::FloatAttribute uvItemAttribute;
+	if (stAttribute.isValid())
+	{
+#ifdef KAT_V_2
+		FnKat::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
+#else
+		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
+#endif
+
+		if (arbitraryAttribute.isValid())
+		{
+			if (arbitraryAttribute.hasIndexedValueAttr())
+			{
+				uvIndexAttribute = arbitraryAttribute.getIndexAttr(true);
+				uvItemAttribute = arbitraryAttribute.getIndexedValueAttr();
+
+				indexedUVs = true;
+			}
+			else
+			{
+				uvItemAttribute = arbitraryAttribute.getValueAttr();
+				// we'll generate them later...
+			}
+		}
+	}
+
+	// we didn't find them in general place, so try and look for them in other locations...
+	if (!uvItemAttribute.isValid())
+	{
+		uvItemAttribute = iterator.getAttribute("geometry.vertex.uv");
+
+		if (!uvItemAttribute.isValid())
+		{
+			uvItemAttribute = iterator.getAttribute("geometry.point.uv");
+		}
+	}
+
+	unsigned int numUVValues;
+
+	if (uvItemAttribute.isValid())
+	{
+		hasUVs = true;
+		FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
+	}
+
+	// set any UV indices if necessary
+	if (hasUVs)
+	{
+		if (indexedUVs)
+		{
+			// if indexed, get hold the uv indices list
+			FnKat::IntConstVector uvIndicesValue = uvIndexAttribute.getNearestSample(0.0f);
+
+		}
+	}
+
+	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
+	if (m_creationSettings.m_useBounds && boundAttr.isValid())
+	{
+		if (!m_creationSettings.m_motionBlur)
+		{
+			BoundaryBox bbox;
+			FnKat::DoubleConstVector doubleValues = boundAttr.getNearestSample(0.0f);
+			bbox.getMinimum() = Vector(doubleValues.at(0), doubleValues.at(2), doubleValues.at(4));
+			bbox.getMaximum() = Vector(doubleValues.at(1), doubleValues.at(3), doubleValues.at(5));
+		}
+	}
+
+	return NULL;
+}
+
 CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth)
 {
 	std::vector<Object*> aObjects;
@@ -650,6 +882,9 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
 	createCompoundObjectFromLocationRecursive(iterator, aObjects, baseLevelDepth, baseLevelDepth);
+
+	if (aObjects.empty())
+		return NULL;
 
 	CompoundObject* pNewCO = new CompoundObject();
 
@@ -702,7 +937,16 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 
 		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
-		CompactGeometryInstance* pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD, imagineStatements);
+		CompactGeometryInstance* pNewGeoInstance = NULL;
+
+		if (!m_creationSettings.m_discardGeometry)
+		{
+			pNewGeoInstance = createCompactGeometryInstanceFromLocation(iterator, isSubD, imagineStatements);
+		}
+		else
+		{
+			pNewGeoInstance = createCompactGeometryInstanceFromLocationDiscard(iterator, isSubD, imagineStatements);
+		}
 
 		if (!pNewGeoInstance)
 		{
@@ -840,6 +1084,11 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 			// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
 			// is what we want...
 			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
+
+			if (!pCO)
+			{
+				return;
+			}
 
 			// this one is set to be hidden, but we need to add it to the scene...
 

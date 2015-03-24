@@ -409,6 +409,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (useGeoAttrNormalsAttribute.isValid())
 		m_creationSettings.m_useGeoNormals = (useGeoAttrNormalsAttribute.getValue(1, false) == 1);
 
+	FnKat::IntAttribute useBoundsAttribute = imagineGSAttribute.getChildByName("use_location_bounds");
+	if (useBoundsAttribute.isValid())
+		m_creationSettings.m_useBounds = (useBoundsAttribute.getValue(1, false) == 1);
+
 	FnKat::IntAttribute specialiseAssembliesAttribute = imagineGSAttribute.getChildByName("specialise_assembly_types");
 	m_creationSettings.m_specialiseAssemblies = true;
 	if (specialiseAssembliesAttribute.isValid())
@@ -452,6 +456,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	FnKat::IntAttribute decomposeXFormsAttribute = imagineGSAttribute.getChildByName("decompose_xforms");
 	if (decomposeXFormsAttribute.isValid())
 		m_creationSettings.m_decomposeXForms = (decomposeXFormsAttribute.getValue(0, false) == 1);
+
+	FnKat::IntAttribute discardGeometryAttribute = imagineGSAttribute.getChildByName("discard_geometry");
+	if (discardGeometryAttribute.isValid())
+		m_creationSettings.m_discardGeometry = (discardGeometryAttribute.getValue(0, false) == 1);
 
 	m_renderSettings.add("integrator", integratorType);
 	m_renderSettings.add("useMIS", (bool)useMIS);

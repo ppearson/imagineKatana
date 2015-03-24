@@ -69,6 +69,7 @@
 			<int name="specialise_assembly_types" default="1" widget="checkBox" help="Detect locations of assembly type and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly."/>
 			<int name="deduplicate_vertex_normals" default="0" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
 			<int name="use_geo_normals" default="1" widget="checkBox" help="Use normals from geo attributes"/>
+			<int name="use_location_bounds" default="1" widget="checkBox" help="Use bound attributes from locations for bboxes. If turned off or no bound attribute exists, Imagine will calculate them."/>
 
 			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the Moller intersection algorithm, which calculates everything on-the-fly, requiring 4/0 bytes per triangle. Compact is on average 30-65% slower than Fast.">
 				<hintdict name='options'>
@@ -138,6 +139,7 @@
 			</int>
 			<int name="decompose_xforms" default="0" widget="checkBox" help="When enabled, Imagine will attempt to decompose xform matrices used for motion blur. This doesn't always work (pivoted rotation, skew, shear), but otherwise provides accurate quaternion-based rotation with just two xform samples."/>
 			<int name="debug_popup" default="0" widget="checkBox" help="Pops up xmessage box so debugger can be attached to renderboot."/>
+			<int name="discard_geometry" default="0" widget="checkBox" help="Doesn't actually add geometry to Imagine. Useful for debugging Katana memory usage via renderboot."/>
 		</page>
 
 		<page name='camera' open="False">
