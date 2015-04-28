@@ -35,7 +35,7 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printStatistics(0), m_fastLiveRenders(false), m_motionBlur(false),
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printMemoryStatistics(0), m_fastLiveRenders(false), m_motionBlur(false),
 	m_ROIActive(false)
 {
 #if ENABLE_PREVIEW_RENDERS
@@ -423,10 +423,25 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (sceneAccelStructureAttribute.isValid())
 		sceneAccelStructure = sceneAccelStructureAttribute.getValue(1, false);
 
-	FnKat::IntAttribute printStatisticsAttribute = imagineGSAttribute.getChildByName("print_statistics");
-	m_printStatistics = 1;
-	if (printStatisticsAttribute.isValid())
-		m_printStatistics = printStatisticsAttribute.getValue(1, false);
+	FnKat::IntAttribute statisticsTypeAttribute = imagineGSAttribute.getChildByName("statistics_type");
+	unsigned int statisticsType = 1;
+	if (statisticsTypeAttribute.isValid())
+		statisticsType = statisticsTypeAttribute.getValue(1, false);
+
+	FnKat::IntAttribute statisticsOutputTypeAttribute = imagineGSAttribute.getChildByName("statistics_output_type");
+	unsigned int statisticsOutputType = 0;
+	if (statisticsOutputTypeAttribute.isValid())
+		statisticsOutputType = statisticsOutputTypeAttribute.getValue(0, false);
+
+	FnKat::StringAttribute statisticsOutputPathAttribute = imagineGSAttribute.getChildByName("statistics_output_path");
+	m_statsOutputPath = "";
+	if (statisticsOutputPathAttribute.isValid())
+		m_statsOutputPath = statisticsOutputPathAttribute.getValue("", false);
+
+	FnKat::IntAttribute printMemoryStatisticsAttribute = imagineGSAttribute.getChildByName("print_memory_statistics");
+	m_printMemoryStatistics = 1;
+	if (printMemoryStatisticsAttribute.isValid())
+		m_printMemoryStatistics = printMemoryStatisticsAttribute.getValue(1, false);
 
 	FnKat::FloatAttribute rayEpsilonAttribute = imagineGSAttribute.getChildByName("ray_epsilon");
 	float rayEpsilon = 0.0001f;
@@ -490,6 +505,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("tile_order", bucketOrder);
 	m_renderSettings.add("tile_size", bucketSize);
 	m_renderSettings.add("deterministicSamples", deterministicSamples);
+
+	m_renderSettings.add("statsType", statisticsType);
+	m_renderSettings.add("statsOutputType", statisticsOutputType);
+
 
 	if (sceneAccelStructure == 1)
 	{
@@ -694,15 +713,11 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 		m_pScene->addObject(pPhysicalSkyLight, false, false);
 	}
 
-	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
-	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
-	// fragmenting the heap quite a bit...
-
-	mallocTrim();
-
-	fprintf(stderr, "Scene setup complete - starting render.\n");
+	flushCaches();
 
 	// assumes render settings have been set correctly before hand...
+
+	fprintf(stderr, "Imagine: Starting Disk render...\n");
 
 	startDiskRenderer();
 
@@ -729,15 +744,11 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 		m_pScene->addObject(pPhysicalSkyLight, false, false);
 	}
 
-	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
-	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
-	// fragmenting the heap quite a bit...
-
-	mallocTrim();
-
-	fprintf(stderr, "Scene setup complete - starting preview render.\n");
+	flushCaches();
 
 	// assumes render settings have been set correctly before hand...
+
+	fprintf(stderr, "Imagine: Starting Preview render...\n");
 
 	startInteractiveRenderer(false);
 
@@ -764,13 +775,7 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 		m_pScene->addObject(pPhysicalSkyLight, false, false);
 	}
 
-	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
-	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
-	// fragmenting the heap quite a bit...
-
-	mallocTrim();
-
-	fprintf(stderr, "Scene setup complete - starting live render.\n");
+	flushCaches();
 
 	// assumes render settings have been set correctly before hand...
 
@@ -790,9 +795,24 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 
 	m_renderSettings.add("integrated_rerender", true);
 
+	fprintf(stderr, "Imagine: Starting Live render...\n");
+
 	startInteractiveRenderer(true);
 
 //	renderFinished();
+}
+
+void ImagineRender::flushCaches()
+{
+	fprintf(stderr, "Imagine: Scene expansion complete - flushing caches...\n");
+
+	FnKat::RenderOutputUtils::flushProceduralDsoCaches();
+
+	// call mallocTrim in order to free up any memory that hasn't been de-allocated yet.
+	// Katana can be pretty inefficient with all its std::vectors it allocates for attributes,
+	// fragmenting the heap quite a bit...
+
+	mallocTrim();
 }
 
 #define SEND_ALL_FRAMES 1
@@ -984,6 +1004,7 @@ void ImagineRender::startDiskRenderer()
 	unsigned int writeFlags = 0;
 
 	// check that we'll be able to write the image before we actually render...
+	// TODO: this should be done before we bother expanding!!!
 
 	std::string directory = FileHelpers::getFileDirectory(m_diskRenderOutputPath);
 
@@ -1012,6 +1033,8 @@ void ImagineRender::startDiskRenderer()
 	// we don't want progressive rendering...
 	Raytracer raytracer(*m_pScene, &renderImage, m_renderSettings, false, m_renderThreads);
 	raytracer.setHost(this);
+
+	raytracer.setStatisticsOutputPath(m_statsOutputPath);
 
 	renderImage.clearImage();
 
@@ -1053,9 +1076,6 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 	}
 	m_pOutputImage->clearImage();
 
-	// ?
-	FnKat::RenderOutputUtils::flushProceduralDsoCaches();
-
 	// for the moment, use the number of render threads for the number of worker threads to use.
 	// this effects things like parallel accel structure building, tesselation and reading of textures when in
 	// non-lazy mode...
@@ -1066,6 +1086,7 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		// we don't want progressive rendering...
 		Raytracer raytracer(*m_pScene, m_pOutputImage, m_renderSettings, false, m_renderThreads);
 		raytracer.setHost(this);
+		raytracer.setStatisticsOutputPath(m_statsOutputPath);
 
 		raytracer.renderScene(1.0f, NULL);
 
@@ -1085,6 +1106,7 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		m_pRaytracer = new Raytracer(*m_pScene, m_renderThreads, true);
 		m_pRaytracer->setExtraChannels(0);
 		m_pRaytracer->setHost(this);
+		m_pRaytracer->setStatisticsOutputPath(m_statsOutputPath);
 
 		m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
 
@@ -1162,7 +1184,7 @@ void ImagineRender::renderFinished()
 #endif
 	fprintf(stderr, "Render complete.\n");
 
-	if (m_printStatistics != 0)
+	if (m_printMemoryStatistics != 0)
 	{
 		// run through all objects in the scene, building up geometry info
 
@@ -1176,7 +1198,7 @@ void ImagineRender::renderFinished()
 			pObject->fillGeometryInfo(info);
 		}
 
-		fprintf(stderr, "\n\nStatistics:\n-----------\n");
+		fprintf(stderr, "\n\nMemory Statistics:\n-----------\n");
 
 		std::string totalSourceGeoSize = formatSize(info.getTotalSourceSize());
 		std::string uniqueSourceGeoSize = formatSize(info.getUniqueSourceSize());
@@ -1202,7 +1224,7 @@ void ImagineRender::renderFinished()
 		fprintf(stderr, "Unique triangle indices memory size: %s\n", uniqueTriangleIndicesSize.c_str());
 		fprintf(stderr, "Total other memory size: %s\n", otherSize.c_str());
 
-		if (m_printStatistics == 2)
+		if (m_printMemoryStatistics == 2)
 		{
 			fprintf(stderr, "\nHistograms:");
 

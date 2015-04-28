@@ -99,6 +99,8 @@ protected:
 	void performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 	void performLiveRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 
+	void flushCaches();
+
 	//
 	bool setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings);
 
@@ -138,7 +140,8 @@ protected:
 	//
 	CreationSettings			m_creationSettings;
 
-	unsigned int				m_printStatistics;
+	std::string					m_statsOutputPath;
+	unsigned int				m_printMemoryStatistics;
 
 	bool						m_fastLiveRenders;
 
