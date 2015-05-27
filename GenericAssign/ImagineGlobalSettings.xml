@@ -8,6 +8,8 @@
 					<int name="path_distributed" value="2"/>
 				</hintdict>
 			</int>
+			<int name="enable_ambient_occlusion" default="0" widget="checkBox" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='0' help="Enable Ambient Occlusion shading with the Direct Lighting integrator."/>
+			<int name="ambient_occlusion_samples" default="5" widget="default" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='0' help="Number of Ambient Occlusion samples to use"/>
 			<int name="path_dist_diffuse_multiplier" default="3" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help="Diffuse ray multiplier for the PathDistributed integrator"/>
 			<int name="path_dist_glossy_multiplier" default="2" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help= "Glossy ray multiplier for the PathDistributed integrator"/>
 
@@ -22,7 +24,7 @@
 					<int name="Importance sample lights (uniform)" value="1"/>
 					<int name="Importance sample lights (weighted on samples)" value="2"/>
 					<int name="Importance sample lights (weighted radiance)" value="3"/>
-					<int name="Importance sample lights (weighted radiance) + localised" value="4"/>
+					<int name="Importance sample lights (weighted radiance) + localised" value="5"/>
 				</hintdict>
 			</int>
 			<int name="light_samples" default="1" conditionalVisOp='notEqualTo' conditionalVisPath='../light_sampling' conditionalVisValue='0' help="The number of light samples to use per pixel sample."/>

@@ -143,6 +143,8 @@ protected:
 	std::string					m_statsOutputPath;
 	unsigned int				m_printMemoryStatistics;
 
+	unsigned int				m_integratorType;
+	bool						m_ambientOcclusion;
 	bool						m_fastLiveRenders;
 
 	bool						m_motionBlur;

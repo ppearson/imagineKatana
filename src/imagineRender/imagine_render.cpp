@@ -35,7 +35,8 @@
 #include "sg_location_processor.h"
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
-	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printMemoryStatistics(0), m_fastLiveRenders(false), m_motionBlur(false),
+	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printMemoryStatistics(0), m_integratorType(1),
+	m_ambientOcclusion(false), m_fastLiveRenders(false), m_motionBlur(false),
 	m_ROIActive(false)
 {
 #if ENABLE_PREVIEW_RENDERS
@@ -242,9 +243,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	//       It's rediculous that Katana doesn't provide this anyway...
 
 	FnKat::IntAttribute integratorTypeAttribute = imagineGSAttribute.getChildByName("integrator");
-	unsigned int integratorType = 1;
+	m_integratorType = 1;
 	if (integratorTypeAttribute.isValid())
-		integratorType = integratorTypeAttribute.getValue(1, false);
+		m_integratorType = integratorTypeAttribute.getValue(1, false);
 
 	FnKat::IntAttribute lightSamplingAttribute = imagineGSAttribute.getChildByName("light_sampling");
 	unsigned int lightSamplingType = 0;
@@ -329,7 +330,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 
 	// PathDist stuff
-	if (integratorType == 2)
+	if (m_integratorType == 2)
 	{
 		unsigned int diffuseMultipler = 3;
 		unsigned int glossyMultipler = 2;
@@ -344,6 +345,30 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 		m_renderSettings.add("pathDistDiffuseMult", diffuseMultipler);
 		m_renderSettings.add("pathDistGlossyMult", glossyMultipler);
+	}
+	else if (m_integratorType == 0)
+	{
+		// direct illumination
+
+		// set number of samples to
+		unsigned int sampleEdge = (unsigned int)(sqrtf((float)samplesPerPixel));
+		m_renderSettings.add("antiAliasing", sampleEdge);
+
+		m_ambientOcclusion = false;
+		FnKat::IntAttribute ambientOcclusionAttribute = imagineGSAttribute.getChildByName("enable_ambient_occlusion");
+		if (ambientOcclusionAttribute.isValid())
+			m_ambientOcclusion = (ambientOcclusionAttribute.getValue(0, false) == 1);
+
+		if (m_ambientOcclusion)
+		{
+			m_renderSettings.add("ambientOcclusion", true);
+			unsigned int ambientOcclusionSamples = 5;
+			FnKat::IntAttribute ambientOcclusionSamplesAttribute = imagineGSAttribute.getChildByName("ambient_occlusion_samples");
+			if (ambientOcclusionSamplesAttribute.isValid())
+				ambientOcclusionSamples = ambientOcclusionSamplesAttribute.getValue(5, false);
+
+			m_renderSettings.add("ambientOcclusionSamples", ambientOcclusionSamples);
+		}
 	}
 
 	FnKat::IntAttribute depthOfFieldAttribute = imagineGSAttribute.getChildByName("depth_of_field");
@@ -476,7 +501,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (discardGeometryAttribute.isValid())
 		m_creationSettings.m_discardGeometry = (discardGeometryAttribute.getValue(0, false) == 1);
 
-	m_renderSettings.add("integrator", integratorType);
+	m_renderSettings.add("integrator", m_integratorType);
 	m_renderSettings.add("useMIS", (bool)useMIS);
 
 	if (useAdaptive == 1)
@@ -703,8 +728,8 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 		buildSceneGeometry(settings, rootIterator);
 	}
 
-	// if there's no light in the scene, add a physical sky...
-	if (m_pScene->getLightCount() == 0)
+	// if there's no light in the scene and we're not direct illumination, add a physical sky...
+	if (m_pScene->getLightCount() == 0 && !(m_integratorType == 0 && m_ambientOcclusion))
 	{
 		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
 
@@ -734,8 +759,8 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 		buildSceneGeometry(settings, rootIterator);
 	}
 
-	// if there's no light in the scene, add a physical sky...
-	if (m_pScene->getLightCount() == 0)
+	// if there's no light in the scene and we're not direct illumination, add a physical sky...
+	if (m_pScene->getLightCount() == 0 && !(m_integratorType == 0 && m_ambientOcclusion))
 	{
 		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
 
@@ -765,8 +790,8 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 		buildSceneGeometry(settings, rootIterator);
 	}
 
-	// if there's no light in the scene, add a physical sky...
-	if (m_pScene->getLightCount() == 0)
+	// if there's no light in the scene and we're not direct illumination, add a physical sky...
+	if (m_pScene->getLightCount() == 0 && !(m_integratorType == 0 && m_ambientOcclusion))
 	{
 		PhysicalSky* pPhysicalSkyLight = new PhysicalSky();
 
@@ -1088,6 +1113,11 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		raytracer.setHost(this);
 		raytracer.setStatisticsOutputPath(m_statsOutputPath);
 
+		if (m_integratorType == 0 && m_ambientOcclusion)
+		{
+			raytracer.setAmbientColour(Colour3f(0.7f));
+		}
+
 		raytracer.renderScene(1.0f, NULL);
 
 		m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
@@ -1107,6 +1137,11 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		m_pRaytracer->setExtraChannels(0);
 		m_pRaytracer->setHost(this);
 		m_pRaytracer->setStatisticsOutputPath(m_statsOutputPath);
+
+		if (m_integratorType == 0 && m_ambientOcclusion)
+		{
+			m_pRaytracer->setAmbientColour(Colour3f(0.7f));
+		}
 
 		m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
 
@@ -1130,7 +1165,10 @@ void ImagineRender::renderFinished()
 		const unsigned int origWidth = imageCopy.getWidth();
 		const unsigned int origHeight = imageCopy.getHeight();
 
-		imageCopy.normaliseProgressive();
+		if (m_integratorType != 0)
+		{
+			imageCopy.normaliseProgressive();
+		}
 		imageCopy.applyExposure(1.1f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
@@ -1460,7 +1498,10 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 
 		// take our own copy of a sub-set of the current final output image, containing just our tile area
 		OutputImage imageCopy(*m_pOutputImage, localSrcX, localSrcY, width, height);
-		imageCopy.normaliseProgressive();
+		if (m_integratorType != 0)
+		{
+			imageCopy.normaliseProgressive();
+		}
 		imageCopy.applyExposure(1.1f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
