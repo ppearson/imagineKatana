@@ -501,6 +501,38 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (discardGeometryAttribute.isValid())
 		m_creationSettings.m_discardGeometry = (discardGeometryAttribute.getValue(0, false) == 1);
 
+	//
+
+	FnKat::IntAttribute textureCachingTypeAttribute = imagineGSAttribute.getChildByName("texture_caching_type");
+	int textureCachingType = 1;
+	if (textureCachingTypeAttribute.isValid())
+		textureCachingType = textureCachingTypeAttribute.getValue(1, false);
+
+	if (textureCachingType == 0)
+	{
+		GlobalContext::instance().setTextureCachingType(GlobalContext::eTextureCachingNone);
+	}
+	else
+	{
+		GlobalContext::instance().setTextureCachingType(textureCachingType == 1 ? GlobalContext::eTextureCachingLazyGlobal :
+																				  GlobalContext::eTextureCachingLazyPerThread);
+
+		FnKat::IntAttribute textureCacheMaxSizeAttribute = imagineGSAttribute.getChildByName("texture_cache_max_size");
+		int textureCacheMaxSize = 4096;
+		if (textureCacheMaxSizeAttribute.isValid())
+			textureCacheMaxSize = textureCacheMaxSizeAttribute.getValue(4096, false);
+
+		FnKat::IntAttribute textureCacheMaxOpenFileHandlesAttribute = imagineGSAttribute.getChildByName("texture_cache_max_file_handles");
+		int textureCacheMaxOpenFileHandles = 744;
+		if (textureCacheMaxOpenFileHandlesAttribute.isValid())
+			textureCacheMaxOpenFileHandles = textureCacheMaxOpenFileHandlesAttribute.getValue(744, false);
+
+		GlobalContext::instance().setTextureCacheMemoryLimit(textureCacheMaxSize);
+		GlobalContext::instance().setTextureCacheFileHandleLimit(textureCacheMaxOpenFileHandles);
+	}
+
+	//
+
 	m_renderSettings.add("integrator", m_integratorType);
 	m_renderSettings.add("useMIS", (bool)useMIS);
 
@@ -533,7 +565,6 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	m_renderSettings.add("statsType", statisticsType);
 	m_renderSettings.add("statsOutputType", statisticsOutputType);
-
 
 	if (sceneAccelStructure == 1)
 	{
