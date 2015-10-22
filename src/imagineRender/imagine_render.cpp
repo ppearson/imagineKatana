@@ -60,8 +60,8 @@ int ImagineRender::start()
 	FnKat::GroupAttribute imagineGSAttribute = rootIterator.getAttribute("imagineGlobalStatements");
 	if (imagineGSAttribute.isValid())
 	{
-		FnKat::IntAttribute useAdaptiveAttribute = imagineGSAttribute.getChildByName("debug_popup");
-		if (useAdaptiveAttribute.isValid() && useAdaptiveAttribute.getValue(0, false) == 1)
+		FnKat::IntAttribute debugPopupAttribute = imagineGSAttribute.getChildByName("debug_popup");
+		if (debugPopupAttribute.isValid() && debugPopupAttribute.getValue(0, false) == 1)
 		{
 			int ret = system("xmessage debug\n");
 		}

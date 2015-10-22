@@ -523,9 +523,7 @@ void ShaderInfoHelper::addColourParam(const std::string& name, Col3f defaultValu
 
 	FnKat::Attribute defaultAttribute = fb.build();
 	FnKat::GroupBuilder params;
-	params.set("widget", FnKat::StringAttribute("dynamicArray"));
 	params.set("panelWidget", FnKat::StringAttribute("color"));
-	params.set("isDynamicArray", FnKat::IntAttribute(1));
 
 	FnKat::Attribute hintsAttribute = params.build();
 
@@ -541,7 +539,6 @@ void ShaderInfoHelper::addIntParam(const std::string& name, int defaultValue)
 
 	FnKat::Attribute defaultAttribute = ib.build();
 	FnKat::GroupBuilder params;
-	params.set("isDynamicArray", FnKat::IntAttribute(0));
 
 	FnKat::Attribute hintsAttribute = params.build();
 
@@ -557,7 +554,6 @@ void ShaderInfoHelper::addIntEnumParam(const std::string& name, int defaultValue
 
 	FnKat::Attribute defaultAttribute = ib.build();
 	FnKat::GroupBuilder params;
-	params.set("isDynamicArray", FnKat::IntAttribute(0));
 
 	params.set("options", FnKat::StringAttribute(options, size, 1));
 	params.set("widget", FnKat::StringAttribute("popup"));
@@ -576,7 +572,6 @@ void ShaderInfoHelper::addBoolParam(const std::string& name, bool defaultValue)
 
 	FnKat::Attribute defaultAttribute = ib.build();
 	FnKat::GroupBuilder params;
-	params.set("isDynamicArray", FnKat::IntAttribute(0));
 
 	FnKat::Attribute hintsAttribute = params.build();
 
@@ -592,7 +587,6 @@ void ShaderInfoHelper::addStringParam(const std::string& name)
 
 	FnKat::Attribute defaultAttribute = sb.build();
 	FnKat::GroupBuilder params;
-	params.set("isDynamicArray", FnKat::IntAttribute(0));
 	params.set("widget", FnKat::StringAttribute("assetIdInput"));
 
 	FnKat::Attribute hintsAttribute = params.build();
