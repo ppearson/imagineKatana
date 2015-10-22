@@ -110,16 +110,15 @@
 					<int name="Global" value="1"/>
 				</hintdict>
 				<help>Type of image texture caching to use. None pre-loads textures before starting. Global uses lazy loading of textures in a global texture cache.
+				It's highly recommended to use tiled mipmapped textures with this type of texture caching.
 				</help>
 			</int>
-			<float name="texture_cache_max_size" default="4096" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
-				<help>Max texture cache size in MB.
-				</help>
-			</float>
-			<float name="texture_cache_max_file_handles" default="744" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
-				<help>Max number of file handles active at once for reading image textures.
-				</help>
-			</float>
+			<int name="texture_cache_max_size" default="4096" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
+				<help>Max texture cache size in MB.</help>
+			</int>
+			<int name="texture_cache_max_file_handles" default="744" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
+				<help>Max number of file handles active at once for reading image textures.</help>
+			</int>
 
 			<int name="statistics_type" default="1" widget="mapper">
 				<hintdict name='options'>
