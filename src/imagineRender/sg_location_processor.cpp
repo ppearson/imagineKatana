@@ -439,8 +439,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 	// see if we've got any Normals....
 	FnKat::FloatAttribute normalsAttribute = iterator.getAttribute("geometry.vertex.N");
-	// TODO: don't do for SubD's? Shouldn't have them anyway, but...
-	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid())
+	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid() && !asSubD)
 	{
 		// check if the points had more than one time sample...
 		if (!m_creationSettings.m_motionBlur || pNewGeoInstance->getTimeSamples() == 1)
