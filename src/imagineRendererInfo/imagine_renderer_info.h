@@ -51,7 +51,7 @@ public:
 	virtual void fillRendererShaderTypeTags(std::vector<std::string>& shaderTypeTags, const std::string& shaderType) const;
 
 	virtual bool buildRendererObjectInfo(FnKat::GroupBuilder& rendererObjectInfo, const std::string& name, const std::string& type,
-													const FnKat::GroupAttribute inputAttr = NULL) const;
+													const FnKat::GroupAttribute inputAttr) const;
 
 	virtual void buildLiveRenderControlModules(FnKat::GroupBuilder& liveRenderControlModules) const;
 
