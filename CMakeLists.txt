@@ -36,7 +36,7 @@ ENDIF(${MODERN_GCC} MATCHES "1")
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
 
-SET(KATANA_VERSION 1)
+SET(KATANA_VERSION 2)
 IF(${KATANA_VERSION} MATCHES 1)
 # Katana APIs
 	SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api")
@@ -282,3 +282,18 @@ ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
 SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY} ${BOOST_EXT_LIBS})
 
+# imagineViewerModifier
+
+FIND_PACKAGE(OpenGL REQUIRED)
+
+FILE(GLOB_RECURSE imagineViewerModifier_SOURCES "${CMAKE_SOURCE_DIR}/src/imagineViewerModifier/*.cpp")
+
+ADD_LIBRARY(imagineViewerModifier SHARED ${imagineViewerModifier_SOURCES})
+
+IF(${KATANA_VERSION} MATCHES 2)
+	ADD_DEFINITIONS(-DKAT_V_2)
+ENDIF(${KATANA_VERSION} MATCHES 2)
+
+ADD_DEPENDENCIES(imagineViewerModifier katanaAPI)
+SET_TARGET_PROPERTIES(imagineViewerModifier PROPERTIES PREFIX "")
+TARGET_LINK_LIBRARIES(imagineViewerModifier katanaAPI ${OPENGL_LIBRARY})

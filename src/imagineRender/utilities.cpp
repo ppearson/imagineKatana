@@ -9,6 +9,7 @@
 
 #include "io/image/image_reader_hdr.h"
 #include "io/image/image_reader_exr.h"
+#include "io/image/image_reader_test.h"
 #if HAVE_TIFF_SUPPORT
 #include "io/image/image_reader_tiff.h"
 #endif
@@ -26,6 +27,11 @@ ImageReader* Utilities::createImageReaderHDR()
 ImageReader* Utilities::createImageReaderEXR()
 {
 	return new ImageReaderEXR();
+}
+
+ImageReader* Utilities::createImageReaderTXT()
+{
+	return new ImageReaderTXT();
 }
 
 #if HAVE_TIFF_SUPPORT
@@ -48,6 +54,7 @@ void Utilities::registerFileReaders()
 	// register the file readers manually...
 	FileIORegistry::instance().registerImageReader("hdr", createImageReaderHDR);
 	FileIORegistry::instance().registerImageReader("exr", createImageReaderEXR);
+	FileIORegistry::instance().registerImageReader("txt", createImageReaderTXT);
 #if HAVE_TIFF_SUPPORT
 	FileIORegistry::instance().registerImageReaderMultipleExtensions("tif;tiff;tex;tx", createImageReaderTIFF);
 #endif

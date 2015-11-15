@@ -11,6 +11,7 @@ public:
 
 	static ImageReader* createImageReaderHDR();
 	static ImageReader* createImageReaderEXR();
+	static ImageReader* createImageReaderTXT();
 #if HAVE_TIFF_SUPPORT
 	static ImageReader* createImageReaderTIFF();
 #endif
