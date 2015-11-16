@@ -156,7 +156,7 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
-	Colour3f diffColour = ah.getColourParam("diff_col", Colour3f(0.8f, 0.8f, 0.8f));
+	Colour3f diffColour = ah.getColourParam("diff_col", Colour3f(0.6f, 0.6f, 0.6f));
 	pNewStandardMaterial->setDiffuseColour(diffColour);
 
 	// diffuse texture overrides colour if available

@@ -162,7 +162,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("diff_col", Col3f(0.8f, 0.8f, 0.8f));
+	helper.addColourParam("diff_col", Col3f(0.6f, 0.6f, 0.6f));
 	helper.addStringParam("diff_col_texture");
 	helper.addIntParam("diff_col_texture_flags", 0);
 	helper.addFloatSliderParam("diff_roughness", 0.0f);
@@ -191,7 +191,7 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("diff_col", Col3f(0.8f, 0.8f, 0.8f));
+	helper.addColourParam("diff_col", Col3f(0.6f, 0.6f, 0.6f));
 	helper.addStringParam("diff_col_texture");
 	helper.addIntParam("diff_col_texture_flags", 0);
 
