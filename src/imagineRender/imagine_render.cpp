@@ -529,6 +529,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 		GlobalContext::instance().setTextureCacheMemoryLimit(textureCacheMaxSize);
 		GlobalContext::instance().setTextureCacheFileHandleLimit(textureCacheMaxOpenFileHandles);
+
+		FnKat::IntAttribute textureTileDataFixAttribute = imagineGSAttribute.getChildByName("texture_tile_data_fix");
+		int textureTileDataFixType = 0;
+		if (textureTileDataFixAttribute.isValid())
+		{
+			textureTileDataFixType = textureTileDataFixAttribute.getValue(0, false);
+		}
+		m_renderSettings.add("textureTileDataFix", textureTileDataFixType);
 	}
 
 	//
