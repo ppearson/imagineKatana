@@ -212,16 +212,20 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 		fprintf(stderr, "ROI found: (%i, %i, %i, %i)\n", roiValues[0], roiValues[1], roiValues[2], roiValues[3]);
 
 		m_ROIActive = true;
-		m_ROIStartX = roiValues[0];
-		m_ROIStartY = roiValues[1];
 
 		// adjust how big our render backbuffer area is
 		m_ROIWidth = roiValues[2];
 		m_ROIHeight = roiValues[3];
 
+		m_ROIStartX = roiValues[0];
+		// invert this
+		m_ROIStartY = m_renderHeight - roiValues[1];
+		// offset it by height of area, as Imagine's Y origin is opposite Katana's
+		m_ROIStartY -= m_ROIHeight;
+
 		m_renderSettings.add("renderCrop", true);
-		m_renderSettings.add("cropX", roiValues[0]);
-		m_renderSettings.add("cropY", roiValues[1]);
+		m_renderSettings.add("cropX", m_ROIStartX);
+		m_renderSettings.add("cropY", m_ROIStartY);
 		m_renderSettings.add("cropWidth", roiValues[2]);
 		m_renderSettings.add("cropHeight", roiValues[3]);
 	}
@@ -1211,7 +1215,7 @@ void ImagineRender::renderFinished()
 		imageCopy.applyExposure(1.1f);
 
 		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
-		pNewTileMessage->setStartCoordinates(0, 0);
+		pNewTileMessage->setStartCoordinates(m_ROIStartX, m_ROIStartY);
 		pNewTileMessage->setDataDimensions(origWidth, origHeight);
 
 		unsigned int skipSize = 4 * sizeof(float);
@@ -1489,79 +1493,157 @@ void ImagineRender::progressChanged(float progress)
 
 void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 {
-#if ENABLE_PREVIEW_RENDERS
-	if (m_pOutputImage)
+	if (!m_pOutputImage)
+		return;
+
+	const unsigned int origWidth = m_pOutputImage->getWidth();
+	const unsigned int origHeight = m_pOutputImage->getHeight();
+
+	unsigned int x = tileInfo.x;
+	unsigned int y = tileInfo.y;
+	unsigned int width = tileInfo.width;
+	unsigned int height = tileInfo.height;
+
+	const bool doAprons = true;
+	if (doAprons)
 	{
-		const unsigned int origWidth = m_pOutputImage->getWidth();
-		const unsigned int origHeight = m_pOutputImage->getHeight();
-
-		unsigned int x = tileInfo.x;
-		unsigned int y = tileInfo.y;
-		unsigned int width = tileInfo.width;
-		unsigned int height = tileInfo.height;
-
-		const bool doAprons = true;
-		if (doAprons)
+		// add a pixel border around the output tile apron to account for pixel filters...
+		const unsigned int tb = tileInfo.tileApronSize;
+		if (x >= tb)
 		{
-			// add a pixel border around the output tile apron to account for pixel filters...
-			const unsigned int tb = tileInfo.tileApronSize;
-			if (x >= tb)
-			{
-				x -= tb;
-				width += tb;
-			}
-			if (y >= tb)
-			{
-				y -= tb;
-				height += tb;
-			}
-			if (x + width + tb < origWidth)
-			{
-				width += tb;
-			}
-			if (y + height + tb < origHeight)
-			{
-				height += tb;
-			}
+			x -= tb;
+			width += tb;
 		}
+		if (y >= tb)
+		{
+			y -= tb;
+			height += tb;
+		}
+		if (x + width + tb < origWidth)
+		{
+			width += tb;
+		}
+		if (y + height + tb < origHeight)
+		{
+			height += tb;
+		}
+	}
 
-		// the TileInfo x/y coordinates aren't in local subimage space for crop renders, so we need to offset them
-		// back into the OutputImage's space
-		unsigned int localSrcX = x;
-		unsigned int localSrcY = y;
-		if (m_ROIActive)
+	// the TileInfo x/y coordinates aren't in local subimage space for crop renders, so we need to offset them
+	// back into the OutputImage's space
+	unsigned int localSrcX = x;
+	unsigned int localSrcY = y;
+
+	if (m_ROIActive)
+	{
+		// need to clamp these for image apron borders for pixel filtering...
+		if (m_ROIStartX > localSrcX)
+		{
+			localSrcX = 0;
+		}
+		else
 		{
 			localSrcX -= m_ROIStartX;
+		}
+
+		if (m_ROIStartY > localSrcY)
+		{
+			localSrcY = 0;
+		}
+		else
+		{
 			localSrcY -= m_ROIStartY;
 		}
+	}
 
-		// take our own copy of a sub-set of the current final output image, containing just our tile area
-		OutputImage imageCopy(*m_pOutputImage, localSrcX, localSrcY, width, height);
-		if (m_integratorType != 0)
+	// take our own copy of a sub-set of the current final output image, containing just our tile area
+	OutputImage imageCopy(*m_pOutputImage, localSrcX, localSrcY, width, height);
+	if (m_integratorType != 0)
+	{
+		imageCopy.normaliseProgressive();
+	}
+	imageCopy.applyExposure(1.1f);
+
+	FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
+
+	if (!pNewTileMessage)
+		return;
+
+	pNewTileMessage->setStartCoordinates(x, y);
+
+	pNewTileMessage->setDataDimensions(width, height);
+
+	unsigned int skipSize = 4 * sizeof(float);
+	unsigned int dataSize = width * height * skipSize;
+	unsigned char* pData = new unsigned char[dataSize];
+
+	unsigned char* pDstRow = pData;
+
+	//
+	x = 0;
+	y = 0;
+
+	for (unsigned int i = 0; i < height; i++)
+	{
+		const Colour4f* pSrcRow = imageCopy.colourRowPtr(y + i);
+		const Colour4f* pSrcPixel = pSrcRow + x;
+
+		unsigned char* pDstPixel = pDstRow;
+
+		for (unsigned int j = 0; j < width; j++)
 		{
-			imageCopy.normaliseProgressive();
-		}
-		imageCopy.applyExposure(1.1f);
+			// copy each component manually, as we need to swap the A channel to be beginning for Katana...
+			memcpy(pDstPixel, &pSrcPixel->a, sizeof(float));
+			pDstPixel += sizeof(float);
+			memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
+			pDstPixel += sizeof(float);
+			memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
+			pDstPixel += sizeof(float);
+			memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
+			pDstPixel += sizeof(float);
 
-		FnKat::DataMessage* pNewTileMessage = new FnKat::DataMessage(*(m_pPrimaryChannel));
+			pSrcPixel += 1;
+		}
+
+		pDstRow += width * skipSize;
+	}
+
+	pNewTileMessage->setData(pData, dataSize);
+	pNewTileMessage->setByteSkip(skipSize);
+
+	m_pDataPipe->send(*pNewTileMessage);
+
+	delete [] pData;
+	pData = NULL;
+
+	delete pNewTileMessage;
+
+	// now do any extra AOVS
+
+	std::vector<RenderAOV>::iterator itRenderAOV = m_aExtraInteractiveAOVs.begin();
+	for (; itRenderAOV != m_aExtraInteractiveAOVs.end(); ++itRenderAOV)
+	{
+		RenderAOV& rAOV = *itRenderAOV;
+
+		pNewTileMessage = new FnKat::DataMessage(*(rAOV.pChannelMessage));
 
 		if (!pNewTileMessage)
-			return;
+			continue;
 
 		if (m_ROIActive)
 		{
 			// if ROI rendering is enabled, we annoyingly seem to have to handle offsetting this into the full
 			// image format for Katana...
 //			pNewTileMessage->setStartCoordinates(x + m_ROIStartX, y + m_ROIStartY);
-			pNewTileMessage->setStartCoordinates(x, y);
+			pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
 		}
 		else
 		{
-			pNewTileMessage->setStartCoordinates(x, y);
+			pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
 		}
 		pNewTileMessage->setDataDimensions(width, height);
 
-		unsigned int skipSize = 4 * sizeof(float);
+		unsigned int skipSize = rAOV.numChannels * sizeof(float);
 		unsigned int dataSize = width * height * skipSize;
 		unsigned char* pData = new unsigned char[dataSize];
 
@@ -1573,16 +1655,13 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 
 		for (unsigned int i = 0; i < height; i++)
 		{
-			const Colour4f* pSrcRow = imageCopy.colourRowPtr(y + i);
-			const Colour4f* pSrcPixel = pSrcRow + x;
+			const Colour3f* pSrcRow = imageCopy.normalRowPtr(y + i);
+			const Colour3f* pSrcPixel = pSrcRow + x;
 
 			unsigned char* pDstPixel = pDstRow;
 
 			for (unsigned int j = 0; j < width; j++)
 			{
-				// copy each component manually, as we need to swap the A channel to be beginning for Katana...
-				memcpy(pDstPixel, &pSrcPixel->a, sizeof(float));
-				pDstPixel += sizeof(float);
 				memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
 				pDstPixel += sizeof(float);
 				memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
@@ -1605,76 +1684,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		pData = NULL;
 
 		delete pNewTileMessage;
-
-		// now do any extra AOVS
-
-		std::vector<RenderAOV>::iterator itRenderAOV = m_aExtraInteractiveAOVs.begin();
-		for (; itRenderAOV != m_aExtraInteractiveAOVs.end(); ++itRenderAOV)
-		{
-			RenderAOV& rAOV = *itRenderAOV;
-
-			pNewTileMessage = new FnKat::DataMessage(*(rAOV.pChannelMessage));
-
-			if (!pNewTileMessage)
-				continue;
-
-			if (m_ROIActive)
-			{
-				// if ROI rendering is enabled, we annoyingly seem to have to handle offsetting this into the full
-				// image format for Katana...
-	//			pNewTileMessage->setStartCoordinates(x + m_ROIStartX, y + m_ROIStartY);
-				pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
-			}
-			else
-			{
-				pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
-			}
-			pNewTileMessage->setDataDimensions(width, height);
-
-			unsigned int skipSize = rAOV.numChannels * sizeof(float);
-			unsigned int dataSize = width * height * skipSize;
-			unsigned char* pData = new unsigned char[dataSize];
-
-			unsigned char* pDstRow = pData;
-
-			//
-			x = 0;
-			y = 0;
-
-			for (unsigned int i = 0; i < height; i++)
-			{
-				const Colour3f* pSrcRow = imageCopy.normalRowPtr(y + i);
-				const Colour3f* pSrcPixel = pSrcRow + x;
-
-				unsigned char* pDstPixel = pDstRow;
-
-				for (unsigned int j = 0; j < width; j++)
-				{
-					memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
-					pDstPixel += sizeof(float);
-					memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
-					pDstPixel += sizeof(float);
-					memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
-					pDstPixel += sizeof(float);
-
-					pSrcPixel += 1;
-				}
-
-				pDstRow += width * skipSize;
-			}
-
-			pNewTileMessage->setData(pData, dataSize);
-			pNewTileMessage->setByteSkip(skipSize);
-
-			m_pDataPipe->send(*pNewTileMessage);
-
-			delete [] pData;
-			pData = NULL;
-
-			delete pNewTileMessage;
-		}
 	}
-#endif
 }
 
 DEFINE_RENDER_PLUGIN(ImagineRender)
