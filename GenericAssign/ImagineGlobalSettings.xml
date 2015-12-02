@@ -119,6 +119,12 @@
 			<int name="texture_cache_max_file_handles" default="744" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
 				<help>Max number of file handles active at once for reading image textures.</help>
 			</int>
+			<int name="texture_cache_cache_file_handles" default="1" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="checkBox">
+				<help>Attempts to cache file handles to files on disk (network) if the file reader supports it.</help>
+			</int>
+			<int name="texture_cache_global_mipmap_bias" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
+				<help>Biases the mipmap level used for texture filtering. Negative values bias it to lower (bigger) mipmap levels.</help>
+			</int>
 			<int name="texture_tile_data_fix" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="mapper">
 				<hintdict name='options'>
 					<int name="None" value="0"/>

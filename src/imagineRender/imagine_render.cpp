@@ -541,6 +541,26 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 			textureTileDataFixType = textureTileDataFixAttribute.getValue(0, false);
 		}
 		m_renderSettings.add("textureTileDataFix", textureTileDataFixType);
+
+		FnKat::IntAttribute textureCacheCacheFileHandlesAttribute = imagineGSAttribute.getChildByName("texture_cache_cache_file_handles");
+		int textureCacheCacheFileHandles = 1;
+		if (textureCacheCacheFileHandlesAttribute.isValid())
+			textureCacheCacheFileHandles = textureCacheCacheFileHandlesAttribute.getValue(1, false);
+
+		if (textureCacheCacheFileHandles == 1)
+		{
+			m_renderSettings.add("useTextureFileHandleCaching", true);
+		}
+
+		FnKat::IntAttribute textureCacheGlobalMipmapBiasAttribute = imagineGSAttribute.getChildByName("texture_cache_global_mipmap_bias");
+		int textureCacheGlobalMipmapBias = 0;
+		if (textureCacheGlobalMipmapBiasAttribute.isValid())
+			textureCacheGlobalMipmapBias = textureCacheGlobalMipmapBiasAttribute.getValue(0, false);
+
+		if (textureCacheGlobalMipmapBias != 0)
+		{
+			m_renderSettings.add("textureGlobalMipmapBias", (float)textureCacheGlobalMipmapBias);
+		}
 	}
 
 	//
