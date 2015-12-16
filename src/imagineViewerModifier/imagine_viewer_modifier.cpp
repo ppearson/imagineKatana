@@ -11,8 +11,10 @@
 #include <stdio.h>
 #include <cmath>
 
+static const float kPI = 3.14159f;
+
 ImagineViewerModifier::ImagineViewerModifier(Foundry::Katana::GroupAttribute args) : FnKat::ViewerModifier(args),
-	m_lightType(eLightPoint), m_areaLightType(eAreaLightRect), m_width(1.0f), m_depth(1.0f)
+	m_lightType(eLightPoint), m_areaLightType(eAreaLightRect), m_width(1.0f), m_depth(1.0f), m_coneAngle(35.0f)
 {
 
 }
@@ -99,6 +101,14 @@ void ImagineViewerModifier::setup(Foundry::Katana::ViewerModifierInput& input)
 			m_depth = depthAttribute.getValue(1.0f, false);
 		}
 	}
+	else if (m_lightType == eLightSpot)
+	{
+		Foundry::Katana::FloatAttribute coneAngleAttribute = lightParamsAttribute.getChildByName("cone_angle");
+		if (coneAngleAttribute.isValid())
+		{
+			m_coneAngle = coneAngleAttribute.getValue(35.0f, false);
+		}
+	}
 }
 
 void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
@@ -122,19 +132,50 @@ void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
 
 		// Imagine's lights are non-standard, defaultly pointing down Y
 
-		glBegin(GL_POLYGON);
-			glVertex3f(-halfWidth, 0.0f, -halfDepth);
-			glVertex3f(halfWidth, 0.0f, -halfDepth);
-			glVertex3f(halfWidth, 0.0f, halfDepth);
-			glVertex3f(-halfWidth, 0.0f, halfDepth);
-		glEnd();
+		bool drawDirection = false;
 
-		glBegin(GL_LINES);
-			glVertex3f(0.0f, 0.0f, 0.0f);
-			glVertex3f(0.0f, -1.0f, 0.0f);
-			glVertex3f(0.0f, -1.0f, 0.0f);
-			glVertex3f(0.0f, -0.75, 0.25);
-		glEnd();
+		if (m_areaLightType == eAreaLightRect)
+		{
+			glBegin(GL_POLYGON);
+				glVertex3f(-halfWidth, 0.0f, -halfDepth);
+				glVertex3f(halfWidth, 0.0f, -halfDepth);
+				glVertex3f(halfWidth, 0.0f, halfDepth);
+				glVertex3f(-halfWidth, 0.0f, halfDepth);
+			glEnd();
+
+			drawDirection = true;
+		}
+		else if (m_areaLightType == eAreaLightDisc)
+		{
+			static const unsigned int kNumSegments = 20;
+			const float discAngleInc = kPI * 2.0f / (float)kNumSegments;
+			glBegin(GL_POLYGON);
+			float Y = 0.0f;
+			for (unsigned int i = 0; i < kNumSegments; i++)
+			{
+				float X = cosf(discAngleInc * (float)i);
+				float Z = sinf(discAngleInc * (float)i);
+
+				X *= halfWidth;
+				Z *= halfDepth;
+
+				glVertex3f(X, Y, Z);
+			}
+
+			glEnd();
+
+			drawDirection = true;
+		}
+
+		if (drawDirection)
+		{
+			glBegin(GL_LINES);
+				glVertex3f(0.0f, 0.0f, 0.0f);
+				glVertex3f(0.0f, -1.0f, 0.0f);
+				glVertex3f(0.0f, -1.0f, 0.0f);
+				glVertex3f(0.0f, -0.75, 0.25);
+			glEnd();
+		}
 	}
 	else if (m_lightType == eLightPoint)
 	{
@@ -146,7 +187,7 @@ void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
 
 		unsigned int numParallels = segments / 2 + 1;
 
-		float fAngleInc = 2.0f * 3.14159f / (float)segments;
+		float fAngleInc = 2.0f * kPI / (float)segments;
 
 		for (unsigned int i = 0; i < numParallels; i++)
 		{
@@ -168,6 +209,44 @@ void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
 		// now the last one, north to south pole
 		glVertex3f(0.0f, -kRadius, 0.0f);
 		glVertex3f(0.0f, kRadius, 0.0f);
+
+		glEnd();
+	}
+	else if (m_lightType == eLightSpot)
+	{
+		// pretty hacky, and not the fastest, but...
+
+		const float spotHeight = 1.6f;
+		float angleRad = (90.0f - m_coneAngle) * (kPI / 180.0f);
+		float coneRadius = spotHeight / tanf(angleRad);
+
+		static const unsigned int kNumSegments = 20;
+		const float discAngleInc = kPI * 2.0f / (float)kNumSegments;
+		glBegin(GL_POLYGON);
+		for (unsigned int i = 0; i < kNumSegments; i++)
+		{
+			// start at the top...
+			glVertex3f(0.0f, 0.0f, 0.0f);
+
+			float X0 = cosf(discAngleInc * (float)i);
+			float Z0 = sinf(discAngleInc * (float)i);
+
+			unsigned int nextI = (i < kNumSegments) ? i + 1 : 0;
+
+			float X1 = cosf(discAngleInc * (float)nextI);
+			float Z1 = sinf(discAngleInc * (float)nextI);
+
+			X0 *= coneRadius;
+			Z0 *= coneRadius;
+
+			X1 *= coneRadius;
+			Z1 *= coneRadius;
+
+			glVertex3f(X0, -spotHeight, Z0);
+			glVertex3f(X1, -spotHeight, Z1);
+
+			glVertex3f(0.0f, 0.0f, 0.0f);
+		}
 
 		glEnd();
 	}

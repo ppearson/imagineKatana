@@ -82,6 +82,8 @@ protected:
 
 	float			m_width;
 	float			m_depth;
+
+	float			m_coneAngle;
 };
 
 #endif // IMAGINEVIEWERMODIFIER_H

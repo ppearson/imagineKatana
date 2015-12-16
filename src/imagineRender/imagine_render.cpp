@@ -48,7 +48,7 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 
 	m_pRaytracer = NULL;
 
-	m_renderThreads = System::getNumberOfCores() - 1;
+	m_renderThreads = System::getNumberOfThreads() - 1;
 
 	m_renderWidth = 512;
 	m_renderHeight = 512;
@@ -742,6 +742,16 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 			else if (cameraProjectionType == 2)
 			{
 				pRenderCamera->setProjectionType(Camera::eOrthographic);
+			}
+		}
+
+		FnKat::IntAttribute environmentVisibleAttr = itRoot.getAttribute("imagineGlobalStatements.environment_visible");
+		if (environmentVisibleAttr.isValid())
+		{
+			int environmentVisible = environmentVisibleAttr.getValue(0, false);
+			if (environmentVisible == 1)
+			{
+				m_pScene->getProjectProperties().setBackgroundType(eBackgroundEnvironment);
 			}
 		}
 	}

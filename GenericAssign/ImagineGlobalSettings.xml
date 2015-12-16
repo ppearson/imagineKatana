@@ -209,6 +209,7 @@
 					<int name="polygon (blades)" value="1"/>
 				</hintdict>
 			</int>
+			<int name="environment_visible" widget="checkBox" default="0"/>
 		</page>
 	</group>
 </args>
