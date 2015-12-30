@@ -47,7 +47,7 @@ protected:
 
 	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD);
 
-	void processAssembly(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
+	void processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
 	CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
 																	   const FnKat::GroupAttribute& imagineStatements);

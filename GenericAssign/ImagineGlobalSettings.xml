@@ -68,7 +68,15 @@
 		</page>
 		<page name='scene' open="True">
 			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and uses more memory, and doesn't support instancing or transform motion blur, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
-			<int name="specialise_assembly_types" default="1" widget="checkBox" help="Detect locations of assembly type and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly."/>
+
+			<int name="specialise_types" widget="mapper" default="0" help="Whether to detect certain locations and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly.">
+				<hintdict name='options'>
+					<int name="off" value="0"/>
+					<int name="assembly" value="1"/>
+					<int name="component" value="2"/>
+				</hintdict>
+			</int>
+
 			<int name="deduplicate_vertex_normals" default="0" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
 			<int name="use_geo_normals" default="1" widget="checkBox" help="Use normals from geo attributes"/>
 			<int name="use_location_bounds" default="1" widget="checkBox" help="Use bound attributes from locations for bboxes. If turned off or no bound attribute exists, Imagine will calculate them."/>
@@ -104,36 +112,38 @@
 		</page>
 
 		<page name='advanced' open="False">
-			<int name="texture_caching_type" default="1" widget="mapper">
-				<hintdict name='options'>
-					<int name="None" value="0"/>
-					<int name="Global" value="1"/>
-				</hintdict>
-				<help>Type of image texture caching to use. None pre-loads textures before starting. Global uses lazy loading of textures in a global texture cache.
-				It's highly recommended to use tiled mipmapped textures with this type of texture caching.
-				</help>
-			</int>
-			<int name="texture_cache_max_size" default="4096" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
-				<help>Max texture cache size in MB.</help>
-			</int>
-			<int name="texture_cache_max_file_handles" default="744" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
-				<help>Max number of file handles active at once for reading image textures.</help>
-			</int>
-			<int name="texture_cache_cache_file_handles" default="1" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="checkBox">
-				<help>Attempts to cache file handles to files on disk (network) if the file reader supports it.</help>
-			</int>
-			<int name="texture_cache_global_mipmap_bias" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
-				<help>Biases the mipmap level used for texture filtering. Negative values bias it to lower (bigger) mipmap levels.</help>
-			</int>
-			<int name="texture_tile_data_fix" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="mapper">
-				<hintdict name='options'>
-					<int name="None" value="0"/>
-					<int name="Clamp min values to 0.0f" value="1"/>
-					<int name="Clamp min values to 0.0f with warnings" value="2"/>
-				</hintdict>
-				<help>Type of data correction to do after reading tiled data from images. Sometimes images can have negative or NaN pixel values depending on the filter type used to create the mipmaps
-				and any colourspace conversion done. Enabling this attempts to detect and fix these issues after reading the data.</help>
-			</int>
+			<page name='texture_caching' open="False">
+				<int name="texture_caching_type" default="1" widget="mapper">
+					<hintdict name='options'>
+						<int name="None" value="0"/>
+						<int name="Global" value="1"/>
+					</hintdict>
+					<help>Type of image texture caching to use. None pre-loads textures before starting. Global uses lazy loading of textures in a global texture cache.
+					It's highly recommended to use tiled mipmapped textures with this type of texture caching.
+					</help>
+				</int>
+				<int name="texture_cache_max_size" default="4096" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
+					<help>Max texture cache size in MB.</help>
+				</int>
+				<int name="texture_cache_max_file_handles" default="744" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
+					<help>Max number of file handles active at once for reading image textures.</help>
+				</int>
+				<int name="texture_cache_cache_file_handles" default="1" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="checkBox">
+					<help>Attempts to cache file handles to files on disk (network) if the file reader supports it.</help>
+				</int>
+				<int name="texture_cache_global_mipmap_bias" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
+					<help>Biases the mipmap level used for texture filtering. Negative values bias it to lower (bigger) mipmap levels.</help>
+				</int>
+				<int name="texture_tile_data_fix" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="mapper">
+					<hintdict name='options'>
+						<int name="None" value="0"/>
+						<int name="Clamp min values to 0.0f" value="1"/>
+						<int name="Clamp min values to 0.0f with warnings" value="2"/>
+					</hintdict>
+					<help>Type of data correction to do after reading tiled data from images. Sometimes images can have negative or NaN pixel values depending on the filter type used to create the mipmaps
+					and any colourspace conversion done. Enabling this attempts to detect and fix these issues after reading the data.</help>
+				</int>
+			</page>
 
 			<int name="statistics_type" default="1" widget="mapper">
 				<hintdict name='options'>

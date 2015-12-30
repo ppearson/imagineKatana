@@ -442,10 +442,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (useBoundsAttribute.isValid())
 		m_creationSettings.m_useBounds = (useBoundsAttribute.getValue(1, false) == 1);
 
-	FnKat::IntAttribute specialiseAssembliesAttribute = imagineGSAttribute.getChildByName("specialise_assembly_types");
-	m_creationSettings.m_specialiseAssemblies = true;
-	if (specialiseAssembliesAttribute.isValid())
-		m_creationSettings.m_specialiseAssemblies = (specialiseAssembliesAttribute.getValue(1, false) == 1);
+	FnKat::IntAttribute specialiseTypeAttribute = imagineGSAttribute.getChildByName("specialise_types");
+	if (specialiseTypeAttribute.isValid())
+		m_creationSettings.m_specialiseType = (CreationSettings::SpecialiseType)specialiseTypeAttribute.getValue(0, false);
 
 	FnKat::IntAttribute sceneAccelStructureAttribute = imagineGSAttribute.getChildByName("scene_accel_structure");
 	unsigned int sceneAccelStructure = 1;

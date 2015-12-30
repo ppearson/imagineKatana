@@ -87,9 +87,14 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	{
 		return;
 	}
-	if (m_creationSettings.m_specialiseAssemblies && type == "assembly")
+	if (m_creationSettings.m_specialiseType == CreationSettings::eAssembly && type == "assembly")
 	{
-		processAssembly(iterator, currentDepth);
+		processSpecialisedType(iterator, currentDepth);
+		return;
+	}
+	if (m_creationSettings.m_specialiseType == CreationSettings::eComponent && type == "component")
+	{
+		processSpecialisedType(iterator, currentDepth);
 		return;
 	}
 	else if (/*type == "sphere" || */type == "nurbspatch") // hack, but works for now...
@@ -221,7 +226,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	m_scene.addObject(pNewMeshObject, false, false);
 }
 
-void SGLocationProcessor::processAssembly(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
+void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
 {
 	CompoundObject* pCO = createCompoundObjectFromLocation(iterator, currentDepth);
 
