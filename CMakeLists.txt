@@ -126,6 +126,7 @@ ENDIF(APPLE)
 set(ILMBASE_VERSION 2.0.1)
 ExternalProject_Add(ILMBASE_LOCAL
 	URL ${CMAKE_SOURCE_DIR}/external/ilmbase-${ILMBASE_VERSION}.tar.bz2
+	PATCH_COMMAND patch -d ../ILMBASE_LOCAL/IlmThread/ < ${CMAKE_SOURCE_DIR}/external/ilmthread.patch
 	BINARY_DIR external/build/ilmbase
 	INSTALL_DIR external/dist/ilmbase
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/external/dist/ilmbase ${OPENEXR_SHARED_LIBS_FLAGS}
