@@ -27,7 +27,7 @@
 #include "utils/system.h"
 
 #include "global_context.h"
-
+#include "output_context.h"
 
 #include "utilities.h"
 
@@ -81,6 +81,7 @@ int ImagineRender::start()
 	Utilities::registerFileReaders();
 
 	float renderFrame = getRenderTime();
+	OutputContext::instance().setFrame(renderFrame);
 
 	// create the scene - this is going to leak for the moment...
 	m_pScene = new Scene(true); // don't want a GUI with OpenGL...

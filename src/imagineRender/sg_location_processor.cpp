@@ -379,48 +379,70 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::IntConstVector vertexListAttributeValue = vertexListAttribute.getNearestSample(0.0f);
 
 	std::vector<uint32_t>& aPolyOffsets = pNewGeoInstance->getPolygonOffsets();
-
-	unsigned int lastOffset = 0;
-
 	aPolyOffsets.reserve(numFaces);
 
-	// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
-	// specifies this and not the last one, so we need to ignore the first one, and add an extra on the end
-	for (unsigned int i = 0; i < numFaces; i++)
-	{
-		unsigned int numVertices;
-		if (i + 1 < numFaces)
-		{
-			numVertices = polyStartIndexAttributeValue[i + 1] - polyStartIndexAttributeValue[i];
-		}
-		else
-		{
-			// last one...
-			numVertices = vertexListAttribute.getNumberOfTuples() - polyStartIndexAttributeValue[i];
-		}
-
-		unsigned int polyOffset = lastOffset + numVertices;
-		aPolyOffsets.push_back(polyOffset);
-
-		lastOffset += numVertices;
-	}
-
-	// we *could* just memcpy these across directly despite the differing sign type between Katana and Imagine,
-	// as long as we're only using 31 bits of the value, but it's a bit hacky, so...
-	std::vector<uint32_t>& aPolyIndices = pNewGeoInstance->getPolygonIndices();
 	unsigned int numIndices = vertexListAttributeValue.size();
+	std::vector<uint32_t>& aPolyIndices = pNewGeoInstance->getPolygonIndices();
 	aPolyIndices.resize(numIndices);
-	for (unsigned int i = 0; i < numIndices; i++)
-	{
-		const int& value = vertexListAttributeValue[i];
-		aPolyIndices[i] = (uint32_t)value;
-	}
 
-	// TODO: make this more efficient
-	if (flipFaces)
+	if (!flipFaces)
 	{
-		std::reverse(aPolyOffsets.begin(), aPolyOffsets.end());
-		std::reverse(aPolyIndices.begin(), aPolyIndices.end());
+		unsigned int lastOffset = 0;
+
+		// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
+		// specifies this and not the last one, so we need to ignore the first one, and add an extra on the end
+		for (unsigned int i = 0; i < numFaces; i++)
+		{
+			unsigned int numVertices;
+			if (i + 1 < numFaces)
+			{
+				numVertices = polyStartIndexAttributeValue[i + 1] - polyStartIndexAttributeValue[i];
+			}
+			else
+			{
+				// last one...
+				numVertices = vertexListAttribute.getNumberOfTuples() - polyStartIndexAttributeValue[i];
+			}
+
+			unsigned int polyOffset = lastOffset + numVertices;
+			aPolyOffsets.push_back(polyOffset);
+
+			lastOffset += numVertices;
+		}
+
+		for (unsigned int i = 0; i < numIndices; i++)
+		{
+			const int& value = vertexListAttributeValue[i];
+			aPolyIndices[i] = (uint32_t)value;
+		}
+	}
+	else
+	{
+		// do them backwards, to reverse the faces
+
+		unsigned int lastOffset = 0;
+		unsigned int polyIndexCounter = 0;
+
+		// because of Katana's use of the first AND the last, we can skip the last one, as the last one (original first) should be 0...
+		for (int i = numFaces; i > 0; i--)
+		{
+			int startIndex = polyStartIndexAttributeValue[i];
+			int endIndex = polyStartIndexAttributeValue[i - 1];
+
+			int numVertices = startIndex - endIndex;
+
+			int polyOffset = lastOffset + numVertices;
+			aPolyOffsets.push_back(polyOffset);
+
+			lastOffset += numVertices;
+
+			// now copy the indices within this loop, walking backwards from startIndex (which should be bigger) to endIndex
+			for (int j = startIndex; j > endIndex; j--)
+			{
+				const int& value = vertexListAttributeValue[j - 1];
+				aPolyIndices[polyIndexCounter++] = (uint32_t)value;
+			}
+		}
 	}
 
 	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;
