@@ -1,33 +1,48 @@
 <args format='1.0' scope='/root' fixedCEL='/root' >
 	<group name='imagineGlobalStatements' hideTitle='True' widget='pagedargs' closed='False' groupinherit='False'>
 		<page name='general' open="True">
-			<int name="integrator" widget="mapper" default="1">
-				<hintdict name='options'>
-					<int name="direct_illumination" value="0"/>
-					<int name="path" value="1"/>
-					<int name="path_distributed" value="2"/>
-				</hintdict>
-			</int>
-			<int name="enable_ambient_occlusion" default="0" widget="checkBox" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='0' help="Enable Ambient Occlusion shading with the Direct Lighting integrator."/>
-			<int name="ambient_occlusion_samples" default="5" widget="default" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='0' help="Number of Ambient Occlusion samples to use"/>
-			<int name="path_dist_diffuse_multiplier" default="3" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help="Diffuse ray multiplier for the PathDistributed integrator"/>
-			<int name="path_dist_glossy_multiplier" default="2" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help= "Glossy ray multiplier for the PathDistributed integrator"/>
+			<page name='light transport' open="False">
+				<int name="integrator" widget="mapper" default="1">
+					<hintdict name='options'>
+						<int name="direct_illumination" value="0"/>
+						<int name="path" value="1"/>
+						<int name="path_distributed" value="2"/>
+					</hintdict>
+				</int>
+				<int name="enable_ambient_occlusion" default="0" widget="checkBox" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='0' help="Enable Ambient Occlusion shading with the Direct Lighting integrator."/>
+				<int name="ambient_occlusion_samples" default="5" widget="default" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='0' help="Number of Ambient Occlusion samples to use"/>
+				<int name="path_dist_diffuse_multiplier" default="3" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help="Diffuse ray multiplier for the PathDistributed integrator"/>
+				<int name="path_dist_glossy_multiplier" default="2" conditionalVisOp='equalTo' conditionalVisPath='../integrator' conditionalVisValue='2' help= "Glossy ray multiplier for the PathDistributed integrator"/>
 
-			<int name="enable_volumetrics" default="0" widget="checkBox" help="Enable the Volumetrics integrator. Needed for SSS and volumes."/>
-			<int name="use_mis" default="1" widget="checkBox" help="Enable use of MIS."/>
+				<int name="enable_volumetrics" default="0" widget="checkBox" help="Enable the Volumetrics integrator. Needed for SSS and volumes."/>
+				<int name="use_mis" default="1" widget="checkBox" help="Enable use of MIS."/>
+
+				<int name="evaluate_glossy" default="1" widget="checkBox"/>
+				<int name="allow_indirect_caustics" default="0" widget="checkBox"/>
+				<int name="russian_roulette" default="1" widget="checkBox"/>
+
+				<int name="light_sampling" widget="mapper" default="0">
+					<hintdict name='options'>
+						<int name="Fully sample all lights" value="0"/>
+						<int name="Importance sample lights (uniform)" value="1"/>
+						<int name="Importance sample lights (weighted on samples)" value="2"/>
+						<int name="Importance sample lights (weighted radiance)" value="3"/>
+						<int name="Importance sample lights (weighted radiance) + localised" value="5"/>
+					</hintdict>
+				</int>
+				<int name="light_samples" default="1" conditionalVisOp='notEqualTo' conditionalVisPath='../light_sampling' conditionalVisValue='0' help="The number of light samples to use per pixel sample."/>
+
+
+				<int name="max_depth_overall" default="4" help="Maximum ray bounce count"/>
+				<int name="max_depth_diffuse" default="3" help=""/>
+				<int name="max_depth_glossy" default="3" help=""/>
+				<int name="max_depth_reflection" default="5" help=""/>
+				<int name="max_depth_refraction" default="5" help=""/>
+			</page>
+
 			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final pixel noise variance levels reach a certain level."/>
 			<float name="adaptive_variance_threshold" default="0.02" conditionalVisOp='equalTo' conditionalVisPath='../adaptive' conditionalVisValue='1'/>
 
-			<int name="light_sampling" widget="mapper" default="0">
-				<hintdict name='options'>
-					<int name="Fully sample all lights" value="0"/>
-					<int name="Importance sample lights (uniform)" value="1"/>
-					<int name="Importance sample lights (weighted on samples)" value="2"/>
-					<int name="Importance sample lights (weighted radiance)" value="3"/>
-					<int name="Importance sample lights (weighted radiance) + localised" value="5"/>
-				</hintdict>
-			</int>
-			<int name="light_samples" default="1" conditionalVisOp='notEqualTo' conditionalVisPath='../light_sampling' conditionalVisValue='0' help="The number of light samples to use per pixel sample."/>
 
 			<int name="spp" default="64" help="The overall number of samples per pixel. Perfect square numbers (49, 64, 144) will give slightly better sample stratification."/>
 			<int name="iterations" default="1" help="The number of iteration passes to split the above samples into"/>
@@ -48,13 +63,6 @@
 
 			<int name="depth_of_field" default="0" widget="checkBox"/>
 			<int name="motion_blur" default="0" widget="checkBox"/>
-		</page>
-		<page name='light paths' open="True">
-			<int name="max_depth_overall" default="4" help="Maximum ray bounce count"/>
-			<int name="max_depth_diffuse" default="3" help=""/>
-			<int name="max_depth_glossy" default="3" help=""/>
-			<int name="max_depth_reflection" default="5" help=""/>
-			<int name="max_depth_refraction" default="5" help=""/>
 		</page>
 		<page name='geometry' open="True">
 			<int name="flip_t" default="0" widget="mapper" help="Flip the t (V) coordinate of st texture coordinates.">

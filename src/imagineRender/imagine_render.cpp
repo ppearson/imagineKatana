@@ -244,48 +244,26 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 {
 	FnKat::GroupAttribute imagineGSAttribute = rootIterator.getAttribute("imagineGlobalStatements");
 
-	// TODO: provide helper wrapper function to do all this isValid() and default value stuff.
-	//       It's rediculous that Katana doesn't provide this anyway...
+	KatanaAttributeHelper gsHelper(imagineGSAttribute);
 
-	FnKat::IntAttribute integratorTypeAttribute = imagineGSAttribute.getChildByName("integrator");
-	m_integratorType = 1;
-	if (integratorTypeAttribute.isValid())
-		m_integratorType = integratorTypeAttribute.getValue(1, false);
+	m_integratorType = gsHelper.getIntParam("integrator", 1);
 
-	FnKat::IntAttribute lightSamplingAttribute = imagineGSAttribute.getChildByName("light_sampling");
-	unsigned int lightSamplingType = 0;
-	if (lightSamplingAttribute.isValid())
-		lightSamplingType = lightSamplingAttribute.getValue(0, false);
+	unsigned int lightSamplingType = gsHelper.getIntParam("light_sampling", 0);
+	unsigned int lightSamples = gsHelper.getIntParam("light_samples", 1);
 
-	FnKat::IntAttribute lightSamplesAttribute = imagineGSAttribute.getChildByName("light_samples");
-	unsigned int lightSamples = 1;
-	if (lightSamplesAttribute.isValid())
-		lightSamples = lightSamplesAttribute.getValue(1, false);
+	unsigned int volumetrics = gsHelper.getIntParam("enable_volumetrics", 0);
 
-	FnKat::IntAttribute volumetricsAttribute = imagineGSAttribute.getChildByName("enable_volumetrics");
-	unsigned int volumetrics = 0;
-	if (volumetricsAttribute.isValid())
-		volumetrics = volumetricsAttribute.getValue(0, false);
+	unsigned int mis = gsHelper.getIntParam("use_mis", 1);
 
-	FnKat::IntAttribute useMISAttribute = imagineGSAttribute.getChildByName("use_mis");
-	unsigned int useMIS = 1;
-	if (useMISAttribute.isValid())
-		useMIS = useMISAttribute.getValue(1, false);
+	unsigned int evaluateGlossy = gsHelper.getIntParam("evaluate_glossy", 1);
+	unsigned int allowIndirectCaustics = gsHelper.getIntParam("allow_indirect_caustics", 0);
+	unsigned int russianRoulette = gsHelper.getIntParam("russian_roulette", 1);
 
-	FnKat::IntAttribute useAdaptiveAttribute = imagineGSAttribute.getChildByName("adaptive");
-	unsigned int useAdaptive = 0;
-	if (useAdaptiveAttribute.isValid())
-		useAdaptive = useAdaptiveAttribute.getValue(0, false);
+	unsigned int useAdaptive = gsHelper.getIntParam("adaptive", 0);
 
-	FnKat::FloatAttribute adaptiveVarianceAttribute = imagineGSAttribute.getChildByName("adaptive_variance_threshold");
-	float adaptiveVarianceThreshold = 0.01f;
-	if (adaptiveVarianceAttribute.isValid())
-		adaptiveVarianceThreshold = adaptiveVarianceAttribute.getValue(0.01f, false);
+	float adaptiveVarianceThreshold = gsHelper.getFloatParam("adaptive_variance_threshold", 0.01f);
 
-	FnKat::IntAttribute samplesPerPixelAttribute = imagineGSAttribute.getChildByName("spp");
-	unsigned int samplesPerPixel = 64;
-	if (samplesPerPixelAttribute.isValid())
-		samplesPerPixel = samplesPerPixelAttribute.getValue(64, false);
+	unsigned int samplesPerPixel = gsHelper.getIntParam("spp", 64);
 
 	FnKat::IntAttribute iterationsAttribute = imagineGSAttribute.getChildByName("iterations");
 	unsigned int iterations = 1;
@@ -301,52 +279,23 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_fastLiveRenders = (fastLiveRendersAttribute.getValue(0, false) == 1);
 	}
 
-	FnKat::IntAttribute filterTypeAttribute = imagineGSAttribute.getChildByName("reconstruction_filter");
-	unsigned int filterType = 3;
-	if (filterTypeAttribute.isValid())
-		filterType = filterTypeAttribute.getValue(3, false);
+	unsigned int filterType = gsHelper.getIntParam("reconstruction_filter", 3);
+
+	// TODO: filter width...
 
 	// ray depths
 
-	FnKat::IntAttribute maxDepthOverallAttribute = imagineGSAttribute.getChildByName("max_depth_overall");
-	unsigned int maxDepthOverall = 4;
-	if (maxDepthOverallAttribute.isValid())
-		maxDepthOverall = maxDepthOverallAttribute.getValue(4, false);
-
-	FnKat::IntAttribute maxDepthDiffuseAttribute = imagineGSAttribute.getChildByName("max_depth_diffuse");
-	unsigned int maxDepthDiffuse = 3;
-	if (maxDepthDiffuseAttribute.isValid())
-		maxDepthDiffuse = maxDepthDiffuseAttribute.getValue(3, false);
-
-	FnKat::IntAttribute maxDepthGlossyAttribute = imagineGSAttribute.getChildByName("max_depth_glossy");
-	unsigned int maxDepthGlossy = 3;
-	if (maxDepthGlossyAttribute.isValid())
-		maxDepthGlossy = maxDepthGlossyAttribute.getValue(3, false);
-
-	FnKat::IntAttribute maxDepthRefractionAttribute = imagineGSAttribute.getChildByName("max_depth_refraction");
-	unsigned int maxDepthRefraction = 5;
-	if (maxDepthRefractionAttribute.isValid())
-		maxDepthRefraction = maxDepthRefractionAttribute.getValue(5, false);
-
-	FnKat::IntAttribute maxDepthReflectionAttribute = imagineGSAttribute.getChildByName("max_depth_reflection");
-	unsigned int maxDepthReflection = 5;
-	if (maxDepthReflectionAttribute.isValid())
-		maxDepthReflection = maxDepthReflectionAttribute.getValue(5, false);
-
+	unsigned int maxDepthOverall = gsHelper.getIntParam("max_depth_overall", 4);
+	unsigned int maxDepthDiffuse = gsHelper.getIntParam("max_depth_diffuse", 3);
+	unsigned int maxDepthGlossy = gsHelper.getIntParam("max_depth_glossy", 3);
+	unsigned int maxDepthRefraction = gsHelper.getIntParam("max_depth_refraction", 5);
+	unsigned int maxDepthReflection = gsHelper.getIntParam("max_depth_reflection", 5);
 
 	// PathDist stuff
 	if (m_integratorType == 2)
 	{
-		unsigned int diffuseMultipler = 3;
-		unsigned int glossyMultipler = 2;
-
-		FnKat::IntAttribute diffuseMultiplerAttribute = imagineGSAttribute.getChildByName("path_dist_diffuse_multiplier");
-		if (diffuseMultiplerAttribute.isValid())
-			diffuseMultipler = diffuseMultiplerAttribute.getValue(3, false);
-
-		FnKat::IntAttribute glossyMultiplerAttribute = imagineGSAttribute.getChildByName("path_dist_glossy_multiplier");
-		if (glossyMultiplerAttribute.isValid())
-			glossyMultipler = glossyMultiplerAttribute.getValue(2, false);
+		unsigned int diffuseMultipler = gsHelper.getIntParam("path_dist_diffuse_multiplier", 3);
+		unsigned int glossyMultipler = gsHelper.getIntParam("path_dist_glossy_multiplier", 2);
 
 		m_renderSettings.add("pathDistDiffuseMult", diffuseMultipler);
 		m_renderSettings.add("pathDistGlossyMult", glossyMultipler);
@@ -566,7 +515,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	//
 
 	m_renderSettings.add("integrator", m_integratorType);
-	m_renderSettings.add("useMIS", (bool)useMIS);
+	m_renderSettings.add("mis", (bool)mis);
+	m_renderSettings.add("evaluateGlossy", (bool)evaluateGlossy);
+	m_renderSettings.add("allowIndirectCaustics", (bool)allowIndirectCaustics);
+	m_renderSettings.add("russianRoulette", (bool)russianRoulette);
 
 	if (useAdaptive == 1)
 	{
