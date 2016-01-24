@@ -198,7 +198,7 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 		pNewStandardMaterial->setDiffuseBacklitTextureMapPath(diffBacklitTexture, true);
 	}
 
-	Colour3f specColour = ah.getColourParam("spec_col", Colour3f(0.1f, 0.1f, 0.1f));
+	Colour3f specColour = ah.getColourParam("spec_col", Colour3f(0.0f, 0.0f, 0.0f));
 	pNewStandardMaterial->setSpecularColour(specColour);
 
 	// specular texture overrides colour if available
@@ -222,7 +222,7 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 		}
 	}
 
-	float specRoughness = ah.getFloatParam("spec_roughness", 0.9f);
+	float specRoughness = ah.getFloatParam("spec_roughness", 0.15f);
 	pNewStandardMaterial->setSpecularRoughness(specRoughness);
 
 	std::string specRoughnessTexture = ah.getStringParam("spec_roughness_texture");
@@ -230,6 +230,8 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	{
 		pNewStandardMaterial->setSpecularRoughnessTextureMapPath(specRoughnessTexture, true);
 	}
+
+	pNewStandardMaterial->setSpecularType(0);
 
 	float reflection = ah.getFloatParam("reflection", 0.0f);
 	pNewStandardMaterial->setReflection(reflection);

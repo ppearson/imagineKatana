@@ -168,10 +168,10 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	helper.addFloatSliderParam("diff_roughness", 0.0f);
 	helper.addFloatSliderParam("diff_backlit", 0.0f);
 
-	helper.addColourParam("spec_col", Col3f(0.1f, 0.1f, 0.1f));
+	helper.addColourParam("spec_col", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addStringParam("spec_col_texture");
 	helper.addIntParam("spec_col_texture_flags", 0);
-	helper.addFloatSliderParam("spec_roughness", 0.9f);
+	helper.addFloatSliderParam("spec_roughness", 0.15f);
 
 	helper.addFloatSliderParam("reflection", 0.0f);
 	helper.addFloatSliderParam("reflection_roughness", 0.0f);
@@ -201,11 +201,11 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 	helper.addFloatSliderParam("diff_backlit", 0.0f);
 	helper.addStringParam("diff_backlit_texture");
 
-	helper.addColourParam("spec_col", Col3f(0.1f, 0.1f, 0.1f));
+	helper.addColourParam("spec_col", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addStringParam("spec_col_texture");
 	helper.addIntParam("spec_col_texture_flags", 0);
 
-	helper.addFloatSliderParam("spec_roughness", 0.9f);
+	helper.addFloatSliderParam("spec_roughness", 0.15f);
 	helper.addStringParam("spec_roughness_texture");
 
 	helper.addFloatSliderParam("reflection", 0.0f);
