@@ -230,6 +230,13 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 		m_renderSettings.add("cropWidth", roiValues[2]);
 		m_renderSettings.add("cropHeight", roiValues[3]);
 	}
+	else
+	{
+		m_ROIStartX = 0;
+		m_ROIStartY = 0;
+		m_ROIWidth = m_renderWidth;
+		m_ROIHeight = m_renderHeight;
+	}
 
 	configureRenderSettings(settings, rootIterator, diskRender);
 
@@ -343,7 +350,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	FnKat::IntAttribute flipTAttribute = imagineGSAttribute.getChildByName("flip_t");
 	m_creationSettings.m_flipT = false;
 	if (flipTAttribute.isValid())
-		m_creationSettings.m_flipT = (flipTAttribute.getValue(0, false) == 1);
+		m_creationSettings.m_flipT = flipTAttribute.getValue(0, false);
 
 	FnKat::IntAttribute enableSubDAttribute = imagineGSAttribute.getChildByName("enable_subdivision");
 	m_creationSettings.m_enableSubdivision = false;
@@ -500,6 +507,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		{
 			m_renderSettings.add("useTextureFileHandleCaching", true);
 		}
+
+		int textureCacheDeleteTileItems = gsHelper.getIntParam("texture_delete_tile_items", 0);
+		m_renderSettings.add("textureDeleteTileItems", (textureCacheDeleteTileItems == 1));
 
 		FnKat::IntAttribute textureCacheGlobalMipmapBiasAttribute = imagineGSAttribute.getChildByName("texture_cache_global_mipmap_bias");
 		int textureCacheGlobalMipmapBias = 0;

@@ -151,6 +151,11 @@
 					<help>Type of data correction to do after reading tiled data from images. Sometimes images can have negative or NaN pixel values depending on the filter type used to create the mipmaps
 					and any colourspace conversion done. Enabling this attempts to detect and fix these issues after reading the data.</help>
 				</int>
+				<int name="texture_delete_tile_items" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="checkBox">
+					<help>When freeing existing tiles when the texture cache memory limit is reached delete the tile item as well as the pixel data for the tile. Turning this on has a very slight performance
+						penalty and means it's not possible for Imagine to accurately track unique pixel data size in the stats, but reduces memory usage overhead very slightly.
+					</help>
+				</int>
 			</page>
 
 			<int name="statistics_type" default="1" widget="mapper">
