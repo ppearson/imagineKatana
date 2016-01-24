@@ -120,7 +120,12 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	unsigned int nextDepth = currentDepth + 1;
 
 	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
+#ifdef KAT_V_2
+	// evict so potentially Katana can free up memory that we've already processed.
+	for (; child.isValid(); child = child.getNextSibling(true))
+#else
 	for (; child.isValid(); child = child.getNextSibling())
+#endif
 	{
 		processLocationRecursive(child, nextDepth);
 	}
@@ -642,7 +647,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		// what Katana tells us (at least in the case of the PrimitiveCreate's poly sphere and poly torus geometry)
 		if (indexedUVs && haveUVValuesForPerVertex)
 		{
-			indexedUVs = false;
+//			indexedUVs = false;
 		}
 
 		if (indexedUVs)
