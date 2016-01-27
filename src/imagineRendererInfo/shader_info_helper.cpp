@@ -32,7 +32,7 @@ ShaderInfoHelper::ShaderInfoHelper(const ImagineRendererInfo& iri, FnKat::GroupB
 
 void ShaderInfoHelper::fillShaderInputNames(const std::string& shaderName, std::vector<std::string>& names)
 {
-	if (shaderName == "Standard")
+	if (shaderName == "Shader/Standard")
 	{
 		names.push_back("diff_col");
 		names.push_back("diff_roughness");
@@ -45,8 +45,6 @@ void ShaderInfoHelper::fillShaderInputNames(const std::string& shaderName, std::
 		names.push_back("fresnel_coef");
 		names.push_back("transparency");
 		names.push_back("transmittance");
-
-		names.push_back("double_sided");
 	}
 }
 
@@ -70,87 +68,100 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 																					typeTags, location, fullPath,
 																					kFnRendererObjectValueTypeUnknown, containerHintsAttribute);
 
-	if (name == "Standard")
+	std::string buildName;
+	if (name.find("/") == std::string::npos)
+	{
+		// just a single standard material
+		buildName = name;
+	}
+	else
+	{
+		// ImagineShadingNode item, so split out the two items from the name
+		size_t sepPos = name.find("/");
+		buildName = name.substr(sepPos + 1);
+	}
+
+	if (buildName == "Standard")
 	{
 		buildStandardShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "StandardImage")
+	else if (buildName == "StandardImage")
 	{
 		buildStandardImageShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Glass")
+	else if (buildName == "Glass")
 	{
 		buildGlassShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Metal")
+	else if (buildName == "Metal")
 	{
 		buildMetalShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Plastic")
+	else if (buildName == "Plastic")
 	{
 		buildPlasticShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Brushed Metal")
+	else if (buildName == "Brushed Metal")
 	{
 		buildBrushedMetalShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Metallic Paint")
+	else if (buildName == "Metallic Paint")
 	{
 		buildMetallicPaintShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Translucent")
+	else if (buildName == "Translucent")
 	{
 		buildTranslucentShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Velvet")
+	else if (buildName == "Velvet")
 	{
 		buildVelvetShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Luminous")
+	else if (buildName == "Luminous")
 	{
 		buildLuminousShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Wireframe")
+	else if (buildName == "Wireframe")
 	{
 		buildWireframeShaderParams(iri, rendererObjectInfo);
 	}
 	// lights
-	else if (name == "Point")
+	else if (buildName == "Point")
 	{
 		buildPointLightShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Spot")
+	else if (buildName == "Spot")
 	{
 		buildSpotLightShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Area")
+	else if (buildName == "Area")
 	{
 		buildAreaLightShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Distant")
+	else if (buildName == "Distant")
 	{
 		buildDistantLightShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "SkyDome")
+	else if (buildName == "SkyDome")
 	{
 		buildSkydomeLightShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "Environment")
+	else if (buildName == "Environment")
 	{
 		buildEnvironmentLightShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "PhysicalSky")
+	else if (buildName == "PhysicalSky")
 	{
 		buildPhysicalSkyLightShaderParams(iri, rendererObjectInfo);
 	}
 
 
 	//
-	else if (name == "ImageTextureBump")
+	else if (buildName == "ImageTextureBump")
 	{
 		buildBumpTextureShaderParams(iri, rendererObjectInfo);
 	}
-	else if (name == "ImageTextureAlpha")
+	else if (buildName == "ImageTextureAlpha")
 	{
 		buildAlphaTextureShaderParams(iri, rendererObjectInfo);
 	}

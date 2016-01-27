@@ -3,6 +3,8 @@
 
 #include <algorithm>
 
+#include <stdio.h>
+
 #include "render_object_info_helper.h"
 #include "shader_info_helper.h"
 
@@ -119,6 +121,22 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 		{
 			rendererObjectNames.push_back("ImageTextureAlpha");
 		}
+		else
+		{
+			// if we weren't given any tags, then we need to add items that should be network material nodes.
+
+			// annoyingly, Katana doesn't differentiate these by type, so the user just gets presented with
+			// a flat list. So prefix the type within the name itself to sort them to some degree.
+
+			rendererObjectNames.push_back("Shader/Standard");
+			rendererObjectNames.push_back("Shader/Glass");
+			rendererObjectNames.push_back("Shader/Translucent");
+
+			rendererObjectNames.push_back("Op/Constant");
+			rendererObjectNames.push_back("Op/TextureRead");
+			rendererObjectNames.push_back("Op/Adjust");
+			rendererObjectNames.push_back("Op/Mix");
+		}
 	}
 	else if (type == kFnRendererObjectTypeRenderOutput)
 	{
@@ -146,12 +164,12 @@ std::string ImagineRendererInfo::getRegisteredRendererName() const
 
 std::string ImagineRendererInfo::getRegisteredRendererVersion() const
 {
-	return "0.96";
+	return "0.98";
 }
 
 bool ImagineRendererInfo::isNodeTypeSupported(const std::string& nodeType) const
 {
-	if (nodeType == "OutputChannelDefine")
+	if (nodeType == "OutputChannelDefine" || nodeType == "ShadingNode")
 		return true;
 
 	return false;
@@ -181,7 +199,10 @@ void ImagineRendererInfo::fillShaderOutputTags(std::vector<std::string>& shaderO
 
 void ImagineRendererInfo::fillRendererShaderTypeTags(std::vector<std::string>& shaderTypeTags, const std::string& shaderType) const
 {
-
+	if (shaderType == "surface")
+	{
+		shaderTypeTags.push_back("float or rgb");
+	}
 }
 
 bool ImagineRendererInfo::buildRendererObjectInfo(FnKat::GroupBuilder& rendererObjectInfo, const std::string& name, const std::string& type,
