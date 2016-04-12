@@ -691,19 +691,29 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		pRenderCamera->setApertureRadius(apertureSize);
 	}
 
+	bool detectCameraType = true;
+	Camera::ProjectionType cameraProjectionType = Camera::ePerspective;
+
 	if (itRoot.isValid())
 	{
-		FnKat::IntAttribute cameraProjectionAttr = itRoot.getAttribute("imagineGlobalStatements.cam_projection_type");
-		if (cameraGeometryAttribute.isValid())
+		FnKat::IntAttribute cameraProjectionOverrideAttr = itRoot.getAttribute("imagineGlobalStatements.cam_projection_type");
+		if (cameraProjectionOverrideAttr.isValid())
 		{
-			int cameraProjectionType = cameraProjectionAttr.getValue(0, false);
-			if (cameraProjectionType == 1)
+			int cameraProjectionType = cameraProjectionOverrideAttr.getValue(0, false);
+			if (cameraProjectionType == 2)
 			{
-				pRenderCamera->setProjectionType(Camera::eSpherical);
+				cameraProjectionType = Camera::eSpherical;
+				detectCameraType = false;
 			}
-			else if (cameraProjectionType == 2)
+			else if (cameraProjectionType == 3)
 			{
-				pRenderCamera->setProjectionType(Camera::eOrthographic);
+				cameraProjectionType = Camera::eOrthographic;
+				detectCameraType = false;
+			}
+			else if (cameraProjectionType == 4)
+			{
+				cameraProjectionType = Camera::eFisheye;
+				detectCameraType = false;
 			}
 		}
 
@@ -717,6 +727,27 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 			}
 		}
 	}
+
+	if (detectCameraType && cameraGeometryAttribute.isValid())
+	{
+		FnKat::StringAttribute cameraProjectionAttribute = cameraGeometryAttribute.getChildByName("projection");
+		std::string cameraProjectionValue = cameraProjectionAttribute.getValue("perspective", false);
+
+		if (cameraProjectionValue == "spherical")
+		{
+			cameraProjectionType = Camera::eSpherical;
+		}
+		else if (cameraProjectionValue == "orthographic")
+		{
+			cameraProjectionType = Camera::eOrthographic;
+		}
+		else if (cameraProjectionValue == "fisheye")
+		{
+			cameraProjectionType = Camera::eFisheye;
+		}
+	}
+
+	pRenderCamera->setProjectionType(cameraProjectionType);
 
 	// get some things from renderSettings
 	m_creationSettings.m_shutterOpen = settings.getShutterOpen();

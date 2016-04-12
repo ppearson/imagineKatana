@@ -195,7 +195,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 
 	pNewMeshObject->setCompactGeometryInstance(pNewGeoInstance);
 
-	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator);
+	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 	pNewMeshObject->setMaterial(pMaterial);
 
 	if (!m_creationSettings.m_motionBlur)
@@ -987,7 +987,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		CompactMesh* pNewMeshObject = new CompactMesh();
 
 		pNewMeshObject->setCompactGeometryInstance(pNewGeoInstance);
-		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator);
+		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 
 		if (pMaterial)
 		{
@@ -1144,7 +1144,9 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	// if it's not a compound object, we can assign a material to it, so look for one...
 	if (!isCompound)
 	{
-		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator);
+		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
+		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 		pNewObject->setMaterial(pMaterial);
 	}
 
@@ -1202,7 +1204,8 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 
 	Sphere* pSphere = new Sphere((float)radius, 24);
 
-	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator);
+	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 	pSphere->setMaterial(pMaterial);
 
 	// do transform

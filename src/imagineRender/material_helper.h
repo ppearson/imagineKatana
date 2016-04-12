@@ -16,6 +16,7 @@
 #endif
 
 #include "colour/colour3f.h"
+#include "core/hash.h"
 
 class Material;
 
@@ -24,7 +25,7 @@ class MaterialHelper
 public:
 	MaterialHelper();
 
-	Material* getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator);
+	Material* getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements);
 
 	FnKat::GroupAttribute getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const;
 
@@ -38,7 +39,7 @@ protected:
 #endif
 
 	// this adds to the instances map itself
-	Material* createNewMaterial(const FnKat::GroupAttribute& attribute);
+	Material* createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
 protected:
 	static Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,
@@ -54,16 +55,14 @@ protected:
 	static Material* createWireframeMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 
 protected:
-	FnKat::StringAttribute		m_terminatorNodes;
+	FnKat::StringAttribute			m_terminatorNodes;
 
-#ifdef KAT_V_2
-	std::map<FnAttribute::Hash, Material*> m_aMaterialInstances; // all materials with hashes
-#else
-	std::map<std::string, Material*>	m_aMaterialInstances; // all materials with hashes
-#endif
-	std::vector<Material*>				m_aMaterials; // all material instances in std::vector
+	std::map<HashValue, Material*>	m_aMaterialInstances; // all materials with hashes
 
-	Material*					m_pDefaultMaterial;
+	std::vector<Material*>			m_aMaterials; // all material instances in std::vector
+
+	Material*						m_pDefaultMaterial;
+	Material*						m_pDefaultMaterialMatte; // annoying, but...
 };
 
 #endif // MATERIAL_HELPER_H

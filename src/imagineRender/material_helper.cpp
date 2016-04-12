@@ -15,7 +15,7 @@
 
 #include "katana_helpers.h"
 
-MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL)
+MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL), m_pDefaultMaterialMatte(NULL)
 {
 	FnKat::StringBuilder tnBuilder;
 	tnBuilder.push_back("imagineSurface");
@@ -25,25 +25,47 @@ MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL)
 
 	m_terminatorNodes = tnBuilder.build();
 
+	// TODO: these leak, although only once per session...
 	m_pDefaultMaterial = new StandardMaterial();
+	m_pDefaultMaterialMatte = new StandardMaterial();
+	m_pDefaultMaterialMatte->setMatte(true);
 }
 
-Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator)
+Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements)
 {
 	FnKat::GroupAttribute materialAttrib = getMaterialForLocation(iterator);
 
 	Material* pMaterial = NULL;
 
-#ifdef KAT_V_2
-	FnAttribute::Hash materialHash = materialAttrib.getHash();
+	// currently, Imagine controls whether objects are Matte from materials, so we need to inject the matte state
+	// into the Material's hash... In the future, this is likely to change and Matte will become a full object attribute/flag...
 
-	std::map<FnAttribute::Hash, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
+	bool isMatte = false;
+	FnKat::IntAttribute matteAttribute = imagineStatements.getChildByName("matte");
+	if (matteAttribute.isValid())
+	{
+		isMatte = matteAttribute.getValue(0, false) == 1;
+	}
+
+#ifdef KAT_V_2
+	FnAttribute::Hash materialRawHash = materialAttrib.getHash();
+	Hash hash;
+	hash.addLongLong(materialRawHash.uint64());
+	hash.addUChar((unsigned char)isMatte);
+	HashValue materialHash = hash.getHash();
+
+	std::map<HashValue, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
 #else
 	// calculate a hash for the material
-	std::string materialHash = getMaterialHash(materialAttrib);
+	std::string materialHashRaw = getMaterialHash(materialAttrib);
+
+	Hash hash;
+	hash.addString(materialHashRaw);
+	hash.addUChar((unsigned char)isMatte);
+	HashValue materialHash = hash.getHash();
 
 	// see if we've got it already
-	std::map<std::string, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
+	std::map<HashValue, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
 #endif
 	if (itFind != m_aMaterialInstances.end())
 	{
@@ -54,7 +76,7 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 	}
 
 	// otherwise, create a new material
-	pMaterial = createNewMaterial(materialAttrib);
+	pMaterial = createNewMaterial(materialAttrib, isMatte);
 
 	// add this new material to our list of material instances
 	m_aMaterialInstances[materialHash] = pMaterial;
@@ -75,7 +97,7 @@ std::string MaterialHelper::getMaterialHash(const FnKat::GroupAttribute& attribu
 }
 #endif
 
-Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute)
+Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte)
 {
 	// only add to map if we created material and attribute had a valid material, otherwise, return default
 	// material
@@ -85,7 +107,9 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 
 	// if not, return Default material
 	if (!shaderNameAttr.isValid())
-		return m_pDefaultMaterial;
+	{
+		return isMatte ? m_pDefaultMaterialMatte : m_pDefaultMaterial;
+	}
 
 	// get params...
 	FnKat::GroupAttribute shaderParamsAttr = attribute.getChildByName("imagineSurfaceParams");
@@ -141,6 +165,11 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	else if (shaderName == "Wireframe")
 	{
 		pNewMaterial = createWireframeMaterial(shaderParamsAttr);
+	}
+
+	if (isMatte)
+	{
+		pNewMaterial->setMatte(true);
 	}
 
 	if (pNewMaterial)
@@ -508,8 +537,8 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	Colour3f specularColour = ah.getColourParam("specular_col", Colour3f(0.1f, 0.1f, 0.1f));
 	pNewMaterial->setSpecularColour(specularColour);
 
-	float surfaceRoughness = ah.getFloatParam("surface_roughness", 0.05f);
-	pNewMaterial->setSurfaceRoughness(surfaceRoughness);
+	float surfaceRoughness = ah.getFloatParam("specular_roughness", 0.05f);
+	pNewMaterial->setSpecularRoughness(surfaceRoughness);
 
 	Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
 	pNewMaterial->setInnerColour(innerColour);
@@ -518,8 +547,12 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
 	float samplingSensity = ah.getFloatParam("sampling_density", 0.35f);
 	pNewMaterial->setSamplingDensity(samplingSensity);
+
 	float transmittance = ah.getFloatParam("transmittance", 0.41f);
 	pNewMaterial->setTransmittance(transmittance);
+	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.33f);
+	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
+
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);
 

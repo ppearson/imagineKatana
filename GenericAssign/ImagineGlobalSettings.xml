@@ -219,10 +219,13 @@
 		<page name='camera' open="False">
 			<int name="cam_projection_type" widget="mapper" default="0">
 				<hintdict name='options'>
-					<int name="perspective" value="0"/>
-					<int name="spherical" value="1"/>
-					<int name="orthographic" value="2"/>
+					<int name="automatic" value="0"/>
+					<int name="perspective" value="1"/>
+					<int name="spherical" value="2"/>
+					<int name="orthographic" value="3"/>
+					<int name="fisheye" value="4"/>
 				</hintdict>
+				<help>Type of camera projection to use. Automatic tries to determine this by using the geometry.projection attribute on the camera location itself.</help>
 			</int>
 			<float name="cam_focal_distance" default="16.0"/>
 			<float name="cam_aperture_size" default="0.0"/>
