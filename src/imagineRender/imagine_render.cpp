@@ -699,18 +699,18 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		FnKat::IntAttribute cameraProjectionOverrideAttr = itRoot.getAttribute("imagineGlobalStatements.cam_projection_type");
 		if (cameraProjectionOverrideAttr.isValid())
 		{
-			int cameraProjectionType = cameraProjectionOverrideAttr.getValue(0, false);
-			if (cameraProjectionType == 2)
+			int cameraProjectionOverrideType = cameraProjectionOverrideAttr.getValue(0, false);
+			if (cameraProjectionOverrideType == 2)
 			{
 				cameraProjectionType = Camera::eSpherical;
 				detectCameraType = false;
 			}
-			else if (cameraProjectionType == 3)
+			else if (cameraProjectionOverrideType == 3)
 			{
 				cameraProjectionType = Camera::eOrthographic;
 				detectCameraType = false;
 			}
-			else if (cameraProjectionType == 4)
+			else if (cameraProjectionOverrideType == 4)
 			{
 				cameraProjectionType = Camera::eFisheye;
 				detectCameraType = false;
