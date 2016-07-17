@@ -129,11 +129,16 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 			// a flat list. So prefix the type within the name itself to sort them to some degree.
 
 			rendererObjectNames.push_back("Shader/Standard");
+			rendererObjectNames.push_back("Shader/StandardImage");
 			rendererObjectNames.push_back("Shader/Glass");
+			rendererObjectNames.push_back("Shader/Metal");
+			rendererObjectNames.push_back("Shader/Plastic");
+			rendererObjectNames.push_back("Shader/MetallicPaint");
 			rendererObjectNames.push_back("Shader/Translucent");
 
 			rendererObjectNames.push_back("Op/Constant");
 			rendererObjectNames.push_back("Op/TextureRead");
+			rendererObjectNames.push_back("Op/Checkerboard");
 			rendererObjectNames.push_back("Op/Adjust");
 			rendererObjectNames.push_back("Op/Mix");
 		}
@@ -145,7 +150,6 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 		{
 			rendererObjectNames.push_back("primary");
 			rendererObjectNames.push_back("diffuse");
-			rendererObjectNames.push_back("glossy");
 			rendererObjectNames.push_back("specular");
 			rendererObjectNames.push_back("shadow");
 			rendererObjectNames.push_back("z");
@@ -188,7 +192,7 @@ void ImagineRendererInfo::fillShaderInputTags(std::vector<std::string>& shaderIn
 
 void ImagineRendererInfo::fillShaderOutputNames(std::vector<std::string>& shaderOutputNames, const std::string& shaderName) const
 {
-
+	ShaderInfoHelper::fillShaderOutputNames(shaderName, shaderOutputNames);
 }
 
 void ImagineRendererInfo::fillShaderOutputTags(std::vector<std::string>& shaderOutputTags, const std::string& shaderName,

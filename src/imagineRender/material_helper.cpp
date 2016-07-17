@@ -13,6 +13,10 @@
 #include "materials/luminous_material.h"
 #include "materials/wireframe_material.h"
 
+#include "textures/ops/op_invert.h"
+#include "textures/image/image_texture_lazy.h"
+#include "textures/image/image_texture_lazy_atlas.h"
+
 #include "katana_helpers.h"
 
 MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL), m_pDefaultMaterialMatte(NULL)
@@ -105,10 +109,19 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	// make sure we've got something useful...
 	FnKat::StringAttribute shaderNameAttr = attribute.getChildByName("imagineSurfaceShader");
 
-	// if not, return Default material
+	Material* pNewMaterial = NULL;
+
+	// if we haven't got a standard material item, see if we've got a network material instead...
 	if (!shaderNameAttr.isValid())
 	{
-		return isMatte ? m_pDefaultMaterialMatte : m_pDefaultMaterial;
+		// try and create a network material from the attribute
+		pNewMaterial = createNetworkMaterial(attribute, isMatte);
+
+		// if we haven't, then just return the default material
+		if (!pNewMaterial)
+		{
+			return isMatte ? m_pDefaultMaterialMatte : m_pDefaultMaterial;
+		}
 	}
 
 	// get params...
@@ -123,8 +136,6 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	// currently
 	FnKat::GroupAttribute bumpParamsAttr = attribute.getChildByName("imagineBumpParams");
 	FnKat::GroupAttribute alphaParamsAttr = attribute.getChildByName("imagineAlphaParams");
-
-	Material* pNewMaterial = NULL;
 
 	if (shaderName == "Standard" || shaderName == "StandardImage")
 	{
@@ -167,7 +178,7 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 		pNewMaterial = createWireframeMaterial(shaderParamsAttr);
 	}
 
-	if (isMatte)
+	if (isMatte && pNewMaterial)
 	{
 		pNewMaterial->setMatte(true);
 	}
@@ -176,6 +187,242 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 		return pNewMaterial;
 
 	return m_pDefaultMaterial;
+}
+
+// TODO: this whole infrastructure for handling Network Materials is pretty hacky...
+Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte)
+{
+	FnKat::GroupAttribute nodesAttr = attribute.getChildByName("nodes");
+	FnKat::GroupAttribute terminalsAttr = attribute.getChildByName("terminals");
+
+	if (!nodesAttr.isValid() || !terminalsAttr.isValid())
+	{
+		return NULL;
+	}
+
+	std::map<std::string, Material*> aMaterialNodes; // there should really only be one of these, but...
+	std::map<std::string, Texture*> aOpNodes;
+
+	// process all node items and cache them by name...
+	unsigned int numNodes = nodesAttr.getNumberOfChildren();
+	for (unsigned int i = 0; i < numNodes; i++)
+	{
+		FnKat::GroupAttribute subItem = nodesAttr.getChildByIndex(i);
+
+		KatanaAttributeHelper ah(subItem);
+
+		std::string nodeName = ah.getStringParam("name", "");
+		std::string nodeType = ah.getStringParam("type", "");
+
+		bool isShader = nodeType.find("Shader/") != std::string::npos;
+		bool isOp = nodeType.find("Op/") != std::string::npos;
+
+		if (!isShader && !isOp)
+		{
+			// if we don't know what it is, there's no point continuing with the other nodes...
+			fprintf(stderr, "Error processing NetworkMaterial - unknown node type: %s\n", nodeType.c_str());
+			return NULL;
+		}
+
+		Material* pNewNodeMaterial = NULL;
+
+		FnKat::GroupAttribute paramsAttr = subItem.getChildByName("parameters");
+
+		if (isShader)
+		{
+			std::string shaderName = nodeType.substr(7);
+
+			FnKat::GroupAttribute bumpParamsAttr;
+			FnKat::GroupAttribute alphaParamsAttr;
+
+			// TODO: duplicate of above code, but...
+			if (shaderName == "Standard" || shaderName == "StandardImage")
+			{
+				pNewNodeMaterial = createStandardMaterial(paramsAttr, bumpParamsAttr, alphaParamsAttr);
+			}
+			else if (shaderName == "Glass")
+			{
+				pNewNodeMaterial = createGlassMaterial(paramsAttr);
+			}
+			else if (shaderName == "Metal")
+			{
+				pNewNodeMaterial = createMetalMaterial(paramsAttr, bumpParamsAttr);
+			}
+			else if (shaderName == "Plastic")
+			{
+				pNewNodeMaterial = createPlasticMaterial(paramsAttr, bumpParamsAttr);
+			}
+			else if (shaderName == "Metallic Paint")
+			{
+				pNewNodeMaterial = createMetallicPaintMaterial(paramsAttr, bumpParamsAttr);
+			}
+			else if (shaderName == "Translucent")
+			{
+				pNewNodeMaterial = createTranslucentMaterial(paramsAttr, bumpParamsAttr);
+			}
+
+			if (!pNewNodeMaterial)
+				continue;
+
+			aMaterialNodes[nodeName] = pNewNodeMaterial;
+		}
+		else if (isOp)
+		{
+			std::string opName = nodeType.substr(3);
+
+			Texture* pNewNodeOp = createNetworkOpItem(opName, paramsAttr);
+			if (!pNewNodeOp)
+				continue;
+
+			aOpNodes[opName] = pNewNodeOp;
+		}
+	}
+
+	// now that we've gone through all nodes and created them, we can go through again, looking for
+	// connections, and connect them up
+	for (unsigned int i = 0; i < numNodes; i++)
+	{
+		FnKat::GroupAttribute subItem = nodesAttr.getChildByIndex(i);
+
+		KatanaAttributeHelper ah(subItem);
+
+		FnKat::GroupAttribute connectionsAttr = subItem.getChildByName("connections");
+		if (!connectionsAttr.isValid())
+			continue;
+
+		std::string nodeName = ah.getStringParam("name", "");
+		std::string nodeType = ah.getStringParam("type", "");
+
+		bool isShader = nodeType.find("Shader/") != std::string::npos;
+//		bool isOp = nodeType.find("Op/") != std::string::npos;
+
+		unsigned int numConnections = connectionsAttr.getNumberOfChildren();
+
+		if (isShader)
+		{
+			// we're connecting a Texture Op into this shader as an input
+			std::string shaderName = nodeType.substr(7);
+
+			Material* pMaterial = aMaterialNodes[nodeName];
+
+			for (unsigned int j = 0; j < numConnections; j++)
+			{
+				std::string paramName = connectionsAttr.getChildName(j);
+
+				FnKat::StringAttribute connItemAttr = connectionsAttr.getChildByIndex(j);
+
+				if (connItemAttr.isValid() && connItemAttr.getValue("", false).find("@") != std::string::npos)
+				{
+					std::string connectedItem = connItemAttr.getValue("", false);
+
+					size_t atPos = connectedItem.find("@");
+
+					std::string portName = connectedItem.substr(0, atPos);
+					std::string connectionNodeName = connectedItem.substr(atPos + 1);
+
+					// now find what it's connected to
+					// for the moment, hopefully we're only going to be connecting Ops (Textures)
+
+					std::map<std::string, Texture*>::const_iterator itFindItem = aOpNodes.find(connectionNodeName);
+
+					if (itFindItem == aOpNodes.end())
+					{
+						fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
+						continue;
+					}
+
+					const Texture* pConn = itFindItem->second;
+
+					connectOpToMaterial(pMaterial, shaderName, paramName, pConn);
+				}
+				else
+				{
+					fprintf(stderr, "Invalid connection item...\n");
+				}
+			}
+		}
+		else
+		{
+			// We're connecting something (hopefully another Texture Op) into this texture op
+			Texture* pTargetTexture = aOpNodes[nodeName];
+
+			// we're connecting a Texture Op into this shader as an input
+			std::string opName = nodeType.substr(3);
+
+			for (unsigned int j = 0; j < numConnections; j++)
+			{
+				std::string paramName = connectionsAttr.getChildName(j);
+
+				FnKat::StringAttribute connItemAttr = connectionsAttr.getChildByIndex(j);
+
+				if (connItemAttr.isValid() && connItemAttr.getValue("", false).find("@") != std::string::npos)
+				{
+					std::string connectedItem = connItemAttr.getValue("", false);
+
+					size_t atPos = connectedItem.find("@");
+
+					std::string portName = connectedItem.substr(0, atPos);
+					std::string connectionNodeName = connectedItem.substr(atPos + 1);
+
+					// now find what it's connected to
+					// for the moment, hopefully we're only going to be connecting Ops (Textures)
+
+					std::map<std::string, Texture*>::const_iterator itFindItem = aOpNodes.find(connectionNodeName);
+
+					if (itFindItem == aOpNodes.end())
+					{
+						fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
+						continue;
+					}
+
+					const Texture* pConn = itFindItem->second;
+
+					connectOpToOp(pTargetTexture, opName, paramName, pConn);
+				}
+				else
+				{
+					fprintf(stderr, "Invalid connection item...\n");
+				}
+			}
+		}
+	}
+
+	// now go through terminals connecting them up...
+	// for the moment, we can just do surface ones...
+
+	return NULL;
+}
+
+// TODO: these are increadibly hacky - this sort of infrastructure should be moved into Imagine properly and be
+//       passed in as generic key/value attributes
+
+Texture* MaterialHelper::createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params)
+{
+	// TODO: do something better than this...
+
+	if (opName == "TextureRead")
+	{
+
+	}
+	return NULL;
+}
+
+void MaterialHelper::connectOpToMaterial(Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Texture* pOp)
+{
+	if (shaderName == "Standard" || shaderName == "StandardImage")
+	{
+		StandardMaterial* pSM = static_cast<StandardMaterial*>(pMaterial);
+
+		if (paramName == "diff_col")
+		{
+			pSM->setDiffuseColourManualTexture(pOp);
+		}
+	}
+}
+
+void MaterialHelper::connectOpToOp(Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Texture* pSourceOp)
+{
+
 }
 
 Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,

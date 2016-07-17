@@ -19,6 +19,7 @@
 #include "core/hash.h"
 
 class Material;
+class Texture;
 
 class MaterialHelper
 {
@@ -38,10 +39,20 @@ protected:
 	static std::string getMaterialHash(const FnKat::GroupAttribute& attribute);
 #endif
 
-	// this adds to the instances map itself
+	// this adds to the instances map itself if materials are created
 	Material* createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
+
 protected:
+	// called by createNewMaterial to try and create a network material from the attribute...
+	Material* createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
+
+	static Texture* createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params);
+
+	static void connectOpToMaterial(Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Texture* pOp);
+	static void connectOpToOp(Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Texture* pSourceOp);
+
+	// stuff for uber-shaders
 	static Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,
 											FnKat::GroupAttribute& alphaParamsAttr);
 	static Material* createGlassMaterial(const FnKat::GroupAttribute& shaderParamsAttr);

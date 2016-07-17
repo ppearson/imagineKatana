@@ -38,14 +38,16 @@ void ShaderInfoHelper::fillShaderInputNames(const std::string& shaderName, std::
 		names.push_back("diff_roughness");
 		names.push_back("diff_backlit");
 		names.push_back("spec_col");
-		names.push_back("spec_type");
 		names.push_back("spec_roughness");
 		names.push_back("reflection");
-		names.push_back("fresnel");
-		names.push_back("fresnel_coef");
 		names.push_back("transparency");
 		names.push_back("transmittance");
 	}
+}
+
+void ShaderInfoHelper::fillShaderOutputNames(const std::string& shaderName, std::vector<std::string>& names)
+{
+
 }
 
 bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo, const std::string& name,
@@ -58,6 +60,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	FnKat::Attribute containerHintsAttribute;
 
 	typeTags.push_back("surface");
+	typeTags.push_back("op");
 	typeTags.push_back("bump");
 	typeTags.push_back("medium");
 	typeTags.push_back("displacement");

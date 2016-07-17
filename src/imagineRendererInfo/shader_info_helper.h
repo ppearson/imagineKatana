@@ -24,6 +24,7 @@ public:
 	};
 
 	static void fillShaderInputNames(const std::string& shaderName, std::vector<std::string>& names);
+	static void fillShaderOutputNames(const std::string& shaderName, std::vector<std::string>& names);
 
 	// annoyingly, we have to pass in ImagineRendererInfo in order to actually use stuff in the RenderInfoBase class as lots of stuff is non-static when
 	// it should be..
