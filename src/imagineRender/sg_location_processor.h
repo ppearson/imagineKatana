@@ -64,7 +64,7 @@ protected:
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
 
-	void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject);
+	static void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject);
 
 	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<UV>& aUVs);
 

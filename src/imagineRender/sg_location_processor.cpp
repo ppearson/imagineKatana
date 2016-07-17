@@ -119,7 +119,9 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 	unsigned int nextDepth = currentDepth + 1;
 
-	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
+	const bool evictChildTraversal = true;
+
+	FnKat::FnScenegraphIterator child = iterator.getFirstChild(evictChildTraversal);
 #ifdef KAT_V_2
 	// evict so potentially Katana can free up memory that we've already processed.
 	for (; child.isValid(); child = child.getNextSibling(true))
@@ -930,6 +932,14 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	pNewCO->setType(CompoundObject::eBaked);
 
 	unsigned char bakedFlags = m_creationSettings.m_specialisedTriangleType;
+
+	if (m_creationSettings.m_geoQuantisationType != 0)
+	{
+		// nasty hack, but...
+		unsigned int GEO_QUANTISED = 4;
+		bakedFlags |= GEO_QUANTISED;
+	}
+
 	pNewCO->setBakedFlags(bakedFlags);
 
 	processVisibilityAttributes(imagineStatements, pNewCO);
