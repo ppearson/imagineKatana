@@ -37,6 +37,10 @@ public:
 
 	}
 
+	// needed for Katana 2.2+
+	static void onFrameBegin() { }
+	static void onFrameEnd() { }
+
 	virtual void deepSetup(Foundry::Katana::ViewerModifierInput& input);
 
 	virtual void setup(Foundry::Katana::ViewerModifierInput& input);
