@@ -10,6 +10,8 @@
 
 #include "katana_helpers.h"
 
+using namespace Imagine;
+
 LightHelpers::LightHelpers()
 {
 }

@@ -24,7 +24,7 @@ namespace FnKatRender = FnKat::Render;
 #include "utils/params.h"
 #include "raytracer/raytracer.h"
 
-class ImagineRender : public Foundry::Katana::Render::RenderBase, RaytracerHost
+class ImagineRender : public Foundry::Katana::Render::RenderBase, Imagine::RaytracerHost
 {
 public:
 	ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments);
@@ -110,11 +110,11 @@ protected:
 	void renderFinished();
 
 protected:
-	Scene*						m_pScene;
-	Params						m_renderSettings;
+	Imagine::Scene*				m_pScene;
+	Imagine::Params				m_renderSettings;
 
 	// for use with live-renders only...
-	Raytracer*					m_pRaytracer;
+	Imagine::Raytracer*			m_pRaytracer;
 
 	LiveRenderState				m_liveRenderState;
 	std::string					m_renderCameraLocation;
@@ -127,7 +127,7 @@ protected:
 	unsigned int				m_katanaPort;
 
 #if ENABLE_PREVIEW_RENDERS
-	OutputImage*				m_pOutputImage;
+	Imagine::OutputImage*		m_pOutputImage;
 	FnKat::KatanaPipe*			m_pDataPipe;
 	FnKat::NewFrameMessage*		m_pFrame;
 	FnKat::NewChannelMessage*	m_pPrimaryChannel;

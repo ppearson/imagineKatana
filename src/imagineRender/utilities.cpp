@@ -15,6 +15,8 @@
 #endif
 #include "io/image/image_writer_exr.h"
 
+using namespace Imagine;
+
 Utilities::Utilities()
 {
 }

@@ -21,6 +21,8 @@
 
 #include "lights/light.h"
 
+using namespace Imagine;
+
 SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings)
 {
 }

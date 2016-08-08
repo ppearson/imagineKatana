@@ -19,6 +19,8 @@
 
 #include "katana_helpers.h"
 
+using namespace Imagine;
+
 MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL), m_pDefaultMaterialMatte(NULL)
 {
 	FnKat::StringBuilder tnBuilder;

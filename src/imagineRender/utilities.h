@@ -1,21 +1,24 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-class ImageReader;
-class ImageWriter;
+namespace Imagine
+{
+	class ImageReader;
+	class ImageWriter;
+}
 
 class Utilities
 {
 public:
 	Utilities();
 
-	static ImageReader* createImageReaderHDR();
-	static ImageReader* createImageReaderEXR();
-	static ImageReader* createImageReaderTXT();
+	static Imagine::ImageReader* createImageReaderHDR();
+	static Imagine::ImageReader* createImageReaderEXR();
+	static Imagine::ImageReader* createImageReaderTXT();
 #if HAVE_TIFF_SUPPORT
-	static ImageReader* createImageReaderTIFF();
+	static Imagine::ImageReader* createImageReaderTIFF();
 #endif
-	static ImageWriter* createImageWriterEXR();
+	static Imagine::ImageWriter* createImageWriterEXR();
 
 	static void registerFileReaders();
 	static void registerFileWriters();

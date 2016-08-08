@@ -57,7 +57,7 @@ public:
 
 protected:
 	// for live render updates
-	Mutex					m_updateLock;
+	Imagine::Mutex					m_updateLock;
 	std::vector<KatanaUpdateItem>	m_aUpdateItems;
 };
 

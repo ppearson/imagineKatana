@@ -14,16 +14,19 @@
 #include "materials/material.h"
 #include "scene.h"
 
-class StandardGeometryInstance;
-class CompactGeometryInstance;
-class GeometryInstance;
-class CompoundObject;
-class Object;
+namespace Imagine
+{
+	class StandardGeometryInstance;
+	class CompactGeometryInstance;
+	class GeometryInstance;
+	class CompoundObject;
+	class Object;
+}
 
 class SGLocationProcessor
 {
 public:
-	SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings);
+	SGLocationProcessor(Imagine::Scene& scene, const CreationSettings& creationSettings);
 
 	struct InstanceInfo
 	{
@@ -31,15 +34,15 @@ public:
 
 		union
 		{
-			GeometryInstance*			pGeoInstance;
-			CompoundObject*				pCompoundObject;
+			Imagine::GeometryInstance*			pGeoInstance;
+			Imagine::CompoundObject*				pCompoundObject;
 		};
 	};
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
-	void getFinalMaterials(std::vector<Material*>& aMaterials);
+	void getFinalMaterials(std::vector<Imagine::Material*>& aMaterials);
 
 protected:
 
@@ -49,14 +52,14 @@ protected:
 
 	void processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
-	CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
+	Imagine::CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
 																	   const FnKat::GroupAttribute& imagineStatements);
-	CompactGeometryInstance* createCompactGeometryInstanceFromLocationDiscard(FnKat::FnScenegraphIterator iterator, bool asSubD,
+	Imagine::CompactGeometryInstance* createCompactGeometryInstanceFromLocationDiscard(FnKat::FnScenegraphIterator iterator, bool asSubD,
 																	   const FnKat::GroupAttribute& imagineStatements);
 
-	CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth);
+	Imagine::CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth);
 
-	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects,
+	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Imagine::Object*>& aObjects,
 												   unsigned int baseLevelDepth, unsigned int currentDepth);
 
 	void processInstance(FnKat::FnScenegraphIterator iterator);
@@ -64,14 +67,14 @@ protected:
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
 
-	static void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject);
+	static void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Imagine::Object* pObject);
 
-	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<UV>& aUVs);
+	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<Imagine::UV>& aUVs);
 
 protected:
 	const CreationSettings&		m_creationSettings;
 
-	Scene&						m_scene;
+	Imagine::Scene&				m_scene;
 
 	MaterialHelper				m_materialHelper;
 	LightHelpers				m_lightHelper;

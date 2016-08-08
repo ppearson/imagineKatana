@@ -34,6 +34,8 @@
 #include "katana_helpers.h"
 #include "sg_location_processor.h"
 
+using namespace Imagine;
+
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
 	RenderBase(rootIterator, arguments), m_pScene(NULL), m_printMemoryStatistics(0), m_integratorType(1),
 	m_ambientOcclusion(false), m_fastLiveRenders(false), m_motionBlur(false),

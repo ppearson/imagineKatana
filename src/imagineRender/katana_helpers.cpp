@@ -14,6 +14,8 @@
 #include <RenderOutputUtils/RenderOutputUtils.h>
 #endif
 
+using namespace Imagine;
+
 KatanaHelpers::KatanaHelpers()
 {
 }
