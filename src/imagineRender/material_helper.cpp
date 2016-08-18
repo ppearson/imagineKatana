@@ -16,6 +16,9 @@
 #include "textures/image/image_texture_lazy.h"
 #include "textures/image/image_texture_lazy_atlas.h"
 
+#include "textures/constant.h"
+#include "textures/procedural_2d/wireframe.h"
+
 #include "katana_helpers.h"
 
 using namespace Imagine;
@@ -199,6 +202,9 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 	std::map<std::string, Material*> aMaterialNodes; // there should really only be one of these, but...
 	std::map<std::string, Texture*> aOpNodes;
+	std::map<std::string, Texture*> aTextureNodes;
+	
+	Material* pNewNodeMaterial = NULL;
 
 	// process all node items and cache them by name...
 	unsigned int numNodes = nodesAttr.getNumberOfChildren();
@@ -213,15 +219,14 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 		bool isShader = nodeType.find("Shader/") != std::string::npos;
 		bool isOp = nodeType.find("Op/") != std::string::npos;
+		bool isTexture = nodeType.find("Texture/") != std::string::npos;
 
-		if (!isShader && !isOp)
+		if (!isShader && !isOp && !isTexture)
 		{
 			// if we don't know what it is, there's no point continuing with the other nodes...
 			fprintf(stderr, "Error processing NetworkMaterial - unknown node type: %s\n", nodeType.c_str());
 			return NULL;
 		}
-
-		Material* pNewNodeMaterial = NULL;
 
 		FnKat::GroupAttribute paramsAttr = subItem.getChildByName("parameters");
 
@@ -271,9 +276,22 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 			if (!pNewNodeOp)
 				continue;
 
-			aOpNodes[opName] = pNewNodeOp;
+			aOpNodes[nodeName] = pNewNodeOp;
+		}
+		else if (isTexture)
+		{
+			std::string textureName = nodeType.substr(8);
+			
+			Texture* pNewNodeTexture = createNetworkTextureItem(textureName, paramsAttr);
+			if (!pNewNodeTexture)
+				continue;
+
+			aTextureNodes[nodeName] = pNewNodeTexture;
 		}
 	}
+	
+	if (!pNewNodeMaterial)
+		return NULL;
 
 	// now that we've gone through all nodes and created them, we can go through again, looking for
 	// connections, and connect them up
@@ -316,21 +334,32 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 					std::string portName = connectedItem.substr(0, atPos);
 					std::string connectionNodeName = connectedItem.substr(atPos + 1);
+					
+					bool foundConnection = false;
 
 					// now find what it's connected to
 					// for the moment, hopefully we're only going to be connecting Ops (Textures)
 
 					std::map<std::string, Texture*>::const_iterator itFindItem = aOpNodes.find(connectionNodeName);
-
-					if (itFindItem == aOpNodes.end())
+					if (itFindItem != aOpNodes.end())
 					{
-						fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
+						const Texture* pConn = itFindItem->second;
+						connectOpToMaterial(pMaterial, shaderName, paramName, pConn);
 						continue;
 					}
-
-					const Texture* pConn = itFindItem->second;
-
-					connectOpToMaterial(pMaterial, shaderName, paramName, pConn);
+					
+					// otherwise, see if it was a texture
+					itFindItem = aTextureNodes.find(connectionNodeName);
+					if (itFindItem != aTextureNodes.end())
+					{
+						const Texture* pConn = itFindItem->second;
+						connectTextureToMaterial(pMaterial, shaderName, paramName, pConn);
+						continue;
+					}
+					
+					// otherwise, we didn't find it..
+					fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
+					continue;
 				}
 				else
 				{
@@ -387,7 +416,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 	// now go through terminals connecting them up...
 	// for the moment, we can just do surface ones...
 
-	return NULL;
+	return pNewNodeMaterial;
 }
 
 // TODO: these are increadibly hacky - this sort of infrastructure should be moved into Imagine properly and be
@@ -397,11 +426,32 @@ Texture* MaterialHelper::createNetworkOpItem(const std::string& opName, const Fn
 {
 	// TODO: do something better than this...
 
-	if (opName == "TextureRead")
+	if (opName == "Mix")
 	{
 
 	}
 	return NULL;
+}
+
+Texture* MaterialHelper::createNetworkTextureItem(const std::string& textureName, const FnKat::GroupAttribute& params)
+{
+	// TODO: do something better than this...
+	
+	Texture* pNewTexture = NULL;
+
+	if (textureName == "TextureRead")
+	{
+
+	}
+	else if (textureName == "Constant")
+	{
+		pNewTexture = new Constant(Colour3f(1.0f, 0.0f, 0.0f));
+	}
+	else if (textureName == "Wireframe")
+	{
+
+	}
+	return pNewTexture;
 }
 
 void MaterialHelper::connectOpToMaterial(Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Texture* pOp)
@@ -413,6 +463,23 @@ void MaterialHelper::connectOpToMaterial(Material* pMaterial, const std::string&
 		if (paramName == "diff_col")
 		{
 			pSM->setDiffuseColourManualTexture(pOp);
+		}
+	}
+}
+
+void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Texture* pTexture)
+{
+	if (shaderName == "Standard" || shaderName == "StandardImage")
+	{
+		StandardMaterial* pSM = static_cast<StandardMaterial*>(pMaterial);
+
+		if (paramName == "diff_col")
+		{
+			pSM->setDiffuseColourManualTexture(pTexture);
+		}
+		else if (paramName == "spec_col")
+		{
+//			pSM->setSpecularColourManualTexture(pTexture);
 		}
 	}
 }

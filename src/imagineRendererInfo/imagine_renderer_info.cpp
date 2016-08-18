@@ -136,11 +136,13 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 			rendererObjectNames.push_back("Shader/MetallicPaint");
 			rendererObjectNames.push_back("Shader/Translucent");
 
-			rendererObjectNames.push_back("Op/Constant");
-			rendererObjectNames.push_back("Op/TextureRead");
-			rendererObjectNames.push_back("Op/Checkerboard");
 			rendererObjectNames.push_back("Op/Adjust");
 			rendererObjectNames.push_back("Op/Mix");
+			
+			rendererObjectNames.push_back("Texture/Checkerboard");
+			rendererObjectNames.push_back("Texture/Constant");
+			rendererObjectNames.push_back("Texture/TextureRead");
+			rendererObjectNames.push_back("Texture/Wireframe");
 		}
 	}
 	else if (type == kFnRendererObjectTypeRenderOutput)

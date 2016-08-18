@@ -61,6 +61,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 
 	typeTags.push_back("surface");
 	typeTags.push_back("op");
+	typeTags.push_back("texture");
 	typeTags.push_back("bump");
 	typeTags.push_back("medium");
 	typeTags.push_back("displacement");

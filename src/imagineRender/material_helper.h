@@ -51,8 +51,10 @@ protected:
 	Imagine::Material* createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
 	static Imagine::Texture* createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params);
+	static Imagine::Texture* createNetworkTextureItem(const std::string& textureName, const FnKat::GroupAttribute& params);
 
 	static void connectOpToMaterial(Imagine::Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Imagine::Texture* pOp);
+	static void connectTextureToMaterial(Imagine::Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Imagine::Texture* pTexture);
 	static void connectOpToOp(Imagine::Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Imagine::Texture* pSourceOp);
 
 	// stuff for uber-shaders
