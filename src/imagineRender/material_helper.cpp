@@ -11,7 +11,6 @@
 #include "materials/metalic_paint_material.h"
 #include "materials/velvet_material.h"
 #include "materials/luminous_material.h"
-#include "materials/wireframe_material.h"
 
 #include "textures/ops/op_invert.h"
 #include "textures/image/image_texture_lazy.h"
@@ -174,10 +173,6 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	else if (shaderName == "Luminous")
 	{
 		pNewMaterial = createLuminousMaterial(shaderParamsAttr);
-	}
-	else if (shaderName == "Wireframe")
-	{
-		pNewMaterial = createWireframeMaterial(shaderParamsAttr);
 	}
 
 	if (isMatte && pNewMaterial)
@@ -888,30 +883,6 @@ Material* MaterialHelper::createLuminousMaterial(const FnKat::GroupAttribute& sh
 		int weightBySurfaceArea = ah.getIntParam("light_weight_by_surface_area", 1);
 		pNewMaterial->setWeightBySurfaceArea(weightBySurfaceArea == 1);
 	}
-
-	return pNewMaterial;
-}
-
-Material* MaterialHelper::createWireframeMaterial(const FnKat::GroupAttribute& shaderParamsAttr)
-{
-	WireframeMaterial* pNewMaterial = new WireframeMaterial();
-
-	KatanaAttributeHelper ah(shaderParamsAttr);
-
-	Colour3f interiorColour = ah.getColourParam("interior_colour", Colour3f(0.7f, 0.7f, 0.7f));
-	pNewMaterial->setInteriorColour(interiorColour);
-
-	float lineWidth = ah.getFloatParam("line_width", 0.005f);
-	pNewMaterial->setLineWidth(lineWidth);
-
-	Colour3f lineColour = ah.getColourParam("line_colour", Colour3f(0.01f, 0.01f, 0.01f));
-	pNewMaterial->setLineColour(lineColour);
-
-	float edgeSoftness = ah.getFloatParam("edge_softness", 0.3f);
-	pNewMaterial->setEdgeSoftness(edgeSoftness);
-
-	int edgeType = ah.getIntParam("edge_type", 1);
-	pNewMaterial->setEdgeType(edgeType);
 
 	return pNewMaterial;
 }

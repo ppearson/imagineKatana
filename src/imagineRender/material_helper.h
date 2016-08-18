@@ -66,7 +66,6 @@ protected:
 	static Imagine::Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr);
 	static Imagine::Material* createVelvetMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Imagine::Material* createLuminousMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
-	static Imagine::Material* createWireframeMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 
 protected:
 	FnKat::StringAttribute					m_terminatorNodes;
