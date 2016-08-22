@@ -40,8 +40,8 @@
 				<int name="max_depth_refraction" default="5" help=""/>
 			</page>
 
-			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final pixel noise variance levels reach a certain level."/>
-			<float name="adaptive_variance_threshold" default="0.02" conditionalVisOp='equalTo' conditionalVisPath='../adaptive' conditionalVisValue='1'/>
+			<int name="adaptive" default="0" widget="checkBox" help="Use adaptive criteria within integrators for stopping when final pixel noise variance levels reach a certain threshold."/>
+			<float name="adaptive_variance_threshold" default="0.05" conditionalVisOp='equalTo' conditionalVisPath='../adaptive' conditionalVisValue='1'/>
 
 
 			<int name="spp" default="64" help="The overall number of samples per pixel. Perfect square numbers (49, 64, 144) will give slightly better sample stratification."/>

@@ -101,7 +101,6 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 			rendererObjectNames.push_back("Luminous");
 			rendererObjectNames.push_back("Metallic Paint");
 			rendererObjectNames.push_back("Translucent");
-			rendererObjectNames.push_back("Wireframe");
 		}
 		else if (isLight)
 		{
@@ -138,7 +137,7 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 
 			rendererObjectNames.push_back("Op/Adjust");
 			rendererObjectNames.push_back("Op/Mix");
-			
+
 			rendererObjectNames.push_back("Texture/Checkerboard");
 			rendererObjectNames.push_back("Texture/Constant");
 			rendererObjectNames.push_back("Texture/TextureRead");

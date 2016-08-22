@@ -48,6 +48,8 @@ protected:
 
 protected:
 	// called by createNewMaterial to try and create a network material from the attribute...
+	// TODO: all this stuff is pretty horrendous, but while verbose, it's easiest for the moment until we work
+	//       out what we're doing with built-in shaders which use static const init registration (so don't work in .so files)
 	Imagine::Material* createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
 	static Imagine::Texture* createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params);
@@ -68,6 +70,11 @@ protected:
 	static Imagine::Material* createTranslucentMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr);
 	static Imagine::Material* createVelvetMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
 	static Imagine::Material* createLuminousMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
+
+	// stuff for textures
+	static Imagine::Texture* createConstantTexture(const FnKat::GroupAttribute& textureParamsAttr);
+	static Imagine::Texture* createCheckerboardTexture(const FnKat::GroupAttribute& textureParamsAttr);
+	static Imagine::Texture* createWireframeTexture(const FnKat::GroupAttribute& textureParamsAttr);
 
 protected:
 	FnKat::StringAttribute					m_terminatorNodes;

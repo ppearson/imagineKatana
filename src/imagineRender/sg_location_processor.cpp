@@ -382,6 +382,16 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::GroupAttribute polyAttribute = geometryAttribute.getChildByName("poly");
 	FnKat::IntAttribute polyStartIndexAttribute = polyAttribute.getChildByName("startIndex");
 	FnKat::IntAttribute vertexListAttribute = polyAttribute.getChildByName("vertexList");
+	
+	// guard against bad data we sometime get from .abc files
+	if (!polyStartIndexAttribute.isValid() || polyStartIndexAttribute.getNumberOfTuples() == 0)
+	{
+		if (pNewGeoInstance)
+		{
+			delete pNewGeoInstance;
+			return NULL;
+		}
+	}
 
 	unsigned int numFaces = polyStartIndexAttribute.getNumberOfTuples() - 1;
 	FnKat::IntConstVector polyStartIndexAttributeValue = polyStartIndexAttribute.getNearestSample(0.0f);

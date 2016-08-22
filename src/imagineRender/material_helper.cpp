@@ -17,6 +17,7 @@
 #include "textures/image/image_texture_lazy_atlas.h"
 
 #include "textures/constant.h"
+#include "textures/procedural_2d/checkerboard.h"
 #include "textures/procedural_2d/wireframe.h"
 
 #include "katana_helpers.h"
@@ -203,7 +204,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 	std::map<std::string, Material*> aMaterialNodes; // there should really only be one of these, but...
 	std::map<std::string, Texture*> aOpNodes;
 	std::map<std::string, Texture*> aTextureNodes;
-	
+
 	Material* pNewNodeMaterial = NULL;
 
 	// process all node items and cache them by name...
@@ -281,7 +282,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 		else if (isTexture)
 		{
 			std::string textureName = nodeType.substr(8);
-			
+
 			Texture* pNewNodeTexture = createNetworkTextureItem(textureName, paramsAttr);
 			if (!pNewNodeTexture)
 				continue;
@@ -289,7 +290,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 			aTextureNodes[nodeName] = pNewNodeTexture;
 		}
 	}
-	
+
 	if (!pNewNodeMaterial)
 		return NULL;
 
@@ -334,7 +335,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 					std::string portName = connectedItem.substr(0, atPos);
 					std::string connectionNodeName = connectedItem.substr(atPos + 1);
-					
+
 					bool foundConnection = false;
 
 					// now find what it's connected to
@@ -347,7 +348,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 						connectOpToMaterial(pMaterial, shaderName, paramName, pConn);
 						continue;
 					}
-					
+
 					// otherwise, see if it was a texture
 					itFindItem = aTextureNodes.find(connectionNodeName);
 					if (itFindItem != aTextureNodes.end())
@@ -356,7 +357,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 						connectTextureToMaterial(pMaterial, shaderName, paramName, pConn);
 						continue;
 					}
-					
+
 					// otherwise, we didn't find it..
 					fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
 					continue;
@@ -436,7 +437,7 @@ Texture* MaterialHelper::createNetworkOpItem(const std::string& opName, const Fn
 Texture* MaterialHelper::createNetworkTextureItem(const std::string& textureName, const FnKat::GroupAttribute& params)
 {
 	// TODO: do something better than this...
-	
+
 	Texture* pNewTexture = NULL;
 
 	if (textureName == "TextureRead")
@@ -445,11 +446,15 @@ Texture* MaterialHelper::createNetworkTextureItem(const std::string& textureName
 	}
 	else if (textureName == "Constant")
 	{
-		pNewTexture = new Constant(Colour3f(1.0f, 0.0f, 0.0f));
+		pNewTexture = createConstantTexture(params);
+	}
+	else if (textureName == "Checkerboard")
+	{
+		pNewTexture = createCheckerboardTexture(params);
 	}
 	else if (textureName == "Wireframe")
 	{
-
+		pNewTexture = createWireframeTexture(params);
 	}
 	return pNewTexture;
 }
@@ -479,7 +484,7 @@ void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::st
 		}
 		else if (paramName == "spec_col")
 		{
-//			pSM->setSpecularColourManualTexture(pTexture);
+			pSM->setSpecularColourManualTexture(pTexture);
 		}
 	}
 }
@@ -842,7 +847,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
-	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.7f, 0.7f, 0.7f));
+	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.4f, 0.4f, 1.0f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
 
 	Colour3f specularColour = ah.getColourParam("specular_col", Colour3f(0.1f, 0.1f, 0.1f));
@@ -861,7 +866,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	float transmittance = ah.getFloatParam("transmittance", 0.41f);
 	pNewMaterial->setTransmittance(transmittance);
-	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.33f);
+	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.7f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
 
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
@@ -952,5 +957,62 @@ Material* MaterialHelper::createLuminousMaterial(const FnKat::GroupAttribute& sh
 	}
 
 	return pNewMaterial;
+}
+
+//
+
+Texture* MaterialHelper::createConstantTexture(const FnKat::GroupAttribute& textureParamsAttr)
+{
+	Constant* pNewTexture = new Constant();
+
+	KatanaAttributeHelper ah(textureParamsAttr);
+
+	Colour3f colour = ah.getColourParam("colour", Colour3f(0.6f, 0.6f, 0.6f));
+	pNewTexture->setColour(colour);
+
+	return pNewTexture;
+}
+
+Texture* MaterialHelper::createCheckerboardTexture(const FnKat::GroupAttribute& textureParamsAttr)
+{
+	Checkerboard* pNewTexture = new Checkerboard();
+
+	KatanaAttributeHelper ah(textureParamsAttr);
+
+	Colour3f colour1 = ah.getColourParam("colour1", Colour3f(0.0f, 0.0f, 0.0f));
+	pNewTexture->setColour1(colour1);
+	Colour3f colour2 = ah.getColourParam("colour2", Colour3f(1.0f, 1.0f, 1.0f));
+	pNewTexture->setColour2(colour2);
+	
+	float scaleU = ah.getFloatParam("scaleU", 1.0f);
+	float scaleV = ah.getFloatParam("scaleV", 1.0f);
+	
+	pNewTexture->setScaleValues(scaleU, scaleV);
+
+	return pNewTexture;
+}
+
+Texture* MaterialHelper::createWireframeTexture(const FnKat::GroupAttribute& textureParamsAttr)
+{
+	Wireframe* pNewTexture = new Wireframe();
+
+	KatanaAttributeHelper ah(textureParamsAttr);
+
+	int edgeType = ah.getIntParam("edge_type", 1);
+	pNewTexture->setEdgeType((unsigned char)edgeType);
+
+	Colour3f interiorColour = ah.getColourParam("interior_colour", Colour3f(0.6f, 0.6f, 0.6f));
+	pNewTexture->setInteriorColour(interiorColour);
+
+	float lineWidth = ah.getFloatParam("line_width", 0.005f);
+	pNewTexture->setLineWidth(lineWidth);
+
+	Colour3f lineColour = ah.getColourParam("line_colour", Colour3f(0.01f, 0.01f, 0.01f));
+	pNewTexture->setLineColour(lineColour);
+
+	float edgeSoftness = ah.getFloatParam("edge_softness", 0.3f);
+	pNewTexture->setEdgeSoftness(edgeSoftness);
+
+	return pNewTexture;
 }
 

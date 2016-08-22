@@ -73,6 +73,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 																					kFnRendererObjectValueTypeUnknown, containerHintsAttribute);
 
 	std::string buildName;
+	std::string typeName; // for network materials
 	if (name.find("/") == std::string::npos)
 	{
 		// just a single standard material
@@ -82,6 +83,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 		// ImagineShadingNode item, so split out the two items from the name
 		size_t sepPos = name.find("/");
+		typeName = name.substr(0, sepPos);
 		buildName = name.substr(sepPos + 1);
 	}
 
@@ -125,10 +127,6 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	{
 		buildLuminousShaderParams(iri, rendererObjectInfo);
 	}
-	else if (buildName == "Wireframe")
-	{
-		buildWireframeShaderParams(iri, rendererObjectInfo);
-	}
 	// lights
 	else if (buildName == "Point")
 	{
@@ -168,6 +166,22 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	else if (buildName == "ImageTextureAlpha")
 	{
 		buildAlphaTextureShaderParams(iri, rendererObjectInfo);
+	}
+
+	if (typeName == "Texture")
+	{
+		if (buildName == "Constant")
+		{
+			buildConstantTextureParams(iri, rendererObjectInfo);
+		}
+		else if (buildName == "Checkerboard")
+		{
+			buildCheckerboardTextureParams(iri, rendererObjectInfo);
+		}
+		else if (buildName == "Wireframe")
+		{
+			buildWireframeTextureParams(iri, rendererObjectInfo);
+		}
 	}
 
 	return true;
@@ -308,7 +322,7 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("surface_col", Col3f(0.7f, 0.7f, 0.7f));
+	helper.addColourParam("surface_col", Col3f(0.4f, 0.4f, 1.0f));
 
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
 	helper.addFloatParam("specular_roughness", 0.05f);
@@ -318,7 +332,7 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatSliderParam("sampling_density", 0.35f, 0.001f, 2.0f);
 
 	helper.addFloatSliderParam("transmittance", 0.41f);
-	helper.addFloatSliderParam("transmittance_roughness", 0.33f);
+	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
 
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 
@@ -338,18 +352,7 @@ void ShaderInfoHelper::buildVelvetShaderParams(const ImagineRendererInfo& iri, F
 	helper.addFloatSliderParam("backscatter", 0.7f);
 }
 
-void ShaderInfoHelper::buildWireframeShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
-{
-	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("interior_colour", Col3f(0.7f, 0.7f, 0.7f));
-	helper.addFloatSliderParam("line_width", 0.005f, 0.0f, 10.0f);
-
-	helper.addColourParam("line_colour", Col3f(0.01f, 0.01f, 0.01f));
-	helper.addFloatSliderParam("edge_softness", 0.3f);
-
-	helper.addIntParam("edge_type", 1);
-}
 
 void ShaderInfoHelper::buildLuminousShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
@@ -372,8 +375,8 @@ void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& i
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
-	helper.addFloatSliderParam("exposure", 0.0f, 0.0f, 20.0f);
+	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 100.0f);
+	helper.addFloatSliderParam("exposure", 0.0f, 0.0f, 25.0f);
 	if (addColour)
 	{
 		helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
@@ -487,6 +490,39 @@ void ShaderInfoHelper::buildAlphaTextureShaderParams(const ImagineRendererInfo& 
 
 	helper.addStringParam("alpha_texture_path");
 	helper.addBoolParam("alpha_texture_invert", false);
+}
+
+//
+
+void ShaderInfoHelper::buildConstantTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("colour", Col3f(0.6f, 0.6f, 0.6f));
+}
+
+void ShaderInfoHelper::buildCheckerboardTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+	
+	helper.addFloatSliderParam("scaleU", 1.0f, 0.0001f, 100.0f);
+	helper.addFloatSliderParam("scaleV", 1.0f, 0.0001f, 100.0f);
+
+	helper.addColourParam("colour1", Col3f(0.0f, 0.0f, 0.0f));
+	helper.addColourParam("colour2", Col3f(1.0f, 1.0f, 1.0f));
+}
+
+void ShaderInfoHelper::buildWireframeTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addColourParam("interior_colour", Col3f(0.6f, 0.6f, 0.6f));
+	helper.addFloatSliderParam("line_width", 0.005f, 0.0f, 10.0f);
+
+	helper.addColourParam("line_colour", Col3f(0.01f, 0.01f, 0.01f));
+	helper.addFloatSliderParam("edge_softness", 0.3f);
+
+	helper.addIntParam("edge_type", 1);
 }
 
 //

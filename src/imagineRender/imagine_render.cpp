@@ -270,7 +270,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	unsigned int useAdaptive = gsHelper.getIntParam("adaptive", 0);
 
-	float adaptiveVarianceThreshold = gsHelper.getFloatParam("adaptive_variance_threshold", 0.01f);
+	float adaptiveVarianceThreshold = gsHelper.getFloatParam("adaptive_variance_threshold", 0.05f);
 
 	unsigned int samplesPerPixel = gsHelper.getIntParam("spp", 64);
 
@@ -762,6 +762,28 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		clampedShutterOpen = clamp(clampedShutterOpen, 0.0f, clampedShutterOpen);
 		clampedShutterClose = clamp(clampedShutterClose, clampedShutterClose, 1.0f);
 		pRenderCamera->setRelativeShutterTimes(clampedShutterOpen, clampedShutterClose);
+	}
+	
+	// now get any arbitrary attributes
+	FnKat::GroupAttribute projectionArbitraryAttribute = cameraIterator.getAttribute("projection.arbitrary");
+	if (projectionArbitraryAttribute.isValid())
+	{
+		unsigned int numChildren = projectionArbitraryAttribute.getNumberOfChildren();
+		for (unsigned int i = 0; i < numChildren; i++)
+		{
+			FnKat::Attribute childAttr = projectionArbitraryAttribute.getChildByIndex(i);
+			
+			// only process floats for the moment...
+			if (childAttr.getType() == kFnKatAttributeTypeFloat)
+			{
+				FnKat::FloatAttribute typedAttr = childAttr;
+				if (typedAttr.isValid())
+				{
+					std::string childName = projectionArbitraryAttribute.getChildName(i);
+					pRenderCamera->addFloatParam(childName, typedAttr.getValue(0.0f, false));
+				}
+			}
+		}
 	}
 
 	m_pScene->setDefaultCamera(pRenderCamera);
