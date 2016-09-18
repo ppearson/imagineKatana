@@ -30,12 +30,17 @@ public:
 
 	struct InstanceInfo
 	{
+		InstanceInfo() : m_compound(false), pGeoInstance(NULL)
+		{
+			
+		}
+
 		bool		m_compound;
 
 		union
 		{
 			Imagine::GeometryInstance*			pGeoInstance;
-			Imagine::CompoundObject*				pCompoundObject;
+			Imagine::CompoundObject*			pCompoundObject;
 		};
 	};
 
@@ -62,7 +67,10 @@ protected:
 	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Imagine::Object*>& aObjects,
 												   unsigned int baseLevelDepth, unsigned int currentDepth);
 
+	InstanceInfo findOrBuildInstanceSourceItem(FnKat::FnScenegraphIterator iterator, const std::string& instanceSourcePath);
 	void processInstance(FnKat::FnScenegraphIterator iterator);
+	void processInstanceArray(FnKat::FnScenegraphIterator iterator);
+	
 	void processSphere(FnKat::FnScenegraphIterator iterator);
 
 	void processLight(FnKat::FnScenegraphIterator iterator);

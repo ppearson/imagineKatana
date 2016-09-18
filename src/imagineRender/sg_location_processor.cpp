@@ -69,26 +69,22 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 			return;
 		}
 	}
-/*
-	if (type[0] == 'i')
-	{
-		// excessive, but...
-		const std::string& firstInstancePart = type.substr(1, 7);
-		if (firstInstancePart == "nstance")
-		{
 
-		}
-	}
-*/
 	if (type == "instance")
 	{
 		processInstance(iterator);
+		return;
+	}
+	if (type == "instance array")
+	{
+		processInstanceArray(iterator);
 		return;
 	}
 	if (type == "instance source")
 	{
 		return;
 	}
+	
 	if (m_creationSettings.m_specialiseType == CreationSettings::eAssembly && type == "assembly")
 	{
 		processSpecialisedType(iterator, currentDepth);
@@ -1047,6 +1043,102 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 	}
 }
 
+// this builds and adds to the instance lookup map any instance locations at the instance source path
+SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSourceItem(FnKat::FnScenegraphIterator iterator, const std::string& instanceSourcePath)
+{
+	InstanceInfo nullInfo; // NULL by default
+	
+	// see if we've created the source already...
+	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
+
+	if (itFind != m_aInstances.end())
+	{
+		// just create the item pointing to it
+
+		const InstanceInfo& ii = (*itFind).second;
+
+		if (!ii.pCompoundObject && !ii.pGeoInstance)
+		{
+			// we've got a problem, and the most likely reason is that the location at the end of the instanceSource didn't have
+			// any children, and was empty. So don't bother creating any object in the scene.
+			// Note: While it might seem like not even adding the items to the instances map would be better, it's quite useful
+			//       having a NULL object in the lookup map, as it prevents us from continually doing the very expensive
+			//       iterator.getRoot().getByPath() lookup for no reason for all instance locations which point to the empty location.
+
+			return nullInfo;
+		}
+
+		return ii;
+	}
+	else
+	{
+		// do the expensive lookup of the item...
+		FnKat::FnScenegraphIterator itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
+		if (!itInstanceSource.isValid())
+		{
+			// TODO: maybe add a placeholder to the map so that we don't try to uselessly attempt to find
+			// it using getByPath() (which is expensive) in the future?
+			return nullInfo;
+		}
+
+		bool isLeaf = !itInstanceSource.getFirstChild().isValid();
+		// check two levels down, as that's more conventional...
+		bool hasSubLeaf = isLeaf && (itInstanceSource.getFirstChild().getFirstChild().isValid());
+		// if it's simply pointing to a mesh (so a leaf without a hierarchy)
+		if (isLeaf)
+		{
+			// just build the source geometry and link to it....
+
+			bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
+
+			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
+			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
+
+			InstanceInfo ii;
+			ii.m_compound = false;
+			ii.pGeoInstance = pNewInstance;
+
+			m_aInstances[instanceSourcePath] = ii;
+
+			// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
+			// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
+			// based off the location name isn't continually done, so make sure that's done before we return.
+
+			if (!pNewInstance)
+			{
+				return nullInfo;
+			}
+
+			return ii;
+		}
+		else
+		{
+			// it's a full hierarchy, so we can specialise by building a compound object containing all the sub-objects
+
+			// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
+			// is what we want...
+			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
+
+			if (!pCO)
+			{
+				// TODO: add NULL item to the map?
+				return nullInfo;
+			}
+
+			InstanceInfo ii;
+			ii.m_compound = true;
+			ii.pCompoundObject = pCO;
+
+			m_aInstances[instanceSourcePath] = ii;
+
+			return ii;
+		}
+	}
+	
+	return nullInfo;
+}
+
 void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 {
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
@@ -1064,6 +1156,8 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	}
 
 	bool isCompound = false;
+	
+	// TODO: fixup this to use new findOrBuildInstanceSourceItem() function
 
 	// see if we've created the source already...
 	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
@@ -1075,6 +1169,17 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		// just create the item pointing to it
 
 		const InstanceInfo& ii = (*itFind).second;
+
+		if (!ii.pCompoundObject && !ii.pGeoInstance)
+		{
+			// we've got a problem, and the most likely reason is that the location at the end of the instanceSource didn't have
+			// any children, and was empty. So don't bother creating any object in the scene.
+			// Note: While it might seem like not even adding the items to the instances map would be better, it's quite useful
+			//       having a NULL object in the lookup map, as it prevents us from continually doing the very expensive
+			//       iterator.getRoot().getByPath() lookup for no reason for all instance locations which point to the empty location.
+
+			return;
+		}
 
 		if (ii.m_compound)
 		{
@@ -1125,6 +1230,15 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			m_aInstances[instanceSourcePath] = ii;
 
+			// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
+			// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
+			// based off the location name isn't continually done, so make sure that's done before we return.
+
+			if (!pNewInstance)
+			{
+				return;
+			}
+
 			CompactMesh* pNewMesh = new CompactMesh();
 			pNewMesh->setCompactGeometryInstance(pNewInstance);
 
@@ -1140,6 +1254,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			if (!pCO)
 			{
+				// TODO: add NULL item to the map?
 				return;
 			}
 
@@ -1205,6 +1320,89 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	m_scene.addObject(pNewObject, false, false);
 }
 
+void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator iterator)
+{
+	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
+	if (!instanceSourceAttribute.isValid())
+	{
+		// we can't do anything...
+		return;
+	}
+
+	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
+	if (instanceSourcePath.empty())
+	{
+		// we can't do anything
+		return;
+	}
+	
+	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
+	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
+	{
+		// we can't do anything
+		return;
+	}
+	
+	// only bother looking for float version, as Katana doesn't know to look for double versions here itself anyway (unlike with normal location xforms),
+	// and double doesn't give us any benefit.
+	FnKat::FloatAttribute instanceMatrixAttribute = iterator.getAttribute("geometry.instanceMatrix");
+	if (!instanceMatrixAttribute.isValid())
+	{
+		// no transforms, so no point continuing...
+		return;
+	}
+	
+	// for the moment, we assume no motion blur, so there's only a single time sample, and we're assuming it's a flat
+	// list of the 4x4 matrix components, so check we have a multiple of 16
+	bool validMatrixLength = (instanceMatrixAttribute.getNumberOfValues() % 16) == 0;
+	if (!validMatrixLength)
+	{
+		fprintf(stderr, "imagineKatana: Error: incorrect number of float values specified for 'instanceMatrix' on location: %s\n", iterator.getFullName().c_str());
+		return;
+	}
+	
+	FnKat::FloatConstVector matrixValues = instanceMatrixAttribute.getNearestSample(0.0f);
+	size_t fullSize = matrixValues.size();
+	size_t numInstances = fullSize / 16;
+	
+	size_t posIndex = 0;
+	
+	bool isCompound = instanceInfo.m_compound;
+	
+	Object* pNewObject = NULL;
+	
+	for (size_t i = 0; i < numInstances; i++)
+	{
+		// TODO: check the compiler's unrolling this correctly...
+		float tempValues[16];
+		for (unsigned int j = 0; j < 16; j++)
+		{
+			tempValues[j] = matrixValues[posIndex++];
+		}
+		
+		if (isCompound)
+		{
+			CompoundInstance* pNewCI = new CompoundInstance(instanceInfo.pCompoundObject);
+			pNewObject = pNewCI;
+		}
+		else
+		{
+			CompactMesh* pNewMesh = new CompactMesh();
+			pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(instanceInfo.pGeoInstance));
+			pNewObject = pNewMesh;
+			
+			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+	
+			Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
+			pNewObject->setMaterial(pMaterial);
+		}
+		
+		pNewObject->transform().setCachedMatrix(tempValues, true);
+		
+		m_scene.addObject(pNewObject, false, false);
+	}
+}
+
 void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 {
 	// get the geometry attributes group
@@ -1224,7 +1422,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 		radius = radiusAttr.getValue(1.0f, false);
 	}
 
-	Sphere* pSphere = new Sphere((float)radius, 24);
+	Sphere* pSphere = new Sphere((float)radius, 16);
 
 	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);

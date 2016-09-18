@@ -728,6 +728,19 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 				m_pScene->getProjectProperties().setBackgroundType(eBackgroundEnvironment);
 			}
 		}
+		
+		FnKat::IntAttribute camUseNearClipAttr = itRoot.getAttribute("imagineGlobalStatements.cam_use_near_clip");
+		if (camUseNearClipAttr.isValid())
+		{
+			int camUseNearClip = camUseNearClipAttr.getValue(0, false);
+			if (camUseNearClip == 1)
+			{
+				float cameraClipping[2];
+				settings.getCameraSettings()->getClipping(cameraClipping);
+				
+				pRenderCamera->setNearClippingPlane(cameraClipping[0]);
+			}
+		}
 	}
 
 	if (detectCameraType && cameraGeometryAttribute.isValid())

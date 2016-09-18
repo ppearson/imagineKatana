@@ -236,6 +236,7 @@
 				</hintdict>
 			</int>
 			<int name="environment_visible" widget="checkBox" default="0"/>
+			<int name="cam_use_near_clip" widget="checkBox" default="0"/>
 		</page>
 	</group>
 </args>
