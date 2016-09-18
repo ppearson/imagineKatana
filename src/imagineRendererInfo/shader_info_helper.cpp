@@ -21,9 +21,10 @@
 typedef std::pair<std::string, int> EnumPair;
 typedef std::vector<EnumPair> EnumPairVector;
 
-const char* falloffTypeOptions[] = { "none", "linear", "quadratic", 0 };
-const char* shadowTypeOptions[] = { "normal", "transparent", "none", 0 };
+static const char* falloffTypeOptions[] = { "none", "linear", "quadratic", 0 };
+static const char* shadowTypeOptions[] = { "normal", "transparent", "none", 0 };
 static const char* areaShapeTypeOptions[] = { "quad", "disc", "sphere", "cylinder", 0 };
+static const char* swatchGridTypeOptions[] = { "none", "hue", "fixed colour", 0 };
 
 ShaderInfoHelper::ShaderInfoHelper(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo) : m_iri(iri),
 	m_rendererObjectInfo(rendererObjectInfo)
@@ -178,6 +179,14 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 		{
 			buildCheckerboardTextureParams(iri, rendererObjectInfo);
 		}
+		else if (buildName == "Grid")
+		{
+			buildGridTextureParams(iri, rendererObjectInfo);
+		}
+		else if (buildName == "Swatch")
+		{
+			buildSwatchTextureParams(iri, rendererObjectInfo);
+		}
 		else if (buildName == "Wireframe")
 		{
 			buildWireframeTextureParams(iri, rendererObjectInfo);
@@ -193,7 +202,6 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 
 	helper.addColourParam("diff_col", Col3f(0.6f, 0.6f, 0.6f));
 	helper.addStringParam("diff_col_texture");
-	helper.addIntParam("diff_col_texture_flags", 0);
 	helper.addFloatSliderParam("diff_roughness", 0.0f);
 	helper.addFloatSliderParam("diff_backlit", 0.0f);
 
@@ -222,7 +230,6 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 
 	helper.addColourParam("diff_col", Col3f(0.6f, 0.6f, 0.6f));
 	helper.addStringParam("diff_col_texture");
-	helper.addIntParam("diff_col_texture_flags", 0);
 
 	helper.addFloatSliderParam("diff_roughness", 0.0f);
 	helper.addStringParam("diff_roughness_texture");
@@ -510,6 +517,29 @@ void ShaderInfoHelper::buildCheckerboardTextureParams(const ImagineRendererInfo&
 
 	helper.addColourParam("colour1", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addColourParam("colour2", Col3f(1.0f, 1.0f, 1.0f));
+}
+
+void ShaderInfoHelper::buildGridTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+	
+	helper.addFloatSliderParam("scaleU", 1.0f, 0.0001f, 100.0f);
+	helper.addFloatSliderParam("scaleV", 1.0f, 0.0001f, 100.0f);
+
+	helper.addColourParam("colour1", Col3f(0.0f, 0.0f, 0.0f));
+	helper.addColourParam("colour2", Col3f(1.0f, 1.0f, 1.0f));
+}
+
+void ShaderInfoHelper::buildSwatchTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+	
+	helper.addFloatSliderParam("scaleU", 1.0f, 0.0001f, 100.0f);
+	helper.addFloatSliderParam("scaleV", 1.0f, 0.0001f, 100.0f);
+
+	helper.addStringPopupParam("grid_type", "hue", swatchGridTypeOptions, 3);
+	helper.addColourParam("grid_colour", Col3f(0.64f, 0.64f, 0.64f));
+	helper.addBoolParam("checkerboard", false);
 }
 
 void ShaderInfoHelper::buildWireframeTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

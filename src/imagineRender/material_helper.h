@@ -49,13 +49,13 @@ protected:
 protected:
 	// called by createNewMaterial to try and create a network material from the attribute...
 	// TODO: all this stuff is pretty horrendous, but while verbose, it's easiest for the moment until we work
-	//       out what we're doing with built-in shaders which use static const init registration (so don't work in .so files)
+	//       out what we're doing with built-in shaders which use static const init registration (so don't work in .so files),
+	//       and how to pass in Args in a nice generic way
 	Imagine::Material* createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
 	static Imagine::Texture* createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params);
 	static Imagine::Texture* createNetworkTextureItem(const std::string& textureName, const FnKat::GroupAttribute& params);
 
-	static void connectOpToMaterial(Imagine::Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Imagine::Texture* pOp);
 	static void connectTextureToMaterial(Imagine::Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Imagine::Texture* pTexture);
 	static void connectOpToOp(Imagine::Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Imagine::Texture* pSourceOp);
 
@@ -74,6 +74,8 @@ protected:
 	// stuff for textures
 	static Imagine::Texture* createConstantTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createCheckerboardTexture(const FnKat::GroupAttribute& textureParamsAttr);
+	static Imagine::Texture* createGridTexture(const FnKat::GroupAttribute& textureParamsAttr);
+	static Imagine::Texture* createSwatchTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createWireframeTexture(const FnKat::GroupAttribute& textureParamsAttr);
 
 protected:

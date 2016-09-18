@@ -13,11 +13,11 @@
 #include "materials/luminous_material.h"
 
 #include "textures/ops/op_invert.h"
-#include "textures/image/image_texture_lazy.h"
-#include "textures/image/image_texture_lazy_atlas.h"
 
 #include "textures/constant.h"
 #include "textures/procedural_2d/checkerboard.h"
+#include "textures/procedural_2d/gridlines.h"
+#include "textures/procedural_2d/swatch.h"
 #include "textures/procedural_2d/wireframe.h"
 
 #include "katana_helpers.h"
@@ -345,7 +345,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 					if (itFindItem != aOpNodes.end())
 					{
 						const Texture* pConn = itFindItem->second;
-						connectOpToMaterial(pMaterial, shaderName, paramName, pConn);
+						connectTextureToMaterial(pMaterial, shaderName, paramName, pConn);
 						continue;
 					}
 
@@ -452,24 +452,19 @@ Texture* MaterialHelper::createNetworkTextureItem(const std::string& textureName
 	{
 		pNewTexture = createCheckerboardTexture(params);
 	}
+	else if (textureName == "Grid")
+	{
+		pNewTexture = createGridTexture(params);
+	}
+	else if (textureName == "Swatch")
+	{
+		pNewTexture = createSwatchTexture(params);
+	}
 	else if (textureName == "Wireframe")
 	{
 		pNewTexture = createWireframeTexture(params);
 	}
 	return pNewTexture;
-}
-
-void MaterialHelper::connectOpToMaterial(Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Texture* pOp)
-{
-	if (shaderName == "Standard" || shaderName == "StandardImage")
-	{
-		StandardMaterial* pSM = static_cast<StandardMaterial*>(pMaterial);
-
-		if (paramName == "diff_col")
-		{
-			pSM->setDiffuseColourManualTexture(pOp);
-		}
-	}
 }
 
 void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::string& shaderName, const std::string& paramName, const Texture* pTexture)
@@ -485,6 +480,18 @@ void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::st
 		else if (paramName == "spec_col")
 		{
 			pSM->setSpecularColourManualTexture(pTexture);
+		}
+		else if (paramName == "spec_roughness")
+		{
+			pSM->setSpecularRoughnessManualTexture(pTexture);
+		}
+		else if (paramName == "diffuse_roughness_texture")
+		{
+			
+		}
+		else if (paramName == "diff_backlit_texture")
+		{
+			
 		}
 	}
 }
@@ -509,20 +516,6 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	if (!diffColTexture.empty())
 	{
 		pNewStandardMaterial->setDiffuseTextureMapPath(diffColTexture, true); // lazy load texture when needed
-
-		int diffTextureFlags = ah.getIntParam("diff_col_texture_flags", 0);
-		if (diffTextureFlags)
-		{
-			// hack mip-map bias for the moment
-			if (diffTextureFlags == 1)
-			{
-				pNewStandardMaterial->setDiffuseTextureCustomFlags(1 << 15);
-			}
-			else if (diffTextureFlags == 2)
-			{
-				pNewStandardMaterial->setDiffuseTextureCustomFlags(1 << 16);
-			}
-		}
 	}
 
 	float diffRoughness = ah.getFloatParam("diff_roughness", 0.0f);
@@ -983,6 +976,48 @@ Texture* MaterialHelper::createCheckerboardTexture(const FnKat::GroupAttribute& 
 	pNewTexture->setColour1(colour1);
 	Colour3f colour2 = ah.getColourParam("colour2", Colour3f(1.0f, 1.0f, 1.0f));
 	pNewTexture->setColour2(colour2);
+	
+	float scaleU = ah.getFloatParam("scaleU", 1.0f);
+	float scaleV = ah.getFloatParam("scaleV", 1.0f);
+	
+	pNewTexture->setScaleValues(scaleU, scaleV);
+
+	return pNewTexture;
+}
+
+Texture* MaterialHelper::createGridTexture(const FnKat::GroupAttribute& textureParamsAttr)
+{
+	Gridlines* pNewTexture = new Gridlines();
+
+	KatanaAttributeHelper ah(textureParamsAttr);
+
+	Colour3f colour1 = ah.getColourParam("colour1", Colour3f(0.0f, 0.0f, 0.0f));
+	pNewTexture->setColour1(colour1);
+	Colour3f colour2 = ah.getColourParam("colour2", Colour3f(1.0f, 1.0f, 1.0f));
+	pNewTexture->setColour2(colour2);
+	
+	float scaleU = ah.getFloatParam("scaleU", 1.0f);
+	float scaleV = ah.getFloatParam("scaleV", 1.0f);
+	
+	pNewTexture->setScaleValues(scaleU, scaleV);
+
+	return pNewTexture;
+}
+
+Texture* MaterialHelper::createSwatchTexture(const FnKat::GroupAttribute& textureParamsAttr)
+{
+	Swatch* pNewTexture = new Swatch();
+
+	KatanaAttributeHelper ah(textureParamsAttr);
+
+	std::string gridType = ah.getStringParam("grid_type", "hue");
+	if (gridType == "none")
+		pNewTexture->setGridType(0);
+	else if (gridType == "fixed colour")
+		pNewTexture->setGridType(2);
+	
+	bool checkerboard = ah.getIntParam("checkerboard", 0) == 1;
+	pNewTexture->setCheckerboard(checkerboard);
 	
 	float scaleU = ah.getFloatParam("scaleU", 1.0f);
 	float scaleV = ah.getFloatParam("scaleV", 1.0f);

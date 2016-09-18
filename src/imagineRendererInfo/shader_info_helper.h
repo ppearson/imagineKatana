@@ -62,6 +62,8 @@ public:
 	// Ops / Textures
 	static void buildConstantTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildCheckerboardTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildGridTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
+	static void buildSwatchTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 	static void buildWireframeTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo);
 
 

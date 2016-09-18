@@ -140,6 +140,8 @@ void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rend
 
 			rendererObjectNames.push_back("Texture/Checkerboard");
 			rendererObjectNames.push_back("Texture/Constant");
+			rendererObjectNames.push_back("Texture/Grid");
+			rendererObjectNames.push_back("Texture/Swatch");
 			rendererObjectNames.push_back("Texture/TextureRead");
 			rendererObjectNames.push_back("Texture/Wireframe");
 		}
