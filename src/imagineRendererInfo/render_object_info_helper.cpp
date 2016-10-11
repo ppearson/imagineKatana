@@ -12,7 +12,7 @@
 
 #include "imagine_renderer_info.h"
 
-// RenderInfoBase stupidly has these marked as protected, so redefine them here so we can use them easily...
+// RenderInfoBase annoyingly has these marked as protected, so redefine them here so we can use them easily...
 typedef std::pair<std::string, int> EnumPair;
 typedef std::vector<EnumPair> EnumPairVector;
 
@@ -96,7 +96,7 @@ bool RenderObjectInfoHelper::buildRenderOutput(const ImagineRendererInfo& iri, F
 		EnumPairVector enums;
 		FnKat::StringBuilder channelAttributeBuilder;
 		channelAttributeBuilder.push_back("rgba");
-		channelAttributeBuilder.push_back("rgb");
+
 		FnKat::GroupBuilder channelGroupBuilder;
 		channelGroupBuilder.set("widget", FnKat::StringAttribute("popup"));
 		channelGroupBuilder.set("options", outputChannelAttributeBuilder.build());

@@ -176,7 +176,7 @@
 			</int>
 			<string name="statistics_output_path" default="" conditionalVisOp='equalTo' conditionalVisPath='../statistics_output_type' conditionalVisValue='1' widget="default"/>
 
-			<int name="print_memory_statistics" default="1" widget="mapper">
+			<int name="print_memory_statistics" default="0" widget="mapper">
 				<hintdict name='options'>
 					<int name="None" value="0"/>
 					<int name="Normal" value="1"/>
@@ -214,6 +214,7 @@
 			<int name="decompose_xforms" default="0" widget="checkBox" help="When enabled, Imagine will attempt to decompose xform matrices used for motion blur. This doesn't always work (pivoted rotation, skew, shear), but otherwise provides accurate quaternion-based rotation with just two xform samples."/>
 			<int name="debug_popup" default="0" widget="checkBox" help="Pops up xmessage box so debugger can be attached to renderboot."/>
 			<int name="discard_geometry" default="0" widget="checkBox" help="Doesn't actually add geometry to Imagine. Useful for debugging Katana memory usage via renderboot."/>
+			<int name="enable_id_picking" default="1" widget="checkBox" help="Enables the use of ID picking for preview / live interactive renders.<br><br>Works in tandem with Monitor 3D menu control option - both need to be enabled (default) for Imagine to register locations for IDs and send the buffer."/>
 		</page>
 
 		<page name='camera' open="False">

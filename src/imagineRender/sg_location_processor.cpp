@@ -21,10 +21,27 @@
 
 #include "lights/light.h"
 
+#include "id_state.h"
+
 using namespace Imagine;
 
-SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings)
+SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings), m_pIDState(NULL)
 {
+}
+
+SGLocationProcessor::~SGLocationProcessor()
+{
+	if (m_pIDState)
+	{
+		delete m_pIDState;
+		m_pIDState = NULL;
+	}
+}
+
+void SGLocationProcessor::initIDState(const std::string& hostName, int64_t frameID)
+{
+	m_pIDState = new IDState();
+	m_pIDState->initState(hostName, frameID);
 }
 
 void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)
@@ -42,9 +59,28 @@ void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
 	aMaterials = m_materialHelper.getMaterialsVector();
 }
 
+void SGLocationProcessor::addObjectToScene(Object* pObject)
+{
+	// don't want names or IDs to be automatically assigned, as we'll set them if we need them within the plugin,
+	// and neither do we want lookup maps done for the moment (will need them for rerendering at some point)
+	m_scene.addObject(pObject, false, false, false);
+}
+
+// the assumption is these will be unique - this is only really being done for stats purposes currently, so is optional,
+// but it could be used to make use of Imagine's ability to automatically de-duplicate/instance geo, but that's not currently
+// worth it with the way instances should be done in Katana, so...
+void SGLocationProcessor::registerGeometryInstance(Imagine::GeometryInstance* pGeoInstance)
+{
+	m_scene.getGeometryManager().addRawGeometryInstance(pGeoInstance);
+}
+
 void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
 {
 	std::string type = iterator.getType();
+	
+	std::string fullName = iterator.getFullName();
+	
+//	fprintf(stderr, "location: %s, type: %s\n", fullName.c_str(), type.c_str());
 
 	if (m_creationSettings.m_enableSubdivision)
 	{
@@ -119,11 +155,12 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 	const bool evictChildTraversal = true;
 
-	FnKat::FnScenegraphIterator child = iterator.getFirstChild(evictChildTraversal);
 #ifdef KAT_V_2
+	FnKat::FnScenegraphIterator child = iterator.getFirstChild(evictChildTraversal);
 	// evict so potentially Katana can free up memory that we've already processed.
 	for (; child.isValid(); child = child.getNextSibling(true))
 #else
+	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
 	for (; child.isValid(); child = child.getNextSibling())
 #endif
 	{
@@ -165,35 +202,13 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		return;
 	}
 
-	unsigned int customFlags = 0;
-
-	if (m_creationSettings.m_triangleType == 1)
-	{
-		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_COMPACT;
-	}
-	else
-	{
-		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_FAST;
-	}
-
-	if (m_creationSettings.m_geoQuantisationType != 0)
-	{
-		if (m_creationSettings.m_geoQuantisationType == 2)
-		{
-			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
-			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_UV_STANDARD;
-		}
-		else if (m_creationSettings.m_geoQuantisationType == 1)
-		{
-			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
-		}
-	}
-
+	unsigned int customFlags = getCustomGeoFlags();
 	pNewGeoInstance->setCustomFlags(customFlags);
 
 	CompactMesh* pNewMeshObject = new CompactMesh();
 
 	pNewMeshObject->setCompactGeometryInstance(pNewGeoInstance);
+	registerGeometryInstance(pNewGeoInstance);
 
 	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 	pNewMeshObject->setMaterial(pMaterial);
@@ -227,8 +242,14 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	}
 
 	processVisibilityAttributes(imagineStatements, pNewMeshObject);
+	
+	if (m_pIDState)
+	{
+		unsigned int objectID = sendObjectID(iterator);
+		pNewMeshObject->setObjectID(objectID);
+	}
 
-	m_scene.addObject(pNewMeshObject, false, false);
+	addObjectToScene(pNewMeshObject);
 }
 
 void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
@@ -268,7 +289,7 @@ void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator ite
 		}
 	}
 
-	m_scene.addObject(pCO, false, false);
+	addObjectToScene(pCO);
 }
 
 CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
@@ -1005,6 +1026,8 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		CompactMesh* pNewMeshObject = new CompactMesh();
 
 		pNewMeshObject->setCompactGeometryInstance(pNewGeoInstance);
+		registerGeometryInstance(pNewGeoInstance);
+		
 		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 
 		if (pMaterial)
@@ -1094,6 +1117,9 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
 			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
+			
+			unsigned int customFlags = getCustomGeoFlags();
+			pNewInstance->setCustomFlags(customFlags);
 
 			InstanceInfo ii;
 			ii.m_compound = false;
@@ -1109,6 +1135,8 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 			{
 				return nullInfo;
 			}
+			
+			registerGeometryInstance(pNewInstance);
 
 			return ii;
 		}
@@ -1241,6 +1269,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 			CompactMesh* pNewMesh = new CompactMesh();
 			pNewMesh->setCompactGeometryInstance(pNewInstance);
+			registerGeometryInstance(pNewInstance);
 
 			pNewObject = pNewMesh;
 		}
@@ -1316,8 +1345,14 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 			pNewObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
 		}
 	}
+	
+	if (m_pIDState)
+	{
+		unsigned int objectID = sendObjectID(iterator);
+		pNewObject->setObjectID(objectID);
+	}
 
-	m_scene.addObject(pNewObject, false, false);
+	addObjectToScene(pNewObject);
 }
 
 void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator iterator)
@@ -1399,7 +1434,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 		
 		pNewObject->transform().setCachedMatrix(tempValues, true);
 		
-		m_scene.addObject(pNewObject, false, false);
+		addObjectToScene(pNewObject);
 	}
 }
 
@@ -1457,8 +1492,14 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 			pSphere->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
 		}
 	}
+	
+	if (m_pIDState)
+	{
+		unsigned int objectID = sendObjectID(iterator);
+		pSphere->setObjectID(objectID);
+	}
 
-	m_scene.addObject(pSphere, false, false);
+	addObjectToScene(pSphere);
 }
 
 void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
@@ -1475,7 +1516,7 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
-	m_scene.addObject(pNewLight, false, false);
+	m_scene.addObject(pNewLight, false, false, false);
 }
 
 void SGLocationProcessor::processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject)
@@ -1570,4 +1611,44 @@ unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, st
 	}
 
 	return numUVValues;
+}
+
+unsigned int SGLocationProcessor::sendObjectID(FnKat::FnScenegraphIterator iterator)
+{
+	int64_t objectID = m_pIDState->getNextID();
+		
+	std::string name = iterator.getFullName();
+	
+	m_pIDState->sendID(objectID, name.c_str());
+	
+	return static_cast<unsigned int>(objectID);
+}
+
+unsigned int SGLocationProcessor::getCustomGeoFlags()
+{
+	unsigned int customFlags = 0;
+
+	if (m_creationSettings.m_triangleType == 1)
+	{
+		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_COMPACT;
+	}
+	else
+	{
+		customFlags |= CompactGeometryInstance::CUST_GEO_TRIANGLE_FAST;
+	}
+
+	if (m_creationSettings.m_geoQuantisationType != 0)
+	{
+		if (m_creationSettings.m_geoQuantisationType == 2)
+		{
+			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
+			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_UV_STANDARD;
+		}
+		else if (m_creationSettings.m_geoQuantisationType == 1)
+		{
+			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
+		}
+	}
+	
+	return customFlags;
 }

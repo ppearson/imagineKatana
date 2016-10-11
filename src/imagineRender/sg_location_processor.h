@@ -23,10 +23,13 @@ namespace Imagine
 	class Object;
 }
 
+class IDState;
+
 class SGLocationProcessor
 {
 public:
 	SGLocationProcessor(Imagine::Scene& scene, const CreationSettings& creationSettings);
+	~SGLocationProcessor();
 
 	struct InstanceInfo
 	{
@@ -43,6 +46,8 @@ public:
 			Imagine::CompoundObject*			pCompoundObject;
 		};
 	};
+	
+	void initIDState(const std::string& hostName, int64_t frameID);
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
@@ -50,6 +55,9 @@ public:
 	void getFinalMaterials(std::vector<Imagine::Material*>& aMaterials);
 
 protected:
+	
+	void addObjectToScene(Imagine::Object* pObject);
+	void registerGeometryInstance(Imagine::GeometryInstance* pGeoInstance);
 
 	void processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
 
@@ -78,6 +86,10 @@ protected:
 	static void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Imagine::Object* pObject);
 
 	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<Imagine::UV>& aUVs);
+	
+	unsigned int sendObjectID(FnKat::FnScenegraphIterator iterator);
+	
+	unsigned int getCustomGeoFlags();
 
 protected:
 	const CreationSettings&		m_creationSettings;
@@ -88,6 +100,8 @@ protected:
 	LightHelpers				m_lightHelper;
 
 	std::map<std::string, InstanceInfo>	m_aInstances;
+	
+	IDState*					m_pIDState;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H

@@ -59,9 +59,13 @@ void ImagineRendererInfo::fillRendererObjectTypes(std::vector<std::string>& rend
 		renderObjectTypes.push_back(kFnRendererOutputTypeColor);
 		renderObjectTypes.push_back(kFnRendererOutputTypeRaw);
 		renderObjectTypes.push_back(kFnRendererOutputTypeDeep);
-		renderObjectTypes.push_back(kFnRendererOutputTypeMerge);
-		renderObjectTypes.push_back(kFnRendererOutputTypeForceNone);
 	}
+/*	else if (type == kFnRendererObjectTypeOutputChannel)
+	{
+		renderObjectTypes.push_back("primary");
+		renderObjectTypes.push_back("rgba");
+	}
+*/
 }
 
 std::string ImagineRendererInfo::getRendererObjectDefaultType(const std::string& type) const
@@ -77,6 +81,53 @@ std::string ImagineRendererInfo::getRendererObjectDefaultType(const std::string&
 
 	return "";
 }
+
+#ifdef KAT_V_2
+void ImagineRendererInfo::fillLiveRenderTerminalOps(OpDefinitionQueue& terminalOps, const FnAttribute::GroupAttribute& stateArgs) const
+{
+	{
+        FnAttribute::GroupBuilder opArgs;
+        terminalOps.push_back(std::make_pair("LiveAttribute", opArgs.build()));
+    }
+	
+	{
+        // Watch for changes any locations that are cameras
+        FnAttribute::GroupBuilder opArgs;
+        opArgs.set("type", FnAttribute::StringAttribute("camera"));
+        opArgs.set("location", FnAttribute::StringAttribute("/root/world"));
+
+        std::string attributes[] = {"xform", "geometry"};
+        opArgs.set("attributeNames", FnAttribute::StringAttribute(attributes, 2, 1));
+        terminalOps.push_back(std::make_pair("LiveRenderFilter", opArgs.build()));
+    }
+	
+	{
+        // Watch for changes any locations that are lights
+        FnAttribute::GroupBuilder opArgs;
+        opArgs.set("type", FnAttribute::StringAttribute("light"));
+        opArgs.set("location", FnAttribute::StringAttribute("/root/world"));
+        opArgs.set("collectUpstream", FnAttribute::IntAttribute(1));
+
+        std::string attributes[] = {"xform", "material", "mute", "solo"};
+        opArgs.set("attributeNames", FnAttribute::StringAttribute(attributes, 4, 1));
+        terminalOps.push_back(std::make_pair("LiveRenderFilter", opArgs.build()));
+    }
+	
+	{
+        // Watch for changes to material attributes on any locations that are not lights
+        FnAttribute::GroupBuilder opArgs;
+        opArgs.set("type", FnAttribute::StringAttribute(""));
+        opArgs.set("location", FnAttribute::StringAttribute("/root"));
+        opArgs.set("typeAlias", FnAttribute::StringAttribute("geoMaterial"));
+        opArgs.set("exclusions", FnAttribute::StringAttribute("light"));
+        opArgs.set("collectUpstream", FnAttribute::IntAttribute(1));
+
+        std::string attributes[] = {"info", "material", "geometry.faces",};
+        opArgs.set("attributeNames", FnAttribute::StringAttribute(attributes, 3, 1));
+        terminalOps.push_back(std::make_pair("LiveRenderFilter", opArgs.build()));
+    }
+}
+#endif
 
 void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rendererObjectNames, const std::string& type,
 											const std::vector<std::string>& typeTags) const
@@ -171,7 +222,7 @@ std::string ImagineRendererInfo::getRegisteredRendererName() const
 
 std::string ImagineRendererInfo::getRegisteredRendererVersion() const
 {
-	return "0.98";
+	return "0.99";
 }
 
 bool ImagineRendererInfo::isNodeTypeSupported(const std::string& nodeType) const

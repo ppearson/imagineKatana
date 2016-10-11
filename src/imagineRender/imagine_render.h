@@ -35,14 +35,15 @@ public:
 		{
 		}
 
-		RenderAOV(const std::string& nm, const std::string& tp, unsigned int nc, int fid) : name(nm), type(tp), numChannels(nc),
-			frameID(fid), pChannelMessage(NULL), pFrameMessage(NULL)
+		RenderAOV(const std::string& nm, const std::string& tp, unsigned int nSrcChans, unsigned int nDstChans, int fid) : name(nm), type(tp), numSrcChannels(nSrcChans),
+			numDstChannels(nDstChans), frameID(fid), pChannelMessage(NULL), pFrameMessage(NULL)
 		{
 		}
 
 		std::string			name;
 		std::string			type;
-		unsigned int		numChannels;
+		unsigned int		numSrcChannels; // number of channels in the OutputImage buffer within Imagine
+		unsigned int		numDstChannels; // Katana always seems to need 3/4 channels, so we can't use above as there's often a mis-match
 		int					frameID;
 
 		FnKat::NewFrameMessage*		pFrameMessage;
@@ -69,7 +70,7 @@ public:
 	// stuff for live rendering
 
 	// bizarrely, we seem to need this when the other render plugins don't, otherwise hasPendingDataUpdates() never gets called by Katana...
-	virtual int startLiveEditing() { return 1; }
+//	virtual int startLiveEditing() { return 1; }
 
 	virtual bool hasPendingDataUpdates() const;
 	virtual int applyPendingDataUpdates();
@@ -94,6 +95,8 @@ protected:
 
 	void buildCamera(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator cameraIterator);
 	void buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
+	
+	void enforceSaneSceneSetup();
 
 	void performDiskRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
 	void performPreviewRender(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator);
@@ -106,6 +109,8 @@ protected:
 
 	void startDiskRenderer();
 	void startInteractiveRenderer(bool liveRender);
+	
+	void sendFullFrameToMonitor();
 
 	void renderFinished();
 
@@ -122,7 +127,8 @@ protected:
 	std::string					m_diskRenderOutputPath;
 	bool						m_diskRenderConvertFromLinear;
 
-	//
+	std::string					m_rawKatanaHost; // host and port together
+	// separated
 	std::string					m_katanaHost;
 	unsigned int				m_katanaPort;
 
@@ -131,6 +137,8 @@ protected:
 	FnKat::KatanaPipe*			m_pDataPipe;
 	FnKat::NewFrameMessage*		m_pFrame;
 	FnKat::NewChannelMessage*	m_pPrimaryChannel;
+	
+	bool						m_enableIDPicking;
 
 	std::vector<int>			m_aInteractiveFrameIDs;
 	std::vector<std::string>	m_aInteractiveChannelNames;

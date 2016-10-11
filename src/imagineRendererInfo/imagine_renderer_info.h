@@ -26,6 +26,10 @@ public:
 	virtual void fillRendererObjectTypes(std::vector<std::string>& renderObjectTypes, const std::string& type) const;
 
 	virtual std::string getRendererObjectDefaultType(const std::string& type) const;
+	
+#ifdef KAT_V_2
+	virtual void fillLiveRenderTerminalOps(OpDefinitionQueue& terminalOps, const FnAttribute::GroupAttribute& stateArgs) const;
+#endif
 
 	virtual void fillRendererObjectNames(std::vector<std::string>& rendererObjectNames, const std::string& type,
 														const std::vector<std::string>& typeTags) const;
