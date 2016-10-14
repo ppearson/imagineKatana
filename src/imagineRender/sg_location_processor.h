@@ -53,6 +53,8 @@ public:
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
 
 	void getFinalMaterials(std::vector<Imagine::Material*>& aMaterials);
+	
+	void setIsLiveRender(bool liveRender) { m_isLiveRender = liveRender; }
 
 protected:
 	
@@ -102,6 +104,8 @@ protected:
 	std::map<std::string, InstanceInfo>	m_aInstances;
 	
 	IDState*					m_pIDState;
+	
+	bool						m_isLiveRender;
 };
 
 #endif // SG_LOCATION_PROCESSOR_H

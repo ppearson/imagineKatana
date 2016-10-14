@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "core/hash.h"
 #include "utils/threads/mutex.h"
 
 struct KatanaUpdateItem
@@ -16,7 +17,7 @@ struct KatanaUpdateItem
 class LiveRenderState
 {
 public:
-	LiveRenderState()
+	LiveRenderState() : m_lastCameraTransformHash(0LL)
 	{
 
 	}
@@ -51,6 +52,8 @@ public:
 	{
 		m_updateLock.unlock();
 	}
+	
+	
 
 	std::vector<KatanaUpdateItem>::const_iterator updatesBegin() const { return m_aUpdateItems.begin(); }
 	std::vector<KatanaUpdateItem>::const_iterator updatesEnd() const { return m_aUpdateItems.end(); }
@@ -59,6 +62,8 @@ protected:
 	// for live render updates
 	Imagine::Mutex					m_updateLock;
 	std::vector<KatanaUpdateItem>	m_aUpdateItems;
+	
+	Imagine::HashValue				m_lastCameraTransformHash;
 };
 
 #endif // LIVE_RENDER_HELPERS_H

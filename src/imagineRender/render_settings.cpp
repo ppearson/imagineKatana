@@ -188,9 +188,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_statsOutputPath = statisticsOutputPathAttribute.getValue("", false);
 
 	FnKat::IntAttribute printMemoryStatisticsAttribute = imagineGSAttribute.getChildByName("print_memory_statistics");
-	m_printMemoryStatistics = 1;
+	m_printMemoryStatistics = 0;
 	if (printMemoryStatisticsAttribute.isValid())
-		m_printMemoryStatistics = printMemoryStatisticsAttribute.getValue(1, false);
+		m_printMemoryStatistics = printMemoryStatisticsAttribute.getValue(0, false);
 
 	FnKat::FloatAttribute rayEpsilonAttribute = imagineGSAttribute.getChildByName("ray_epsilon");
 	float rayEpsilon = 0.0001f;

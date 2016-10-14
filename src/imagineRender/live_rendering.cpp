@@ -56,14 +56,6 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 
 			if (xformAttribute.isValid())
 			{
-				// TODO: this seemingly needs to be done here... Need to work out why...
-				m_liveRenderState.lock();
-				if (m_pRaytracer)
-				{
-					m_pRaytracer->terminate();
-				}
-				m_liveRenderState.unlock();
-				
 				KatanaUpdateItem newUpdate;
 				newUpdate.camera = true;
 
@@ -90,7 +82,7 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 						const double* pMatrix = xforms[0].getValues();
 						for (unsigned int i = 0; i < 16; i++)
 						{
-							newUpdate.xform[i] = pMatrix[i++];
+							newUpdate.xform[i] = pMatrix[i];
 						}
 					}
 				}				
@@ -113,9 +105,11 @@ int ImagineRender::applyPendingDataUpdates()
 {
 //	fprintf(stderr, "applyPendingDataUpdates()\n");
 	
-//	m_pRaytracer->terminate();
-
 	m_liveRenderState.lock();
+	
+	m_pRaytracer->terminate();
+	
+	::usleep(500);
 
 	std::vector<KatanaUpdateItem>::const_iterator itUpdate = m_liveRenderState.updatesBegin();
 	for (; itUpdate != m_liveRenderState.updatesEnd(); ++itUpdate)
@@ -129,7 +123,7 @@ int ImagineRender::applyPendingDataUpdates()
 
 			pCamera->transform().setCachedMatrix(update.xform.data(), true);
 			
-			fprintf(stderr, "Updating Camera\n");
+//			fprintf(stderr, "Updating Camera\n");
 		}
 	}
 
@@ -142,3 +136,29 @@ int ImagineRender::applyPendingDataUpdates()
 	return 0;
 }
 
+void ImagineRender::restartLiveRender()
+{
+	m_liveRenderState.lock();
+
+//	::usleep(500);
+
+	m_pOutputImage->clearImage();
+/*
+	if (m_pRaytracer)
+	{
+		delete m_pRaytracer;
+		m_pRaytracer = NULL;
+	}
+
+	m_pRaytracer = new Raytracer(*m_pScene, m_renderThreads, true);
+	m_pRaytracer->setExtraChannels(0);
+	m_pRaytracer->setHost(this);
+
+	m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
+*/
+	m_liveRenderState.unlock();
+	
+//	fprintf(stderr, "Restarting render\n");
+
+	m_pRaytracer->renderScene(1.0f, &m_renderSettings, false);
+}

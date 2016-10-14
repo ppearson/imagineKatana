@@ -25,7 +25,8 @@
 
 using namespace Imagine;
 
-SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings), m_pIDState(NULL)
+SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings), m_pIDState(NULL),
+											m_isLiveRender(false)
 {
 }
 
@@ -61,8 +62,9 @@ void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
 
 void SGLocationProcessor::addObjectToScene(Object* pObject)
 {
-	// don't want names or IDs to be automatically assigned, as we'll set them if we need them within the plugin,
-	// and neither do we want lookup maps done for the moment (will need them for rerendering at some point)
+	// we don't want names or IDs to be automatically assigned by Imagine, as we'll set them if we need them within the plugin.
+	// The last bool indicates whether Imagine should build name lookups - we only need this for Live Rendering
+//	m_scene.addObject(pObject, false, false, m_isLiveRender);
 	m_scene.addObject(pObject, false, false, false);
 }
 

@@ -60,6 +60,7 @@ protected:
 	static void connectOpToOp(Imagine::Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Imagine::Texture* pSourceOp);
 
 	// stuff for uber-shaders
+	static Imagine::Material* createMaterial(const std::string& materialType, const FnKat::GroupAttribute& shaderParamsAttr);
 	static Imagine::Material* createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,
 											FnKat::GroupAttribute& alphaParamsAttr);
 	static Imagine::Material* createGlassMaterial(const FnKat::GroupAttribute& shaderParamsAttr);
@@ -77,6 +78,8 @@ protected:
 	static Imagine::Texture* createGridTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createSwatchTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createWireframeTexture(const FnKat::GroupAttribute& textureParamsAttr);
+	
+	static bool isRecognisedShaderType(const std::string& name);
 
 protected:
 	FnKat::StringAttribute					m_terminatorNodes;

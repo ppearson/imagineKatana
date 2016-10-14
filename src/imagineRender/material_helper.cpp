@@ -96,6 +96,9 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 
 FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const
 {
+	// Note: this only gets the exact material attributes we asked for if it's not a Network Material - if
+	//       it is a Network Material, we get everything bundled together, so it's possible nodes and shaders
+	//       for multiple renderers are bundled together in different GroupAttribute batches for each renderer
 	return FnKat::RenderOutputUtils::getFlattenedMaterialAttr(iterator, m_terminatorNodes);
 }
 
@@ -200,6 +203,19 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 	{
 		return NULL;
 	}
+	
+	// make sure we at least have an Imagine-specific shader node within the terminals list before continuing processing
+	FnKat::StringAttribute imagineSurfaceAttr = terminalsAttr.getChildByName("imagineSurface");
+	FnKat::StringAttribute imagineBumpAttr = terminalsAttr.getChildByName("imagineBump");
+	FnKat::StringAttribute imagineAlphaAttr = terminalsAttr.getChildByName("imagineAlpha");
+	
+	bool haveValidImagineTerminalType = imagineSurfaceAttr.isValid() || imagineBumpAttr.isValid() || imagineAlphaAttr.isValid();
+	if (!haveValidImagineTerminalType)
+	{
+		// don't bother continuing processing the material, as there's nothing we want
+//		fprintf(stderr, "\n\n%s\n\n\n", attribute.getXML().c_str());
+		return NULL;
+	}
 
 	std::map<std::string, Material*> aMaterialNodes; // there should really only be one of these, but...
 	std::map<std::string, Texture*> aOpNodes;
@@ -221,48 +237,33 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 		bool isShader = nodeType.find("Shader/") != std::string::npos;
 		bool isOp = nodeType.find("Op/") != std::string::npos;
 		bool isTexture = nodeType.find("Texture/") != std::string::npos;
+		bool isNonNetworkShaderType = isRecognisedShaderType(nodeType);
 
-		if (!isShader && !isOp && !isTexture)
+		if (!isShader && !isOp && !isTexture && !isNonNetworkShaderType)
 		{
-			// if we don't know what it is, there's no point continuing with the other nodes...
-			fprintf(stderr, "Error processing NetworkMaterial - unknown node type: %s\n", nodeType.c_str());
-			return NULL;
+			// if we don't know what it is, it's probably not for us, so just skip it
+			fprintf(stderr, "Unknown network material type: %s\n", nodeType.c_str());
+			continue;
 		}
 
 		FnKat::GroupAttribute paramsAttr = subItem.getChildByName("parameters");
 
-		if (isShader)
+		if (isNonNetworkShaderType)
 		{
-			std::string shaderName = nodeType.substr(7);
+			// it wasn't actually a network shader, Katana just puts it in that group because that location inherited
+			// network materials from higher up
+			pNewNodeMaterial = createMaterial(nodeType, paramsAttr);
+			
+			if (!pNewNodeMaterial)
+				continue;
 
-			FnKat::GroupAttribute bumpParamsAttr;
-			FnKat::GroupAttribute alphaParamsAttr;
+			aMaterialNodes[nodeName] = pNewNodeMaterial;
+		}
+		else if (isShader)
+		{
+			std::string shaderType = nodeType.substr(7);
 
-			// TODO: duplicate of above code, but...
-			if (shaderName == "Standard" || shaderName == "StandardImage")
-			{
-				pNewNodeMaterial = createStandardMaterial(paramsAttr, bumpParamsAttr, alphaParamsAttr);
-			}
-			else if (shaderName == "Glass")
-			{
-				pNewNodeMaterial = createGlassMaterial(paramsAttr);
-			}
-			else if (shaderName == "Metal")
-			{
-				pNewNodeMaterial = createMetalMaterial(paramsAttr, bumpParamsAttr);
-			}
-			else if (shaderName == "Plastic")
-			{
-				pNewNodeMaterial = createPlasticMaterial(paramsAttr, bumpParamsAttr);
-			}
-			else if (shaderName == "Metallic Paint")
-			{
-				pNewNodeMaterial = createMetallicPaintMaterial(paramsAttr, bumpParamsAttr);
-			}
-			else if (shaderName == "Translucent")
-			{
-				pNewNodeMaterial = createTranslucentMaterial(paramsAttr, bumpParamsAttr);
-			}
+			pNewNodeMaterial = createMaterial(shaderType, paramsAttr);
 
 			if (!pNewNodeMaterial)
 				continue;
@@ -421,7 +422,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 }
 
 // TODO: these are increadibly hacky - this sort of infrastructure should be moved into Imagine properly and be
-//       passed in as generic key/value attributes
+//       passed in as generic Args attributes
 
 Texture* MaterialHelper::createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params)
 {
@@ -499,6 +500,44 @@ void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::st
 void MaterialHelper::connectOpToOp(Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Texture* pSourceOp)
 {
 
+}
+
+// TODO: this is crap and is just getting silly - need to finish the Args interface API so none of this hard-coded stuff
+//       is needed
+Material* MaterialHelper::createMaterial(const std::string& materialType, const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	// TODO: duplicate of above code, but...
+	FnKat::GroupAttribute bumpParamsAttr;
+	FnKat::GroupAttribute alphaParamsAttr;
+	
+	Material* pNewMaterial = NULL;
+	
+	if (materialType == "Standard" || materialType == "StandardImage")
+	{
+		pNewMaterial = createStandardMaterial(shaderParamsAttr, bumpParamsAttr, alphaParamsAttr);
+	}
+	else if (materialType == "Glass")
+	{
+		pNewMaterial = createGlassMaterial(shaderParamsAttr);
+	}
+	else if (materialType == "Metal")
+	{
+		pNewMaterial = createMetalMaterial(shaderParamsAttr, bumpParamsAttr);
+	}
+	else if (materialType == "Plastic")
+	{
+		pNewMaterial = createPlasticMaterial(shaderParamsAttr, bumpParamsAttr);
+	}
+	else if (materialType == "Metallic Paint")
+	{
+		pNewMaterial = createMetallicPaintMaterial(shaderParamsAttr, bumpParamsAttr);
+	}
+	else if (materialType == "Translucent")
+	{
+		pNewMaterial = createTranslucentMaterial(shaderParamsAttr, bumpParamsAttr);
+	}
+	
+	return pNewMaterial;
 }
 
 Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& shaderParamsAttr, FnKat::GroupAttribute& bumpParamsAttr,
@@ -1049,5 +1088,15 @@ Texture* MaterialHelper::createWireframeTexture(const FnKat::GroupAttribute& tex
 	pNewTexture->setEdgeSoftness(edgeSoftness);
 
 	return pNewTexture;
+}
+
+bool MaterialHelper::isRecognisedShaderType(const std::string& name)
+{
+	if (name == "Standard" || name == "StandardImage" || name == "Metal" || name == "Plastic" || name == "Glass" || name == "Translucent")
+	{
+		return true;
+	}
+	
+	return false;
 }
 

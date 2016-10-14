@@ -488,7 +488,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	m_pScene->setDefaultCamera(pRenderCamera);
 }
 
-void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
+void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool isliveRender)
 {
 	// force expand, using procedurals isn't worth it in this day and age, especially as there's a fair amount of memory overhead for the state...
 
@@ -497,6 +497,11 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	if (m_enableIDPicking)
 	{
 		locProcessor.initIDState(m_rawKatanaHost, m_aInteractiveFrameIDs[0]);
+	}
+	
+	if (isliveRender)
+	{
+		locProcessor.setIsLiveRender(true);
 	}
 
 	locProcessor.processSGForceExpand(rootIterator);
@@ -532,7 +537,7 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 	{
 		Timer t1("Katana scene expansion");
-		buildSceneGeometry(settings, rootIterator);
+		buildSceneGeometry(settings, rootIterator, false);
 	}
 
 	enforceSaneSceneSetup();
@@ -555,7 +560,7 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 	{
 		Timer t1("Katana scene expansion");
-		buildSceneGeometry(settings, rootIterator);
+		buildSceneGeometry(settings, rootIterator, false);
 	}
 
 	enforceSaneSceneSetup();
@@ -578,7 +583,7 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 
 	{
 		Timer t1("Katana scene expansion");
-		buildSceneGeometry(settings, rootIterator);
+		buildSceneGeometry(settings, rootIterator, true);
 	}
 
 	enforceSaneSceneSetup();
@@ -831,31 +836,6 @@ void ImagineRender::renderFinished()
 		fprintf(stderr, "Total accel structure memory size: %s\n", accelSize.c_str());
 		fprintf(stderr, "Total image texture count: %u, total image texture memory size: %s\n\n", numImages, strImageTextureSize.c_str());
 	}
-}
-
-void ImagineRender::restartLiveRender()
-{
-	m_liveRenderState.lock();
-
-	::usleep(500);
-
-	m_pOutputImage->clearImage();
-/*
-	if (m_pRaytracer)
-	{
-		delete m_pRaytracer;
-		m_pRaytracer = NULL;
-	}
-
-	m_pRaytracer = new Raytracer(*m_pScene, m_renderThreads, true);
-	m_pRaytracer->setExtraChannels(0);
-	m_pRaytracer->setHost(this);
-
-	m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
-*/
-	m_liveRenderState.unlock();
-
-	m_pRaytracer->renderScene(1.0f, &m_renderSettings, false);
 }
 
 // progress back from the main renderer class
