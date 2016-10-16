@@ -193,6 +193,11 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 	return m_pDefaultMaterial;
 }
 
+Material* MaterialHelper::createNewMaterialStandAlone(const std::string& materialType, const FnKat::GroupAttribute& shaderParamsAttr)
+{
+	return createMaterial(materialType, shaderParamsAttr);
+}
+
 // TODO: this whole infrastructure for handling Network Materials is pretty hacky...
 Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte)
 {

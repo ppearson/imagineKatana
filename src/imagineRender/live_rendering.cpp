@@ -1,6 +1,7 @@
 #include "imagine_render.h"
 
 #include "katana_helpers.h"
+#include "material_helper.h"
 
 using namespace Imagine;
 
@@ -28,6 +29,8 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 
 		if (!dataUpdateItemAttribute.isValid())
 			continue;
+		
+//		fprintf(stderr, "\n\n\n%s\n\n\n", dataUpdateItemAttribute.getXML().c_str());
 
 		FnKat::StringAttribute typeAttribute = dataUpdateItemAttribute.getChildByName("type");
 
@@ -50,14 +53,13 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 		std::string type = typeAttribute.getValue("", false);
 		std::string location = locationAttribute.getValue("", false);
 
-		if (location == m_renderCameraLocation)
+		if (type == "camera" && location == m_renderCameraLocation)
 		{
 			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
 
 			if (xformAttribute.isValid())
 			{
-				KatanaUpdateItem newUpdate;
-				newUpdate.camera = true;
+				KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeCamera, KatanaUpdateItem::eLocCamera, location);
 
 				newUpdate.xform.resize(16);
 
@@ -90,6 +92,38 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 				m_liveRenderState.addUpdate(newUpdate);
 			}
 		}
+		else if (type == "geoMaterial")
+		{
+			FnKat::GroupAttribute materialAttribute = attributesAttribute.getChildByName("material");
+			
+			if (!materialAttribute.isValid())
+				continue;
+			
+			FnKat::StringAttribute shaderAttribute = materialAttribute.getChildByName("imagineSurfaceShader");
+			if (!shaderAttribute.isValid())
+				continue;
+			
+			FnKat::GroupAttribute shaderParams = materialAttribute.getChildByName("imagineSurfaceParams");
+			if (!shaderParams.isValid())
+			{
+				fprintf(stderr, "No shader params found for material update.\n");
+				continue;
+			}
+			
+			// extremely hacky for the moment...
+			KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObjectMaterial, KatanaUpdateItem::eLocObject, location);
+			
+			std::string shaderType = shaderAttribute.getValue("", false);
+			
+			Material* pNewMaterial = MaterialHelper::createNewMaterialStandAlone(shaderType, shaderParams);
+			
+			if (pNewMaterial)
+			{
+				newUpdate.pMaterial = pNewMaterial;
+				
+				m_liveRenderState.addUpdate(newUpdate);
+			}
+		}
 	}
 
 	return 0;
@@ -107,8 +141,10 @@ int ImagineRender::applyPendingDataUpdates()
 	
 	m_liveRenderState.lock();
 	
+	// stop tracing as early as possible, so the render threads can shut down
 	m_pRaytracer->terminate();
 	
+	// for the moment, we need to pause a bit for some update types, but this should really be behind an interface in Imagine...
 	::usleep(500);
 
 	std::vector<KatanaUpdateItem>::const_iterator itUpdate = m_liveRenderState.updatesBegin();
@@ -116,7 +152,7 @@ int ImagineRender::applyPendingDataUpdates()
 	{
 		const KatanaUpdateItem& update = *itUpdate;
 
-		if (update.camera)
+		if (update.type == KatanaUpdateItem::eTypeCamera)
 		{
 			// get hold of camera
 			Camera* pCamera = m_pScene->getRenderCamera();
@@ -124,6 +160,18 @@ int ImagineRender::applyPendingDataUpdates()
 			pCamera->transform().setCachedMatrix(update.xform.data(), true);
 			
 //			fprintf(stderr, "Updating Camera\n");
+		}
+		else if (update.type == KatanaUpdateItem::eTypeObjectMaterial)
+		{
+			Object* pLocationObject = m_pScene->getObjectByName(update.location);
+			
+			if (!pLocationObject)
+			{
+				fprintf(stderr, "Can't find object: %s in scene to update material of.\n", update.location.c_str());
+				continue;
+			}
+			
+			pLocationObject->setMaterial(update.pMaterial);
 		}
 	}
 
@@ -140,22 +188,8 @@ void ImagineRender::restartLiveRender()
 {
 	m_liveRenderState.lock();
 
-//	::usleep(500);
-
 	m_pOutputImage->clearImage();
-/*
-	if (m_pRaytracer)
-	{
-		delete m_pRaytracer;
-		m_pRaytracer = NULL;
-	}
 
-	m_pRaytracer = new Raytracer(*m_pScene, m_renderThreads, true);
-	m_pRaytracer->setExtraChannels(0);
-	m_pRaytracer->setHost(this);
-
-	m_pRaytracer->initialise(m_pOutputImage, m_renderSettings);
-*/
 	m_liveRenderState.unlock();
 	
 //	fprintf(stderr, "Restarting render\n");

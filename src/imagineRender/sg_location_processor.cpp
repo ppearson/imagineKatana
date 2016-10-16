@@ -60,12 +60,16 @@ void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
 	aMaterials = m_materialHelper.getMaterialsVector();
 }
 
-void SGLocationProcessor::addObjectToScene(Object* pObject)
+void SGLocationProcessor::addObjectToScene(Object* pObject, FnKat::FnScenegraphIterator sgIterator)
 {
-	// we don't want names or IDs to be automatically assigned by Imagine, as we'll set them if we need them within the plugin.
-	// The last bool indicates whether Imagine should build name lookups - we only need this for Live Rendering
-//	m_scene.addObject(pObject, false, false, m_isLiveRender);
-	m_scene.addObject(pObject, false, false, false);
+	if (m_isLiveRender)
+	{
+		// if we're doing live rendering, we want location names to be assigned to objects and Imagine to build up
+		// a lookup table
+		pObject->setName(sgIterator.getFullName(), false);
+	}
+	
+	m_scene.addObjectEmbedded(pObject, m_isLiveRender);
 }
 
 // the assumption is these will be unique - this is only really being done for stats purposes currently, so is optional,
@@ -251,7 +255,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 		pNewMeshObject->setObjectID(objectID);
 	}
 
-	addObjectToScene(pNewMeshObject);
+	addObjectToScene(pNewMeshObject, iterator);
 }
 
 void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
@@ -291,7 +295,7 @@ void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator ite
 		}
 	}
 
-	addObjectToScene(pCO);
+	addObjectToScene(pCO, iterator);
 }
 
 CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
@@ -1354,7 +1358,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		pNewObject->setObjectID(objectID);
 	}
 
-	addObjectToScene(pNewObject);
+	addObjectToScene(pNewObject, iterator);
 }
 
 void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator iterator)
@@ -1436,7 +1440,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 		
 		pNewObject->transform().setCachedMatrix(tempValues, true);
 		
-		addObjectToScene(pNewObject);
+		addObjectToScene(pNewObject, iterator);
 	}
 }
 
@@ -1501,7 +1505,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 		pSphere->setObjectID(objectID);
 	}
 
-	addObjectToScene(pSphere);
+	addObjectToScene(pSphere, iterator);
 }
 
 void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
@@ -1518,7 +1522,7 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 
-	m_scene.addObject(pNewLight, false, false, false);
+	addObjectToScene(pNewLight, iterator);
 }
 
 void SGLocationProcessor::processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject)

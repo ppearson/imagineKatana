@@ -58,7 +58,8 @@ public:
 
 protected:
 	
-	void addObjectToScene(Imagine::Object* pObject);
+	void addObjectToScene(Imagine::Object* pObject, FnKat::FnScenegraphIterator sgIterator);
+	
 	void registerGeometryInstance(Imagine::GeometryInstance* pGeoInstance);
 
 	void processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
@@ -94,9 +95,9 @@ protected:
 	unsigned int getCustomGeoFlags();
 
 protected:
-	const CreationSettings&		m_creationSettings;
-
 	Imagine::Scene&				m_scene;
+	
+	const CreationSettings&		m_creationSettings;
 
 	MaterialHelper				m_materialHelper;
 	LightHelpers				m_lightHelper;

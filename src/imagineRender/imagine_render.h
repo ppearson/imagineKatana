@@ -31,12 +31,12 @@ public:
 
 	struct RenderAOV
 	{
-		RenderAOV() : pChannelMessage(NULL), pFrameMessage(NULL)
+		RenderAOV() : frameID(-1), pFrameMessage(NULL), pChannelMessage(NULL)
 		{
 		}
 
 		RenderAOV(const std::string& nm, const std::string& tp, unsigned int nSrcChans, unsigned int nDstChans, int fid) : name(nm), type(tp), numSrcChannels(nSrcChans),
-			numDstChannels(nDstChans), frameID(fid), pChannelMessage(NULL), pFrameMessage(NULL)
+			numDstChannels(nDstChans), frameID(fid), pFrameMessage(NULL), pChannelMessage(NULL)
 		{
 		}
 

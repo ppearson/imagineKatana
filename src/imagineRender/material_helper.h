@@ -45,6 +45,9 @@ protected:
 	// this adds to the instances map itself if materials are created
 	Imagine::Material* createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
+public:
+	// hack for live rendering prototyping
+	static Imagine::Material* createNewMaterialStandAlone(const std::string& materialType, const FnKat::GroupAttribute& shaderParamsAttr);
 
 protected:
 	// called by createNewMaterial to try and create a network material from the attribute...

@@ -5,12 +5,53 @@
 #include <vector>
 
 #include "core/hash.h"
+#include "colour/colour3f.h"
 #include "utils/threads/mutex.h"
+
+namespace Imagine
+{
+class Material;
+}
 
 struct KatanaUpdateItem
 {
-	bool		camera;
-	std::vector<double>	xform;
+	enum UpdateLocationType
+	{
+		eLocUnknown,
+		eLocCamera,
+		eLocObject,
+		eLocLight
+	};
+	
+	enum UpdateType
+	{
+		eTypeUnknown,
+		eTypeCamera,
+		eTypeObject,
+		eTypeObjectMaterial,
+		eTypeLight
+	};
+	
+	// pretty disgusting - only for prototype purposes - need full Args stuff here.
+	struct MaterialDef
+	{
+		Imagine::Colour3f		diffColour;
+	};
+	
+	KatanaUpdateItem(UpdateType ty, UpdateLocationType locType, const std::string& loc) : type(ty), locationType(locType), location(loc),
+									pMaterial(NULL)
+	{
+		
+	}	
+
+	UpdateType				type;
+	UpdateLocationType		locationType;
+	std::string				location;
+	
+//	MaterialDef				material;
+	Imagine::Material*		pMaterial;
+	
+	std::vector<double>		xform;
 };
 
 
