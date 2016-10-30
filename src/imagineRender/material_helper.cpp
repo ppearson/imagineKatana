@@ -886,9 +886,21 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.4f, 0.4f, 1.0f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
+	
+	std::string surfaceColourTexture = ah.getStringParam("surface_col_texture");
+	if (!surfaceColourTexture.empty())
+	{
+		pNewMaterial->setSurfaceColourTextureMapPath(surfaceColourTexture, true); // lazy load texture when needed
+	}
 
 	Colour3f specularColour = ah.getColourParam("specular_col", Colour3f(0.1f, 0.1f, 0.1f));
 	pNewMaterial->setSpecularColour(specularColour);
+	
+	std::string specularColourTexture = ah.getStringParam("specular_col_texture");
+	if (!specularColourTexture.empty())
+	{
+		pNewMaterial->setSpecularColourTextureMapPath(specularColourTexture, true); // lazy load texture when needed
+	}
 
 	float surfaceRoughness = ah.getFloatParam("specular_roughness", 0.05f);
 	pNewMaterial->setSpecularRoughness(surfaceRoughness);

@@ -47,7 +47,7 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 	m_pFrame = NULL;
 	m_pPrimaryChannel = NULL;
 	
-	m_enableIDPicking = true;
+	m_enableIDPicking = false;
 #endif
 
 	m_pRaytracer = NULL;
@@ -73,7 +73,7 @@ int ImagineRender::start()
 		FnKat::IntAttribute enableIDPickingAttribute = imagineGSAttribute.getChildByName("enable_id_picking");
 		if (enableIDPickingAttribute.isValid())
 		{
-			m_enableIDPicking = (enableIDPickingAttribute.getValue(1, false) == 1);
+			m_enableIDPicking = (enableIDPickingAttribute.getValue(0, false) == 1);
 		}
 	}
 
@@ -496,7 +496,11 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 		
 	if (m_enableIDPicking)
 	{
-		locProcessor.initIDState(m_rawKatanaHost, m_aInteractiveFrameIDs[0]);
+		// this needs to happen after interactive display frames are set up...
+		if (!locProcessor.initIDState(m_rawKatanaHost, m_aInteractiveFrameIDs[0]))
+		{
+			m_enableIDPicking = false;
+		}
 	}
 	
 	if (isliveRender)
@@ -505,7 +509,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 	}
 
 	locProcessor.processSGForceExpand(rootIterator);
-
+	
 	// add materials lazily
 	std::vector<Material*> aMaterials;
 	locProcessor.getFinalMaterials(aMaterials);
@@ -694,16 +698,12 @@ void ImagineRender::startDiskRenderer()
 }
 
 void ImagineRender::startInteractiveRenderer(bool liveRender)
-{
+{	
 #if ENABLE_PREVIEW_RENDERS
 	
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
-	if (m_enableIDPicking)
-	{
-		imageFlags |= COMPONENT_ID;
-	}
 	imageFlags |= m_extraAOVsFlags;
-
+	
 	if (!m_ROIActive)
 	{
 		m_pOutputImage = new OutputImage(m_renderWidth, m_renderHeight, imageFlags);
@@ -712,6 +712,7 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 	{
 		m_pOutputImage = new OutputImage(m_ROIWidth, m_ROIHeight, imageFlags);
 	}
+
 	m_pOutputImage->clearImage();
 
 	// for the moment, use the number of render threads for the number of worker threads to use.
@@ -730,7 +731,7 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		{
 			raytracer.setAmbientColour(Colour3f(0.7f));
 		}
-
+		
 		raytracer.renderScene(1.0f, NULL, true);
 
 		m_rendererOtherMemory = raytracer.getRendererMemoryUsage();

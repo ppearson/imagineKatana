@@ -39,10 +39,19 @@ SGLocationProcessor::~SGLocationProcessor()
 	}
 }
 
-void SGLocationProcessor::initIDState(const std::string& hostName, int64_t frameID)
+bool SGLocationProcessor::initIDState(const std::string& hostName, int64_t frameID)
 {
 	m_pIDState = new IDState();
-	m_pIDState->initState(hostName, frameID);
+	if (!m_pIDState->initState(hostName, frameID))
+	{
+		// if it failed, delete the class so we don't try and use it
+		delete m_pIDState;
+		m_pIDState = NULL;
+		
+		return false;
+	}
+	
+	return true;
 }
 
 void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)
@@ -84,7 +93,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 {
 	std::string type = iterator.getType();
 	
-	std::string fullName = iterator.getFullName();
+//	std::string fullName = iterator.getFullName();
 	
 //	fprintf(stderr, "location: %s, type: %s\n", fullName.c_str(), type.c_str());
 
@@ -1622,10 +1631,16 @@ unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, st
 unsigned int SGLocationProcessor::sendObjectID(FnKat::FnScenegraphIterator iterator)
 {
 	int64_t objectID = m_pIDState->getNextID();
-		
-	std::string name = iterator.getFullName();
 	
-	m_pIDState->sendID(objectID, name.c_str());
+	// only send the ID if it's greater than 0, otherwise it's invalid or we've run out of IDs (Katana only gives us 1000000)...
+	// If we send an ID Katana doesn't know about, renderboot gets a SIGPIPE, doesn't handle it correctly
+	// and then katanaBin dies during render, so we need to be careful on our side.
+	if (objectID > 0)
+	{
+		std::string name = iterator.getFullName();
+	
+		m_pIDState->sendID(objectID, name.c_str());
+	}
 	
 	return static_cast<unsigned int>(objectID);
 }

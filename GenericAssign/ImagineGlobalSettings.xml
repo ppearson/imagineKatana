@@ -136,7 +136,7 @@
 				<int name="texture_cache_max_file_handles" default="744" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
 					<help>Max number of file handles active at once for reading image textures.</help>
 				</int>
-				<int name="texture_cache_cache_file_handles" default="1" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="checkBox">
+				<int name="texture_cache_cache_file_handles" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="checkBox">
 					<help>Attempts to cache file handles to files on disk (network) if the file reader supports it.</help>
 				</int>
 				<int name="texture_cache_global_mipmap_bias" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1'>
@@ -214,7 +214,7 @@
 			<int name="decompose_xforms" default="0" widget="checkBox" help="When enabled, Imagine will attempt to decompose xform matrices used for motion blur. This doesn't always work (pivoted rotation, skew, shear), but otherwise provides accurate quaternion-based rotation with just two xform samples."/>
 			<int name="debug_popup" default="0" widget="checkBox" help="Pops up xmessage box so debugger can be attached to renderboot."/>
 			<int name="discard_geometry" default="0" widget="checkBox" help="Doesn't actually add geometry to Imagine. Useful for debugging Katana memory usage via renderboot."/>
-			<int name="enable_id_picking" default="1" widget="checkBox" help="Enables the use of ID picking for preview / live interactive renders. Works in tandem with Monitor 3D menu control option - both need to be enabled (default) for Imagine to register locations for IDs and send the buffer."/>
+			<int name="enable_id_picking" default="0" widget="checkBox" help="Enables the use of ID picking for preview / live interactive renders. Works in tandem with Monitor 3D menu control option - both need to be enabled (default) for Imagine to register locations for IDs and send the buffer."/>
 		</page>
 
 		<page name='camera' open="False">

@@ -330,8 +330,10 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
 	helper.addColourParam("surface_col", Col3f(0.4f, 0.4f, 1.0f));
+	helper.addStringParam("surface_col_texture");
 
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
+	helper.addStringParam("specular_col_texture");
 	helper.addFloatParam("specular_roughness", 0.05f);
 
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));

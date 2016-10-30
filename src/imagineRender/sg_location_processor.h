@@ -47,7 +47,7 @@ public:
 		};
 	};
 	
-	void initIDState(const std::string& hostName, int64_t frameID);
+	bool initIDState(const std::string& hostName, int64_t frameID);
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);

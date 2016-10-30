@@ -47,10 +47,8 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		const std::string& channelName = (*itBuffer).first;
 		m_aInteractiveChannelNames.push_back(channelName);
 		
-//		fprintf(stderr, "ChannelName: %s\n\n", channelName.c_str());
-
-		int frameID = atoi(buffer.bufferId.c_str());
-		m_aInteractiveFrameIDs.push_back(frameID);
+		int frameBufferID = atoi(buffer.bufferId.c_str());
+		m_aInteractiveFrameIDs.push_back(frameBufferID);
 
 		std::string channelType = buffer.channelName;
 
@@ -59,7 +57,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		if (doExtaChannels && channelName == "n")
 		{
 			channelType = "rgb";
-			m_aExtraInteractiveAOVs.push_back(RenderAOV(channelName, channelType, 3, 3, frameID));
+			m_aExtraInteractiveAOVs.push_back(RenderAOV(channelName, channelType, 3, 3, frameBufferID));
 			m_renderSettings.add("output_normals", true);
 			m_extraAOVsFlags |= COMPONENT_NORMAL;
 		}
@@ -69,7 +67,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 			m_extraAOVsFlags |= COMPONENT_WPP;
 		}
 
-//		fprintf(stderr, "Buffers: %s: %i, %s\n", channelName.c_str(), frameID, channelType.c_str());
+//		fprintf(stderr, "Buffers: %s: %i, %s\n", channelName.c_str(), frameBufferID, channelType.c_str());
 	}
 	
 	if (m_enableIDPicking)
@@ -78,13 +76,13 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		
 		m_aInteractiveChannelNames.push_back("__id");
 		
-		int frameID = m_aInteractiveFrameIDs[0];
-		m_aInteractiveFrameIDs.push_back(frameID);
+		int frameBufferID = m_aInteractiveFrameIDs[0];
+		m_aInteractiveFrameIDs.push_back(frameBufferID);
 
 		std::string channelName = "__id";
 		std::string channelType = "id";
 		
-		m_aExtraInteractiveAOVs.push_back(RenderAOV(channelName, channelType, 1, 4, frameID));
+		m_aExtraInteractiveAOVs.push_back(RenderAOV(channelName, channelType, 1, 4, frameBufferID));
 		m_extraAOVsFlags |= COMPONENT_ID;
 
 		m_renderSettings.add("output_ids", true);		
@@ -135,13 +133,14 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		m_pFrame = NULL;
 	}
 
+	// technically leaks, but...
 	m_pFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, originX, originY);
 
-	int localFrameID = m_aInteractiveFrameIDs[0];
+	int localFrameBufferID = m_aInteractiveFrameIDs[0];
 
 	// set the name
 	std::string frameName;
-	FnKat::encodeLegacyName(fFrameName, localFrameID, frameName);
+	FnKat::encodeLegacyName(fFrameName, localFrameBufferID, frameName);
 	m_pFrame->setFrameName(frameName);
 
 	m_pDataPipe->send(*m_pFrame);
@@ -155,10 +154,11 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	}
 
 	int channelID = 0;
+	// technically leaks, but...
 	m_pPrimaryChannel = new FnKat::NewChannelMessage(*m_pFrame, channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
 
 	std::string channelName;
-	FnKat::encodeLegacyName(fFrameName, localFrameID, channelName);
+	FnKat::encodeLegacyName(fFrameName, localFrameBufferID, channelName);
 	m_pPrimaryChannel->setChannelName(channelName);
 
 	// total size of a pixel for a single channel (RGBA * float) = 16
@@ -179,19 +179,22 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 #if SEND_ALL_FRAMES
 			FnKat::NewFrameMessage* pLocalFrame = new FnKat::NewFrameMessage(getRenderTime(), m_renderHeight, m_renderWidth, originX, originY);
 
-			localFrameID = rAOV.frameID;
+			localFrameBufferID = rAOV.frameID;
 
 			// set the name
 			std::string frameName;
-			FnKat::encodeLegacyName(fFrameName, localFrameID, frameName);
+			FnKat::encodeLegacyName(fFrameName, localFrameBufferID, frameName);
 			pLocalFrame->setFrameName(frameName);
 
 			m_pDataPipe->send(*pLocalFrame);
+			
+			delete pLocalFrame;
 #endif
 
+			// this technically speaking leaks, but there's not really that much point freeing it on renderBase::stop(), as the process dies anyway...
 			rAOV.pChannelMessage = new FnKat::NewChannelMessage(*m_pFrame, ++channelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
 
-			FnKat::encodeLegacyName(rAOV.name, localFrameID, channelName);
+			FnKat::encodeLegacyName(rAOV.name, localFrameBufferID, channelName);
 			rAOV.pChannelMessage->setChannelName(channelName);
 
 			// total size of a pixel for a single channel (numchannels * float)
@@ -333,12 +336,12 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 
 	delete pNewTileMessage;
 
-	// now do any extra AOVS
+	// now do any extra AOVs
 
-	std::vector<RenderAOV>::iterator itRenderAOV = m_aExtraInteractiveAOVs.begin();
+	std::vector<RenderAOV>::const_iterator itRenderAOV = m_aExtraInteractiveAOVs.begin();
 	for (; itRenderAOV != m_aExtraInteractiveAOVs.end(); ++itRenderAOV)
 	{
-		RenderAOV& rAOV = *itRenderAOV;
+		const RenderAOV& rAOV = *itRenderAOV;
 
 		pNewTileMessage = new FnKat::DataMessage(*(rAOV.pChannelMessage));
 
@@ -347,9 +350,6 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 
 		if (m_ROIActive)
 		{
-			// if ROI rendering is enabled, we annoyingly seem to have to handle offsetting this into the full
-			// image format for Katana...
-//			pNewTileMessage->setStartCoordinates(x + m_ROIStartX, y + m_ROIStartY);
 			pNewTileMessage->setStartCoordinates(tileInfo.x, tileInfo.y);
 		}
 		else
@@ -394,7 +394,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		}
 		else if (rAOV.type == "id")
 		{
-			static float zero = 1.0f;
+			static float zero = 0.0f;
 			
 			// if it's ID, we need to copy it into the A channel of the ARGB channel Katana always seems to expect
 			for (unsigned int i = 0; i < height; i++)
@@ -403,6 +403,12 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 				const float* pSrcPixel = pSrcRow + x;
 	
 				unsigned char* pDstPixel = pDstRow;
+				
+				// it's ambiguous what Katana expects here - it *seems* to accept both 3 and 4 channel images,
+				// but it's not clear where it want's the single channel items for the ID. The Arnold plugin sets
+				// the first channel (A) to 1.0, and then fills in any float ID value from that.
+				
+				// We seem to be able to successfully send the ID as the first channel and filler values for RGB...
 	
 				for (unsigned int j = 0; j < width; j++)
 				{
@@ -415,8 +421,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 					memcpy(pDstPixel, &zero, sizeof(float));
 					pDstPixel += sizeof(float);
 		
-					pSrcPixel += 1;					
-
+					pSrcPixel += 1;
 				}
 	
 				pDstRow += width * skipSize;
@@ -498,7 +503,9 @@ void ImagineRender::sendFullFrameToMonitor()
 
 		delete pNewTileMessage;
 
-		m_pDataPipe->flushPipe(*m_pPrimaryChannel);
+		// this blocks until Katana's received everything it was expecting...
+//		m_pDataPipe->flushPipe(*m_pPrimaryChannel);
+		
 		m_pDataPipe->closeChannel(*m_pPrimaryChannel);
 	}
 

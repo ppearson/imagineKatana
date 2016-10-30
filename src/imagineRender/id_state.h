@@ -7,6 +7,9 @@
 #include <Render/SocketIdSender.h>
 #endif
 
+#include <unistd.h>
+#include <stdio.h>
+
 class IDState
 {
 public:
@@ -32,6 +35,12 @@ public:
 		m_pIDSender = new FnKat::Render::SocketIdSender(hostName, frameID);
 #endif
 		
+		if (!m_pIDSender)
+		{
+			fprintf(stderr, "Couldn't init SocketIdSender.\n");
+			return false;
+		}
+
 		m_pIDSender->getIds(&m_nextID, &m_maxID);
 		
 		return m_maxID > 0;
@@ -55,8 +64,6 @@ public:
 	{
 		m_pIDSender->send(idValue, locationName);
 	}
-	
-	
 	
 protected:
 #ifdef KAT_V_2

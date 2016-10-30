@@ -271,6 +271,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		{
 			m_renderSettings.add("useTextureFileHandleCaching", true);
 		}
+		else
+		{
+			m_renderSettings.add("useTextureFileHandleCaching", false);
+		}
 
 		int textureCacheDeleteTileItems = gsHelper.getIntParam("texture_delete_tile_items", 0);
 		m_renderSettings.add("textureDeleteTileItems", (textureCacheDeleteTileItems == 1));
@@ -333,6 +337,21 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	if (bakeDownScene == 1)
 	{
 		m_pScene->setBakeDownScene(true);
+		
+		unsigned int flags = 0;
+		
+		unsigned int triangleType = m_creationSettings.m_specialisedTriangleType;
+		
+		static const unsigned int QUANT = 4;
+		
+		flags = triangleType;
+		
+		if (m_creationSettings.m_geoQuantisationType != 0)
+		{
+			flags |= QUANT;
+		}
+		
+		m_pScene->setGeometryBakingFlags(flags);
 	}
 
 	return true;

@@ -3,6 +3,8 @@
 #include "katana_helpers.h"
 #include "material_helper.h"
 
+#include "materials/material.h"
+
 using namespace Imagine;
 
 // splitting the functions from the same class into separate files is a nasty thing to do, but 
@@ -100,28 +102,36 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 				continue;
 			
 			FnKat::StringAttribute shaderAttribute = materialAttribute.getChildByName("imagineSurfaceShader");
-			if (!shaderAttribute.isValid())
-				continue;
-			
-			FnKat::GroupAttribute shaderParams = materialAttribute.getChildByName("imagineSurfaceParams");
-			if (!shaderParams.isValid())
+			if (shaderAttribute.isValid())
 			{
-				fprintf(stderr, "No shader params found for material update.\n");
+				// we have a none-network material
+				
+				FnKat::GroupAttribute shaderParams = materialAttribute.getChildByName("imagineSurfaceParams");
+				// if all shader params are default, there won't be a group, so shaderParams will be invalid, but we can pass
+				// this down anyway. So we don't need to check for the validity of shaderParams, as its possible non-existance
+				// is okay.
+				
+				// extremely hacky for the moment...
+				KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObjectMaterial, KatanaUpdateItem::eLocObject, location);
+				
+				std::string shaderType = shaderAttribute.getValue("", false);
+				
+				Material* pNewMaterial = MaterialHelper::createNewMaterialStandAlone(shaderType, shaderParams);
+				
+				if (pNewMaterial)
+				{
+					newUpdate.pMaterial = pNewMaterial;
+					
+					m_liveRenderState.addUpdate(newUpdate);
+				}
+				
 				continue;
 			}
 			
-			// extremely hacky for the moment...
-			KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObjectMaterial, KatanaUpdateItem::eLocObject, location);
-			
-			std::string shaderType = shaderAttribute.getValue("", false);
-			
-			Material* pNewMaterial = MaterialHelper::createNewMaterialStandAlone(shaderType, shaderParams);
-			
-			if (pNewMaterial)
+			FnKat::GroupAttribute nodesAttribute = materialAttribute.getChildByName("nodes");
+			if (nodesAttribute.isValid())
 			{
-				newUpdate.pMaterial = pNewMaterial;
 				
-				m_liveRenderState.addUpdate(newUpdate);
 			}
 		}
 	}
@@ -161,7 +171,7 @@ int ImagineRender::applyPendingDataUpdates()
 			
 //			fprintf(stderr, "Updating Camera\n");
 		}
-		else if (update.type == KatanaUpdateItem::eTypeObjectMaterial)
+		else if (update.type == KatanaUpdateItem::eTypeObjectMaterial && update.pMaterial)
 		{
 			Object* pLocationObject = m_pScene->getObjectByName(update.location);
 			
@@ -171,6 +181,7 @@ int ImagineRender::applyPendingDataUpdates()
 				continue;
 			}
 			
+			update.pMaterial->preRenderMaterial();
 			pLocationObject->setMaterial(update.pMaterial);
 		}
 	}

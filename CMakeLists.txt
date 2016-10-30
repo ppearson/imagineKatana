@@ -28,20 +28,26 @@ ELSE()
 	SET(SSE_FLAGS "-msse -msse2 -msse3 -mssse3 -msse4")
 ENDIF(${MODERN_GCC} MATCHES "1")
 
+#SET(GENERAL_COMPILER_FLAGS "-fsanitize=address -mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
+SET(GENERAL_COMPILER_FLAGS "-mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
+
 # -fvisibility-inlines-hidden -fvisibility=hidden
 
 # CFLAGS = -ffunction-sections
 # LDFLAGS = -Wl,-gc-sections
 
-SET(CMAKE_CXX_FLAGS_DEBUG "-g -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -mfpmath=sse -fPIC -ffast-math -msse -msse2 -msse3 -mssse3 -msse4")
+#SET(DEBUG_WARNINGS "-Wall -Wextra")
+#SET(DEBUG_WARNINGS_SUPPRESS "-Wno-unused-function -Wno-unused-parameter -Wno-unused-variable")
+SET(CMAKE_CXX_FLAGS_DEBUG "-g -D_GLIBCXX_DEBUG ${DEBUG_WARNINGS} ${DEBUG_WARNINGS_SUPPRESS} ${GENERAL_COMPILER_FLAGS}")
+#SET(CMAKE_CXX_FLAGS_DEBUG "-g ${DEBUG_WARNINGS} ${DEBUG_WARNINGS_SUPPRESS} ${GENERAL_COMPILER_FLAGS}")
+SET(CMAKE_CXX_FLAGS_RELEASE "-O3 ${GENERAL_COMPILER_FLAGS}")
 
 SET(KATANA_VERSION 2)
 IF(${KATANA_VERSION} MATCHES 1)
 # Katana APIs
-	SET(KATANA_PLUGIN_API_PATH "${CMAKE_SOURCE_DIR}/katana_api")
+	SET(KATANA_PLUGIN_API_PATH "/home/peter/katana/apis/")
 ELSE()
-	SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.1.2/plugin_apis")
+	SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
 ENDIF(${KATANA_VERSION} MATCHES 1)
 
 SET(DISPLAY_DRIVER 1) # set this to 1 to build with zeromq support (and preview and liverender support) - this
@@ -281,6 +287,7 @@ ENDIF(${KATANA_VERSION} MATCHES 2)
 
 ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
 SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
+#SET(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=address -lasan")
 TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY} ${BOOST_EXT_LIBS})
 
 # imagineViewerModifier
