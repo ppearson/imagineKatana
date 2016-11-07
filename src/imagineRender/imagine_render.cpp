@@ -12,6 +12,12 @@
 #include <RenderOutputUtils/RenderOutputUtils.h>
 #endif
 
+#include "utilities.h"
+
+#include "katana_helpers.h"
+#include "sg_location_processor.h"
+#include "id_state.h"
+
 // include any Imagine headers directly from the source directory as Imagine hasn't got an API yet...
 #include "objects/camera.h"
 #include "image/output_image.h"
@@ -29,11 +35,6 @@
 #include "global_context.h"
 #include "output_context.h"
 
-#include "utilities.h"
-
-#include "katana_helpers.h"
-#include "sg_location_processor.h"
-
 using namespace Imagine;
 
 ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments) :
@@ -45,9 +46,9 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 	m_pOutputImage = NULL;
 	m_pDataPipe = NULL;
 	m_pFrame = NULL;
-	m_pPrimaryChannel = NULL;
 	
 	m_enableIDPicking = false;
+	m_pIDState = NULL;
 #endif
 
 	m_pRaytracer = NULL;
@@ -492,16 +493,16 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 {
 	// force expand, using procedurals isn't worth it in this day and age, especially as there's a fair amount of memory overhead for the state...
 
-	SGLocationProcessor locProcessor(*m_pScene, m_creationSettings);
-		
 	if (m_enableIDPicking)
 	{
 		// this needs to happen after interactive display frames are set up...
-		if (!locProcessor.initIDState(m_rawKatanaHost, m_aInteractiveFrameIDs[0]))
+		if (!initIDState(m_rawKatanaHost, m_interactiveFrameID))
 		{
 			m_enableIDPicking = false;
 		}
 	}
+	
+	SGLocationProcessor locProcessor(*m_pScene, m_creationSettings, m_pIDState);
 	
 	if (isliveRender)
 	{
@@ -630,6 +631,21 @@ void ImagineRender::flushCaches()
 	// fragmenting the heap quite a bit...
 
 	mallocTrim();
+}
+
+bool ImagineRender::initIDState(const std::string& hostName, int64_t frameID)
+{
+	m_pIDState = new IDState();
+	if (!m_pIDState->initState(hostName, frameID))
+	{
+		// if it failed, delete the class so we don't try and use it
+		delete m_pIDState;
+		m_pIDState = NULL;
+		
+		return false;
+	}
+	
+	return true;
 }
 
 void ImagineRender::startDiskRenderer()

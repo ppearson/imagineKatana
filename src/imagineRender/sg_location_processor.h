@@ -28,7 +28,7 @@ class IDState;
 class SGLocationProcessor
 {
 public:
-	SGLocationProcessor(Imagine::Scene& scene, const CreationSettings& creationSettings);
+	SGLocationProcessor(Imagine::Scene& scene, const CreationSettings& creationSettings, IDState* pIDState);
 	~SGLocationProcessor();
 
 	struct InstanceInfo
@@ -46,8 +46,6 @@ public:
 			Imagine::CompoundObject*			pCompoundObject;
 		};
 	};
-	
-	bool initIDState(const std::string& hostName, int64_t frameID);
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);
 	void processSGForceExpand(FnKat::FnScenegraphIterator rootIterator);
@@ -104,7 +102,7 @@ protected:
 
 	std::map<std::string, InstanceInfo>	m_aInstances;
 	
-	IDState*					m_pIDState;
+	IDState*					m_pIDState; // we don't own this, and it's optional
 	
 	bool						m_isLiveRender;
 };

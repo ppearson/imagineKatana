@@ -25,33 +25,14 @@
 
 using namespace Imagine;
 
-SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings) : m_scene(scene), m_creationSettings(creationSettings), m_pIDState(NULL),
+SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings, IDState* pIDState) : m_scene(scene), m_creationSettings(creationSettings), m_pIDState(pIDState),
 											m_isLiveRender(false)
 {
 }
 
 SGLocationProcessor::~SGLocationProcessor()
 {
-	if (m_pIDState)
-	{
-		delete m_pIDState;
-		m_pIDState = NULL;
-	}
-}
-
-bool SGLocationProcessor::initIDState(const std::string& hostName, int64_t frameID)
-{
-	m_pIDState = new IDState();
-	if (!m_pIDState->initState(hostName, frameID))
-	{
-		// if it failed, delete the class so we don't try and use it
-		delete m_pIDState;
-		m_pIDState = NULL;
-		
-		return false;
-	}
 	
-	return true;
 }
 
 void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)

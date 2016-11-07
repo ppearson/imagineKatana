@@ -24,19 +24,21 @@ namespace FnKatRender = FnKat::Render;
 #include "utils/params.h"
 #include "raytracer/raytracer.h"
 
+class IDState;
+
 class ImagineRender : public Foundry::Katana::Render::RenderBase, Imagine::RaytracerHost
 {
 public:
 	ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::GroupAttribute arguments);
 
-	struct RenderAOV
+	struct RenderChannel
 	{
-		RenderAOV() : frameID(-1), pFrameMessage(NULL), pChannelMessage(NULL)
+		RenderChannel() : frameID(-1), channelID(-1), pFrameMessage(NULL), pChannelMessage(NULL), pDataPipe(NULL)
 		{
 		}
 
-		RenderAOV(const std::string& nm, const std::string& tp, unsigned int nSrcChans, unsigned int nDstChans, int fid) : name(nm), type(tp), numSrcChannels(nSrcChans),
-			numDstChannels(nDstChans), frameID(fid), pFrameMessage(NULL), pChannelMessage(NULL)
+		RenderChannel(const std::string& nm, const std::string& tp, unsigned int nSrcChans, unsigned int nDstChans, int fid, int cid) : name(nm), type(tp), numSrcChannels(nSrcChans),
+			numDstChannels(nDstChans), frameID(fid), channelID(cid), pFrameMessage(NULL), pChannelMessage(NULL), pDataPipe(NULL)
 		{
 		}
 
@@ -44,10 +46,14 @@ public:
 		std::string			type;
 		unsigned int		numSrcChannels; // number of channels in the OutputImage buffer within Imagine
 		unsigned int		numDstChannels; // Katana always seems to need 3/4 channels, so we can't use above as there's often a mis-match
+		int					channelID;
 		int					frameID;
 
 		FnKat::NewFrameMessage*		pFrameMessage;
 		FnKat::NewChannelMessage*	pChannelMessage;
+		
+		// optionally use this instead of a shared one
+		FnKat::KatanaPipe*			pDataPipe;
 	};
 
 	virtual int start();
@@ -106,6 +112,8 @@ protected:
 
 	//
 	bool setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings);
+	
+	bool initIDState(const std::string& hostName, int64_t frameID);
 
 	void startDiskRenderer();
 	void startInteractiveRenderer(bool liveRender);
@@ -113,6 +121,7 @@ protected:
 	void sendFullFrameToMonitor();
 
 	void renderFinished();
+	
 
 protected:
 	Imagine::Scene*				m_pScene;
@@ -136,13 +145,13 @@ protected:
 	Imagine::OutputImage*		m_pOutputImage;
 	FnKat::KatanaPipe*			m_pDataPipe;
 	FnKat::NewFrameMessage*		m_pFrame;
-	FnKat::NewChannelMessage*	m_pPrimaryChannel;
 	
 	bool						m_enableIDPicking;
+	IDState*					m_pIDState;
 
-	std::vector<int>			m_aInteractiveFrameIDs;
-	std::vector<std::string>	m_aInteractiveChannelNames;
-	std::vector<RenderAOV>		m_aExtraInteractiveAOVs;
+	int							m_interactiveFrameID;
+	std::string					m_interactivePrimaryChannelName;
+	std::vector<RenderChannel>	m_aInteractiveChannels;
 #endif
 
 	//
