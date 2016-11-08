@@ -46,8 +46,8 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 	m_pOutputImage = NULL;
 	m_pDataPipe = NULL;
 	m_pFrame = NULL;
-	
-	m_enableIDPicking = false;
+
+	m_enableIDPicking = true;
 	m_pIDState = NULL;
 #endif
 
@@ -70,11 +70,11 @@ int ImagineRender::start()
 		{
 			int ret = system("xmessage debug\n");
 		}
-		
+
 		FnKat::IntAttribute enableIDPickingAttribute = imagineGSAttribute.getChildByName("enable_id_picking");
 		if (enableIDPickingAttribute.isValid())
 		{
-			m_enableIDPicking = (enableIDPickingAttribute.getValue(0, false) == 1);
+			m_enableIDPicking = (enableIDPickingAttribute.getValue(1, false) == 1);
 		}
 	}
 
@@ -85,7 +85,7 @@ int ImagineRender::start()
 	{
 		renderMethodName = FnKat::RendererInfo::DiskRenderMethod::kDefaultName;
 	}
-	
+
 	// Katana automatically turns this off for Disk renders, so we don't have to do that...
 	m_enableIDPicking &= useRenderPassID();
 
@@ -264,7 +264,7 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 bool ImagineRender::configureDiskRenderOutputs(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator)
 {
 	// Katana calls this function from the main thread before renderboot starts (and calls it three times for some reason...)
-	
+
 	// for the moment, just use the first "color" type as the main primary AOV
 	FnKatRender::RenderSettings::RenderOutputs outputs = settings.getRenderOutputs();
 
@@ -415,7 +415,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 				m_pScene->getProjectProperties().setBackgroundType(eBackgroundEnvironment);
 			}
 		}
-		
+
 		FnKat::IntAttribute camUseNearClipAttr = itRoot.getAttribute("imagineGlobalStatements.cam_use_near_clip");
 		if (camUseNearClipAttr.isValid())
 		{
@@ -424,7 +424,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 			{
 				float cameraClipping[2];
 				settings.getCameraSettings()->getClipping(cameraClipping);
-				
+
 				pRenderCamera->setNearClippingPlane(cameraClipping[0]);
 			}
 		}
@@ -463,7 +463,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		clampedShutterClose = clamp(clampedShutterClose, clampedShutterClose, 1.0f);
 		pRenderCamera->setRelativeShutterTimes(clampedShutterOpen, clampedShutterClose);
 	}
-	
+
 	// now get any arbitrary attributes
 	FnKat::GroupAttribute projectionArbitraryAttribute = cameraIterator.getAttribute("projection.arbitrary");
 	if (projectionArbitraryAttribute.isValid())
@@ -472,7 +472,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 		for (unsigned int i = 0; i < numChildren; i++)
 		{
 			FnKat::Attribute childAttr = projectionArbitraryAttribute.getChildByIndex(i);
-			
+
 			// only process floats for the moment...
 			if (childAttr.getType() == kFnKatAttributeTypeFloat)
 			{
@@ -501,16 +501,16 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 			m_enableIDPicking = false;
 		}
 	}
-	
+
 	SGLocationProcessor locProcessor(*m_pScene, m_creationSettings, m_pIDState);
-	
+
 	if (isliveRender)
 	{
 		locProcessor.setIsLiveRender(true);
 	}
 
 	locProcessor.processSGForceExpand(rootIterator);
-	
+
 	// add materials lazily
 	std::vector<Material*> aMaterials;
 	locProcessor.getFinalMaterials(aMaterials);
@@ -641,10 +641,10 @@ bool ImagineRender::initIDState(const std::string& hostName, int64_t frameID)
 		// if it failed, delete the class so we don't try and use it
 		delete m_pIDState;
 		m_pIDState = NULL;
-		
+
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -714,12 +714,12 @@ void ImagineRender::startDiskRenderer()
 }
 
 void ImagineRender::startInteractiveRenderer(bool liveRender)
-{	
+{
 #if ENABLE_PREVIEW_RENDERS
-	
+
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
 	imageFlags |= m_extraAOVsFlags;
-	
+
 	if (!m_ROIActive)
 	{
 		m_pOutputImage = new OutputImage(m_renderWidth, m_renderHeight, imageFlags);
@@ -747,7 +747,7 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		{
 			raytracer.setAmbientColour(Colour3f(0.7f));
 		}
-		
+
 		raytracer.renderScene(1.0f, NULL, true);
 
 		m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
@@ -788,7 +788,7 @@ void ImagineRender::renderFinished()
 #if ENABLE_PREVIEW_RENDERS
 	sendFullFrameToMonitor();
 #endif
-	
+
 	fprintf(stderr, "Render complete.\n");
 
 	if (m_printMemoryStatistics != 0)
