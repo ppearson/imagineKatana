@@ -196,6 +196,15 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	return true;
 }
 
+void ShaderInfoHelper::setShaderParameterMapping(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo, const std::string& metaName,
+									  const std::string& actualName)
+{
+#ifdef KAT_V_2
+	iri.localSetShaderParameterMapping(rendererObjectInfo, metaName, actualName);
+#endif
+}
+
+
 void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
@@ -395,6 +404,17 @@ void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& i
 	helper.addIntParam("num_samples", 1);
 
 	helper.addBoolParam("visible", visibleOn);
+
+#ifdef KAT_V_2
+	setShaderParameterMapping(iri, rendererObjectInfo, "shader", "imagineLightShader");
+	if (addColour)
+	{
+		setShaderParameterMapping(iri, rendererObjectInfo, "color", "imagineLightParams.colour");
+	}
+
+	setShaderParameterMapping(iri, rendererObjectInfo, "intensity", "imagineLightParams.intensity");
+	setShaderParameterMapping(iri, rendererObjectInfo, "exposure", "imagineLightParams.exposure");
+#endif
 }
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -513,7 +533,7 @@ void ShaderInfoHelper::buildConstantTextureParams(const ImagineRendererInfo& iri
 void ShaderInfoHelper::buildCheckerboardTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
-	
+
 	helper.addFloatSliderParam("scaleU", 1.0f, 0.0001f, 100.0f);
 	helper.addFloatSliderParam("scaleV", 1.0f, 0.0001f, 100.0f);
 
@@ -524,7 +544,7 @@ void ShaderInfoHelper::buildCheckerboardTextureParams(const ImagineRendererInfo&
 void ShaderInfoHelper::buildGridTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
-	
+
 	helper.addFloatSliderParam("scaleU", 1.0f, 0.0001f, 100.0f);
 	helper.addFloatSliderParam("scaleV", 1.0f, 0.0001f, 100.0f);
 
@@ -535,7 +555,7 @@ void ShaderInfoHelper::buildGridTextureParams(const ImagineRendererInfo& iri, Fn
 void ShaderInfoHelper::buildSwatchTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
-	
+
 	helper.addFloatSliderParam("scaleU", 1.0f, 0.0001f, 100.0f);
 	helper.addFloatSliderParam("scaleV", 1.0f, 0.0001f, 100.0f);
 

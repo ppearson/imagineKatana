@@ -3,7 +3,7 @@ from PluginAPI.BaseGafferProfile import Profile
 
 class ImagineProfile(Profile):
 	class Constants:
-		SHADER_COLOR_PARAM_NAMES = ('imagineLightParams.color',)
+		SHADER_COLOR_PARAM_NAMES = ('imagineLightParams.colour',)
 		SHADER_INT_PARAM_NAMES = ('imagineLightParams.intensity',)
 		SHADER_EXP_PARAM_NAMES = ('imagineLightParams.exposure',)
 

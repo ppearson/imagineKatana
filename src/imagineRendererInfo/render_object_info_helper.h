@@ -18,6 +18,7 @@ public:
 
 	static bool buildRenderOutput(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo, const std::string& name,
 								  const FnKat::GroupAttribute inputAttr);
+
 };
 
 #endif // RENDER_OBJECT_INFO_HELPER_H

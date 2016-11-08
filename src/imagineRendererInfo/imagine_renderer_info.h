@@ -26,7 +26,7 @@ public:
 	virtual void fillRendererObjectTypes(std::vector<std::string>& renderObjectTypes, const std::string& type) const;
 
 	virtual std::string getRendererObjectDefaultType(const std::string& type) const;
-	
+
 #ifdef KAT_V_2
 	virtual void fillLiveRenderTerminalOps(OpDefinitionQueue& terminalOps, const FnAttribute::GroupAttribute& stateArgs) const;
 #endif
@@ -67,6 +67,11 @@ public:
 	void localAddRenderObjectParam(FnKat::GroupBuilder& renderObjectInfo, const std::string& name, int type, int arraySize,
 							  FnKat::Attribute defaultAttr, FnKat::Attribute hintsAttr, const EnumPairVector& enumValues) const;
 
+#ifdef KAT_V_2
+	void localSetShaderParameterMapping(FnAttribute::GroupBuilder& renderObjectInfo, const std::string& metaName,
+								   const std::string& actualName) const;
+#endif
+	
 protected:
 
 };

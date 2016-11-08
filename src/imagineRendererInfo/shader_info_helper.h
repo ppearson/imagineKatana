@@ -31,6 +31,9 @@ public:
 	static bool buildShaderInfo(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo, const std::string& name,
 								  const FnKat::GroupAttribute inputAttr);
 
+	static void setShaderParameterMapping(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo, const std::string& metaName,
+										  const std::string& actualName);
+
 
 	// for builders
 
