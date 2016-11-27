@@ -208,12 +208,12 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 	{
 		return NULL;
 	}
-	
+
 	// make sure we at least have an Imagine-specific shader node within the terminals list before continuing processing
 	FnKat::StringAttribute imagineSurfaceAttr = terminalsAttr.getChildByName("imagineSurface");
 	FnKat::StringAttribute imagineBumpAttr = terminalsAttr.getChildByName("imagineBump");
 	FnKat::StringAttribute imagineAlphaAttr = terminalsAttr.getChildByName("imagineAlpha");
-	
+
 	bool haveValidImagineTerminalType = imagineSurfaceAttr.isValid() || imagineBumpAttr.isValid() || imagineAlphaAttr.isValid();
 	if (!haveValidImagineTerminalType)
 	{
@@ -258,7 +258,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 			// it wasn't actually a network shader, Katana just puts it in that group because that location inherited
 			// network materials from higher up
 			pNewNodeMaterial = createMaterial(nodeType, paramsAttr);
-			
+
 			if (!pNewNodeMaterial)
 				continue;
 
@@ -493,11 +493,11 @@ void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::st
 		}
 		else if (paramName == "diffuse_roughness_texture")
 		{
-			
+
 		}
 		else if (paramName == "diff_backlit_texture")
 		{
-			
+
 		}
 	}
 }
@@ -514,9 +514,9 @@ Material* MaterialHelper::createMaterial(const std::string& materialType, const 
 	// TODO: duplicate of above code, but...
 	FnKat::GroupAttribute bumpParamsAttr;
 	FnKat::GroupAttribute alphaParamsAttr;
-	
+
 	Material* pNewMaterial = NULL;
-	
+
 	if (materialType == "Standard" || materialType == "StandardImage")
 	{
 		pNewMaterial = createStandardMaterial(shaderParamsAttr, bumpParamsAttr, alphaParamsAttr);
@@ -541,7 +541,7 @@ Material* MaterialHelper::createMaterial(const std::string& materialType, const 
 	{
 		pNewMaterial = createTranslucentMaterial(shaderParamsAttr, bumpParamsAttr);
 	}
-	
+
 	return pNewMaterial;
 }
 
@@ -598,7 +598,7 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	{
 		pNewStandardMaterial->setSpecularRoughnessTextureMapPath(specRoughnessTexture, true);
 	}
-	
+
 	std::string microfacetType = ah.getStringParam("microfacet_type", "beckmann");
 	int specType = 2;
 	if (microfacetType == "phong")
@@ -727,15 +727,15 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	pNewMaterial->setK(k);
 	float roughness = ah.getFloatParam("roughness", 0.01f);
 	pNewMaterial->setRoughness(roughness);
-	
+
 	std::string microfacetType = ah.getStringParam("microfacet_type", "beckmann");
-	int microfacetModel = 2;
+	int microfacetModel = 1;
 	if (microfacetType == "phong")
 		microfacetModel = 0;
 	else if (microfacetType == "beckmann")
-		microfacetModel = 2;
+		microfacetModel = 1;
 	else if (microfacetType == "ggx")
-		microfacetModel = 3;
+		microfacetModel = 2;
 
 	pNewMaterial->setMicrofacetModel(microfacetModel);
 
@@ -896,7 +896,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.4f, 0.4f, 1.0f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
-	
+
 	std::string surfaceColourTexture = ah.getStringParam("surface_col_texture");
 	if (!surfaceColourTexture.empty())
 	{
@@ -905,7 +905,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	Colour3f specularColour = ah.getColourParam("specular_col", Colour3f(0.1f, 0.1f, 0.1f));
 	pNewMaterial->setSpecularColour(specularColour);
-	
+
 	std::string specularColourTexture = ah.getStringParam("specular_col_texture");
 	if (!specularColourTexture.empty())
 	{
@@ -1042,10 +1042,10 @@ Texture* MaterialHelper::createCheckerboardTexture(const FnKat::GroupAttribute& 
 	pNewTexture->setColour1(colour1);
 	Colour3f colour2 = ah.getColourParam("colour2", Colour3f(1.0f, 1.0f, 1.0f));
 	pNewTexture->setColour2(colour2);
-	
+
 	float scaleU = ah.getFloatParam("scaleU", 1.0f);
 	float scaleV = ah.getFloatParam("scaleV", 1.0f);
-	
+
 	pNewTexture->setScaleValues(scaleU, scaleV);
 
 	return pNewTexture;
@@ -1061,10 +1061,10 @@ Texture* MaterialHelper::createGridTexture(const FnKat::GroupAttribute& textureP
 	pNewTexture->setColour1(colour1);
 	Colour3f colour2 = ah.getColourParam("colour2", Colour3f(1.0f, 1.0f, 1.0f));
 	pNewTexture->setColour2(colour2);
-	
+
 	float scaleU = ah.getFloatParam("scaleU", 1.0f);
 	float scaleV = ah.getFloatParam("scaleV", 1.0f);
-	
+
 	pNewTexture->setScaleValues(scaleU, scaleV);
 
 	return pNewTexture;
@@ -1081,13 +1081,13 @@ Texture* MaterialHelper::createSwatchTexture(const FnKat::GroupAttribute& textur
 		pNewTexture->setGridType(0);
 	else if (gridType == "fixed colour")
 		pNewTexture->setGridType(2);
-	
+
 	bool checkerboard = ah.getIntParam("checkerboard", 0) == 1;
 	pNewTexture->setCheckerboard(checkerboard);
-	
+
 	float scaleU = ah.getFloatParam("scaleU", 1.0f);
 	float scaleV = ah.getFloatParam("scaleV", 1.0f);
-	
+
 	pNewTexture->setScaleValues(scaleU, scaleV);
 
 	return pNewTexture;
@@ -1123,7 +1123,7 @@ bool MaterialHelper::isRecognisedShaderType(const std::string& name)
 	{
 		return true;
 	}
-	
+
 	return false;
 }
 
