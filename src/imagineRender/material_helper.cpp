@@ -588,20 +588,6 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	if (!specTexture.empty())
 	{
 		pNewStandardMaterial->setSpecularTextureMapPath(specTexture, true); // lazy load texture when needed
-
-		int specTextureFlags = ah.getIntParam("spec_col_texture_flags", 0);
-		if (specTextureFlags)
-		{
-			// hack mip-map bias for the moment
-			if (specTextureFlags == 1)
-			{
-				pNewStandardMaterial->setSpecularTextureCustomFlags(1 << 15);
-			}
-			else if (specTextureFlags == 2)
-			{
-				pNewStandardMaterial->setSpecularTextureCustomFlags(1 << 16);
-			}
-		}
 	}
 
 	float specRoughness = ah.getFloatParam("spec_roughness", 0.15f);
@@ -612,8 +598,17 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	{
 		pNewStandardMaterial->setSpecularRoughnessTextureMapPath(specRoughnessTexture, true);
 	}
+	
+	std::string microfacetType = ah.getStringParam("microfacet_type", "beckmann");
+	int specType = 2;
+	if (microfacetType == "phong")
+		specType = 0;
+	else if (microfacetType == "beckmann")
+		specType = 2;
+	else if (microfacetType == "ggx")
+		specType = 3;
 
-	pNewStandardMaterial->setSpecularType(0);
+	pNewStandardMaterial->setSpecularType(specType);
 
 	float reflection = ah.getFloatParam("reflection", 0.0f);
 	pNewStandardMaterial->setReflection(reflection);
@@ -621,9 +616,9 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	float reflectionRoughness = ah.getFloatParam("reflection_roughness", 0.0f);
 	pNewStandardMaterial->setReflectionRoughness(reflectionRoughness);
 
-	float refractionIndex = ah.getFloatParam("refraction_index", 1.0f);
+	float refractionIndex = ah.getFloatParam("refraction_index", 1.49f);
 
-	int fresnelEnabled = ah.getIntParam("fresnel", 0);
+	int fresnelEnabled = ah.getIntParam("fresnel", 1);
 	if (fresnelEnabled)
 	{
 		pNewStandardMaterial->setFresnelEnabled(true);
@@ -633,6 +628,10 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 		if (refractionIndex == 1.0f)
 			refractionIndex = 1.4f;
+	}
+	else
+	{
+		pNewStandardMaterial->setFresnelEnabled(false);
 	}
 
 	pNewStandardMaterial->setRefractionIndex(refractionIndex);
@@ -728,6 +727,17 @@ Material* MaterialHelper::createMetalMaterial(const FnKat::GroupAttribute& shade
 	pNewMaterial->setK(k);
 	float roughness = ah.getFloatParam("roughness", 0.01f);
 	pNewMaterial->setRoughness(roughness);
+	
+	std::string microfacetType = ah.getStringParam("microfacet_type", "beckmann");
+	int microfacetModel = 2;
+	if (microfacetType == "phong")
+		microfacetModel = 0;
+	else if (microfacetType == "beckmann")
+		microfacetModel = 2;
+	else if (microfacetType == "ggx")
+		microfacetModel = 3;
+
+	pNewMaterial->setMicrofacetModel(microfacetModel);
 
 	int doubleSided = ah.getIntParam("double_sided", 0);
 	if (doubleSided == 1)

@@ -25,6 +25,7 @@ static const char* falloffTypeOptions[] = { "none", "linear", "quadratic", 0 };
 static const char* shadowTypeOptions[] = { "normal", "transparent", "none", 0 };
 static const char* areaShapeTypeOptions[] = { "quad", "disc", "sphere", "cylinder", 0 };
 static const char* swatchGridTypeOptions[] = { "none", "hue", "fixed colour", 0 };
+static const char* microfacetTypeOptions[] = { "phong", "beckmann", "ggx", 0 };
 
 ShaderInfoHelper::ShaderInfoHelper(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo) : m_iri(iri),
 	m_rendererObjectInfo(rendererObjectInfo)
@@ -216,16 +217,17 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 
 	helper.addColourParam("spec_col", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addStringParam("spec_col_texture");
-	helper.addIntParam("spec_col_texture_flags", 0);
 	helper.addFloatSliderParam("spec_roughness", 0.15f);
+	
+	helper.addStringPopupParam("microfacet_type", "beckmann", microfacetTypeOptions, 3);
 
 	helper.addFloatSliderParam("reflection", 0.0f);
 	helper.addFloatSliderParam("reflection_roughness", 0.0f);
 
-	helper.addBoolParam("fresnel", false);
+	helper.addBoolParam("fresnel", true);
 	helper.addFloatSliderParam("fresnel_coef", 0.0f);
 
-	helper.addFloatParam("refraction_index", 1.0f);
+	helper.addFloatParam("refraction_index", 1.49f);
 
 	helper.addFloatSliderParam("transparency", 0.0f);
 	helper.addFloatSliderParam("transmission", 0.0f);
@@ -248,18 +250,19 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 
 	helper.addColourParam("spec_col", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addStringParam("spec_col_texture");
-	helper.addIntParam("spec_col_texture_flags", 0);
 
 	helper.addFloatSliderParam("spec_roughness", 0.15f);
 	helper.addStringParam("spec_roughness_texture");
+	
+	helper.addStringPopupParam("microfacet_type", "beckmann", microfacetTypeOptions, 3);
 
 	helper.addFloatSliderParam("reflection", 0.0f);
 	helper.addFloatSliderParam("reflection_roughness", 0.0f);
 
-	helper.addBoolParam("fresnel", false);
+	helper.addBoolParam("fresnel", true);
 	helper.addFloatSliderParam("fresnel_coef", 0.0f);
 
-	helper.addFloatParam("refraction_index", 1.0f);
+	helper.addFloatParam("refraction_index", 1.49f);
 
 	helper.addFloatSliderParam("transparency", 0.0f);
 	helper.addFloatSliderParam("transmission", 0.0f);
@@ -292,6 +295,8 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addFloatParam("refraction_index", 1.39f);
 	helper.addFloatParam("k", 4.8f);
 	helper.addFloatSliderParam("roughness", 0.01f);
+	
+	helper.addIntEnumParam("microfacet_type", 1, microfacetTypeOptions, 3);
 
 	helper.addBoolParam("double_sided", 0);
 }
@@ -442,7 +447,7 @@ void ShaderInfoHelper::buildSpotLightShaderParams(const ImagineRendererInfo& iri
 
 void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true, true);
 
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
