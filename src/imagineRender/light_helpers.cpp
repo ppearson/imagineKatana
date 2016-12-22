@@ -220,7 +220,8 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	std::string shadowType = ah.getStringParam("shadow_type", "normal");
 	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
-	int isVisible = ah.getIntParam("visible", 1);
+	bool isVisible = ah.getIntParam("visible", 1) == 1;
+	bool clampLuminance = ah.getIntParam("clamp_luminance", 0) == 1;
 
 	std::string envMapPath = ah.getStringParam("env_map_path");
 
@@ -230,7 +231,8 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setSamples(numSamples);
 	pNewLight->setEnvMapPath(envMapPath);
 	pNewLight->setRadius(2000.0f);
-	pNewLight->setVisible(isVisible == 1);
+	pNewLight->setVisible(isVisible);
+	pNewLight->setClampLuminance(clampLuminance);
 
 	return pNewLight;
 }

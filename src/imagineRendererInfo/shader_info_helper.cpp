@@ -218,7 +218,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	helper.addColourParam("spec_col", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addStringParam("spec_col_texture");
 	helper.addFloatSliderParam("spec_roughness", 0.15f);
-	
+
 	helper.addStringPopupParam("microfacet_type", "beckmann", microfacetTypeOptions, 3);
 
 	helper.addFloatSliderParam("reflection", 0.0f);
@@ -253,7 +253,7 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 
 	helper.addFloatSliderParam("spec_roughness", 0.15f);
 	helper.addStringParam("spec_roughness_texture");
-	
+
 	helper.addStringPopupParam("microfacet_type", "beckmann", microfacetTypeOptions, 3);
 
 	helper.addFloatSliderParam("reflection", 0.0f);
@@ -295,7 +295,7 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addFloatParam("refraction_index", 1.39f);
 	helper.addFloatParam("k", 4.8f);
 	helper.addFloatSliderParam("roughness", 0.01f);
-	
+
 	helper.addIntEnumParam("microfacet_type", 1, microfacetTypeOptions, 3);
 
 	helper.addBoolParam("double_sided", 0);
@@ -485,6 +485,7 @@ void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererIn
 	helper.addStringPopupParam("shadow_type", "normal", shadowTypeOptions, 3);
 	helper.addIntParam("num_samples", 1);
 	helper.addBoolParam("visible", true);
+	helper.addBoolParam("clamp_luminance", false);
 
 	helper.addStringParam("env_map_path");
 }

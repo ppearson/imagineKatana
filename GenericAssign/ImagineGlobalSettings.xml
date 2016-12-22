@@ -61,6 +61,8 @@
 				</hintdict>
 			</int>
 
+			<float name="filter_scale" default="1.0" help="Scale value to multiply filter width by. When set to 1.0 (the default), the filter type's natural width will be used."/>
+
 			<int name="depth_of_field" default="0" widget="checkBox"/>
 			<int name="motion_blur" default="0" widget="checkBox"/>
 		</page>

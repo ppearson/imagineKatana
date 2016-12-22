@@ -51,6 +51,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	}
 
 	unsigned int filterType = gsHelper.getIntParam("reconstruction_filter", 3);
+	float filterScale = gsHelper.getFloatParam("filter_scale", 1.0f);
 
 	// TODO: filter width...
 
@@ -314,6 +315,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	m_renderSettings.add("SamplesPerIteration", samplesPerPixel);
 
 	m_renderSettings.add("filter_type", filterType);
+	m_renderSettings.add("filter_scale", filterScale);
 
 	m_renderSettings.add("rbOverall", maxDepthOverall);
 	m_renderSettings.add("rbDiffuse", maxDepthDiffuse);

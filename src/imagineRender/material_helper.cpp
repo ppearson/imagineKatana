@@ -15,7 +15,7 @@
 #include "textures/ops/op_invert.h"
 
 #include "textures/constant.h"
-#include "textures/procedural_2d/checkerboard.h"
+#include "textures/procedural_2d/checkerboard_2d.h"
 #include "textures/procedural_2d/gridlines.h"
 #include "textures/procedural_2d/swatch.h"
 #include "textures/procedural_2d/wireframe.h"
@@ -1034,7 +1034,7 @@ Texture* MaterialHelper::createConstantTexture(const FnKat::GroupAttribute& text
 
 Texture* MaterialHelper::createCheckerboardTexture(const FnKat::GroupAttribute& textureParamsAttr)
 {
-	Checkerboard* pNewTexture = new Checkerboard();
+	Checkerboard2D* pNewTexture = new Checkerboard2D();
 
 	KatanaAttributeHelper ah(textureParamsAttr);
 
