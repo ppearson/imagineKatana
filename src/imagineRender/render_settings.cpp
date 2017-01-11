@@ -53,8 +53,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	unsigned int filterType = gsHelper.getIntParam("reconstruction_filter", 3);
 	float filterScale = gsHelper.getFloatParam("filter_scale", 1.0f);
 
-	// TODO: filter width...
-
+	unsigned int samplerType = gsHelper.getIntParam("sampler_type", 1);
+	m_renderSettings.add("sampler_type", samplerType);
+	
 	// ray depths
 
 	unsigned int maxDepthOverall = gsHelper.getIntParam("max_depth_overall", 4);

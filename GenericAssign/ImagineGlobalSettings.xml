@@ -63,15 +63,23 @@
 
 			<float name="filter_scale" default="1.0" help="Scale value to multiply filter width by. When set to 1.0 (the default), the filter type's natural width will be used."/>
 
+			<int name="sampler_type" default="1" widget="mapper">
+				<hintdict name='options'>
+					<int name="random" value="0"/>
+					<int name="stratified" value="1"/>
+					<int name="halton" value="2"/>
+				</hintdict>
+			</int>
+
 			<int name="depth_of_field" default="0" widget="checkBox"/>
 			<int name="motion_blur" default="0" widget="checkBox"/>
 		</page>
 		<page name='geometry' open="True">
 			<int name="flip_t" default="0" widget="mapper" help="Flip the t (V) coordinate of st texture coordinates.">
 				<hintdict name='options'>
-					<int name="None" value="0"/>
-					<int name="Full" value="1"/>
-					<int name="Component-wise" value="2"/>
+					<int name="none" value="0"/>
+					<int name="full" value="1"/>
+					<int name="component-wise" value="2"/>
 				</hintdict>
 			</int>
 			<int name="enable_subdivision" default="0" widget="checkBox" help="Enable using subdivision surfaces. With this off, subdmesh types will be interpreted as standard polygons."/>
@@ -93,22 +101,22 @@
 
 			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the Moller intersection algorithm, which calculates everything on-the-fly, requiring 4/0 bytes per triangle. Compact is on average 30-65% slower than Fast.">
 				<hintdict name='options'>
-					<int name="Fast" value="0"/>
-					<int name="Compact" value="1"/>
+					<int name="fast" value="0"/>
+					<int name="compact" value="1"/>
 				</hintdict>
 			</int>
 			<int name="geometry_quantisation_type" widget="mapper" default="0" help="Geometry compression. Standard normal compresses 96-bit float normals to 32-bit normals. Standard UV compresses UV coords to a limited range of -10.0 - 10.0, but at constant accuracy across that range.">
 				<hintdict name='options'>
-					<int name="None" value="0"/>
-					<int name="Standard normal" value="1"/>
-					<int name="Standard normal, standard UV" value="2"/>
+					<int name="none" value="0"/>
+					<int name="standard normal" value="1"/>
+					<int name="standard normal, standard UV" value="2"/>
 				</hintdict>
 			</int>
 			<int name="specialised_triangle_type" widget="mapper" default="0" help="Triangle type to use for specialised geometry types. Triangle Packets is fastest, but uses most memory (especially peak). Fast uses 48-byte trianges, compact uses 4/1/0 bytes per triangle depending on properties/attributes of shapes.">
 				<hintdict name='options'>
-					<int name="Triangle Packets" value="0"/>
-					<int name="Fast" value="1"/>
-					<int name="Compact" value="2"/>
+					<int name="triangle Packets" value="0"/>
+					<int name="fast" value="1"/>
+					<int name="compact" value="2"/>
 				</hintdict>
 			</int>
 			<int name="scene_accel_structure" widget="mapper" default="1" help="Scene acceleration type to use. KDTree is generally faster for more sparse scenes with lots of empty space. For dense scenes with lots of overlapping objects, BVH can be significantly faster.">
@@ -125,8 +133,8 @@
 			<page name='texture_caching' open="False">
 				<int name="texture_caching_type" default="1" widget="mapper">
 					<hintdict name='options'>
-						<int name="None" value="0"/>
-						<int name="Global" value="1"/>
+						<int name="none" value="0"/>
+						<int name="global" value="1"/>
 					</hintdict>
 					<help>Type of image texture caching to use. None pre-loads textures before starting. Global uses lazy loading of textures in a global texture cache.
 					It's highly recommended to use tiled mipmapped textures with this type of texture caching.
@@ -146,9 +154,9 @@
 				</int>
 				<int name="texture_tile_data_fix" default="0" conditionalVisOp='equalTo' conditionalVisPath='../texture_caching_type' conditionalVisValue='1' widget="mapper">
 					<hintdict name='options'>
-						<int name="None" value="0"/>
-						<int name="Clamp min values to 0.0f" value="1"/>
-						<int name="Clamp min values to 0.0f with warnings" value="2"/>
+						<int name="none" value="0"/>
+						<int name="clamp min values to 0.0f" value="1"/>
+						<int name="clamp min values to 0.0f with warnings" value="2"/>
 					</hintdict>
 					<help>Type of data correction to do after reading tiled data from images. Sometimes images can have negative or NaN pixel values depending on the filter type used to create the mipmaps
 					and any colourspace conversion done. Enabling this attempts to detect and fix these issues after reading the data.</help>
@@ -162,9 +170,9 @@
 
 			<int name="statistics_type" default="1" widget="mapper">
 				<hintdict name='options'>
-					<int name="None" value="0"/>
-					<int name="Simple" value="1"/>
-					<int name="Full" value="2"/>
+					<int name="none" value="0"/>
+					<int name="simple" value="1"/>
+					<int name="full" value="2"/>
 				</hintdict>
 				<help>Type of statistics to use: Simple is very lightweight and just includes counters for ray types, bounces, BSDF evaluations, texture reads, etc.
 					  Full adds time sampling of different parts of the rendering process to Simple, and adds a small but noticable (~3-5%) overhead of total render time.
@@ -172,17 +180,17 @@
 			</int>
 			<int name="statistics_output_type" default="0" widget="mapper">
 				<hintdict name='options'>
-					<int name="Console" value="0"/>
-					<int name="File" value="1"/>
+					<int name="console" value="0"/>
+					<int name="file" value="1"/>
 				</hintdict>
 			</int>
 			<string name="statistics_output_path" default="" conditionalVisOp='equalTo' conditionalVisPath='../statistics_output_type' conditionalVisValue='1' widget="default"/>
 
 			<int name="print_memory_statistics" default="0" widget="mapper">
 				<hintdict name='options'>
-					<int name="None" value="0"/>
-					<int name="Normal" value="1"/>
-					<int name="Verbose" value="2"/>
+					<int name="none" value="0"/>
+					<int name="normal" value="1"/>
+					<int name="verbose" value="2"/>
 				</hintdict>
 			</int>
 			<int name="bucket_size" widget="mapper" default="48">
