@@ -979,6 +979,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 
 	bool isGeo = false;
 	bool isSubD = false;
+	bool isInstance = false;
 
 	if (type == "polymesh")
 	{
@@ -988,6 +989,10 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 	{
 		isGeo = true;
 		isSubD = m_creationSettings.m_enableSubdivision;
+	}
+	else if (type == "instance")
+	{
+		isInstance = true;
 	}
 
 	if (isGeo)
@@ -1050,6 +1055,31 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 
 		aObjects.push_back(pNewMeshObject);
 
+		return;
+	}
+	else if (isInstance)
+	{
+		FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
+		if (!instanceSourceAttribute.isValid())
+		{
+			// we can't do anything...
+			return;
+		}
+	
+		std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
+		if (instanceSourcePath.empty())
+		{
+			// we can't do anything
+			return;
+		}
+		
+		InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
+		if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
+		{
+			// we can't do anything
+			return;
+		}
+		
 		return;
 	}
 
@@ -1179,132 +1209,44 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		return;
 	}
 
-	bool isCompound = false;
+	bool isSingleObject = true;
 	
-	// TODO: fixup this to use new findOrBuildInstanceSourceItem() function
-
-	// see if we've created the source already...
-	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
-
-	Object* pNewObject = NULL;
-
-	if (itFind != m_aInstances.end())
+	
+	//
+	
+	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
+	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		// just create the item pointing to it
+		// we can't do anything
+		return;
+	}
+	
+	Object* pNewObject = NULL;
+	
+	if (instanceInfo.m_compound)
+	{
+		CompoundInstance* pNewCI = new CompoundInstance(instanceInfo.pCompoundObject);
+		pNewObject = pNewCI;
 
-		const InstanceInfo& ii = (*itFind).second;
-
-		if (!ii.pCompoundObject && !ii.pGeoInstance)
-		{
-			// we've got a problem, and the most likely reason is that the location at the end of the instanceSource didn't have
-			// any children, and was empty. So don't bother creating any object in the scene.
-			// Note: While it might seem like not even adding the items to the instances map would be better, it's quite useful
-			//       having a NULL object in the lookup map, as it prevents us from continually doing the very expensive
-			//       iterator.getRoot().getByPath() lookup for no reason for all instance locations which point to the empty location.
-
-			return;
-		}
-
-		if (ii.m_compound)
-		{
-			CompoundInstance* pNewCI = new CompoundInstance(ii.pCompoundObject);
-
-			pNewObject = pNewCI;
-
-			isCompound = true;
-		}
-		else
-		{
-			CompactMesh* pNewMesh = new CompactMesh();
-			pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(ii.pGeoInstance));
-
-			pNewObject = pNewMesh;
-		}
-
-		// TODO: add per-instance attributes...
+		isSingleObject = false;
 	}
 	else
 	{
-		// do the expensive lookup of the item...
-		FnKat::FnScenegraphIterator itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
-		if (!itInstanceSource.isValid())
-		{
-			// TODO: maybe add a placeholder to the map so that we don't try to uselessly attempt to find
-			// it using getByPath() (which is expensive) in the future?
-			return;
-		}
+		CompactMesh* pNewMesh = new CompactMesh();
+		pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(instanceInfo.pGeoInstance));
 
-		bool isLeaf = !itInstanceSource.getFirstChild().isValid();
-		// check two levels down, as that's more conventional...
-		bool hasSubLeaf = isLeaf && (itInstanceSource.getFirstChild().getFirstChild().isValid());
-		// if it's simply pointing to a mesh (so a leaf without a hierarchy)
-		if (isLeaf)
-		{
-			// just build the source geometry and link to it....
-
-			bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
-
-			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
-
-			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
-
-			InstanceInfo ii;
-			ii.m_compound = false;
-			ii.pGeoInstance = pNewInstance;
-
-			m_aInstances[instanceSourcePath] = ii;
-
-			// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
-			// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
-			// based off the location name isn't continually done, so make sure that's done before we return.
-
-			if (!pNewInstance)
-			{
-				return;
-			}
-
-			CompactMesh* pNewMesh = new CompactMesh();
-			pNewMesh->setCompactGeometryInstance(pNewInstance);
-			registerGeometryInstance(pNewInstance);
-
-			pNewObject = pNewMesh;
-		}
-		else
-		{
-			// it's a full hierarchy, so we can specialise by building a compound object containing all the sub-objects
-
-			// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
-			// is what we want...
-			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
-
-			if (!pCO)
-			{
-				// TODO: add NULL item to the map?
-				return;
-			}
-
-			// this one is set to be hidden, but we need to add it to the scene...
-
-			InstanceInfo ii;
-			ii.m_compound = true;
-
-			ii.pCompoundObject = pCO;
-
-			m_aInstances[instanceSourcePath] = ii;
-
-			pNewObject = pCO;
-
-			isCompound = true;
-		}
+		pNewObject = pNewMesh;
 	}
-
+	
+	// TODO: add per-instance attributes
+	
 	if (!pNewObject)
 		return;
 
 	//
 
-	// if it's not a compound object, we can assign a material to it, so look for one...
-	if (!isCompound)
+	// if it's a single object, we can assign a material to it, so look for one...
+	if (isSingleObject)
 	{
 		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
