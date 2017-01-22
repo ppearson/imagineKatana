@@ -1,13 +1,8 @@
 #ifndef IMAGINEVIEWERMODIFIER_H
 #define IMAGINEVIEWERMODIFIER_H
 
-#ifdef KAT_V_2
 #include <FnViewerModifier/plugin/FnViewerModifier.h>
 #include <FnViewerModifier/plugin/FnViewerModifierInput.h>
-#else
-#include <FnViewerModifier/FnViewerModifier.h>
-#include <FnViewerModifier/FnViewerModifierInput.h>
-#endif
 
 #include <FnAttribute/FnGroupBuilder.h>
 

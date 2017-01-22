@@ -6,13 +6,9 @@
 
 #include <FnAttribute/FnGroupBuilder.h>
 
-#ifdef KAT_V_2
 #include <FnRenderOutputUtils/FnRenderOutputUtils.h>
 #include <FnGeolibServices/FnXFormUtil.h>
 #include <FnAttribute/FnAttributeUtils.h>
-#else
-#include <RenderOutputUtils/RenderOutputUtils.h>
-#endif
 
 using namespace Imagine;
 
@@ -70,50 +66,24 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 {
 	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
 
-#ifdef KAT_V_2
 	std::pair<FnAttribute::DoubleAttribute, bool> res = Foundry::Katana::FnXFormUtil::CalcTransformMatrixAtTime(xformAttr, 0.0f);
 
 	FnKat::RenderOutputUtils::XFormMatrix matrix(res.first.getNearestSample(0.0f).data());
 	xforms.push_back(matrix);
-#else
-	std::vector<float> relevantSampleTimes;
-	relevantSampleTimes.push_back(0.0f);
-
-	bool isAbsolute = false;
-	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
-												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
-#endif
 
 	return xforms;
 }
 
 Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(FnKat::FnScenegraphIterator iterator)
 {
-#ifdef KAT_V_2
 	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
 
 	return getXFormMatrixStatic(xformAttr);
-#else
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
-
-	std::vector<float> relevantSampleTimes;
-	relevantSampleTimes.push_back(0.0f);
-
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
-
-	bool isAbsolute = false;
-	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
-												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
-
-	return xforms;
-#endif
 }
 
 Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
 																					  bool clampWithinShutter, float shutterOpen, float shutterClose)
 {
-#ifdef KAT_V_2
 	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
 
 	FnAttribute::DoubleAttribute matrix = FnAttribute::RemoveTimeSamplesIfAllSame(
@@ -132,51 +102,10 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 	}
 
 	return finalValues;
-#else
-	FnKat::GroupAttribute xformAttr;
-	xformAttr = FnKat::RenderOutputUtils::getCollapsedXFormAttr(iterator);
-
-	bool isCoherentSampleSet = true;
-	std::set<float> sampleTimes;
-
-	FnKat::RenderOutputUtils::findAllMotionRelevantTimesForGroupAttr(sampleTimes, isCoherentSampleSet, xformAttr);
-	if (sampleTimes.empty())
-	{
-		sampleTimes.insert(0.0f);
-	}
-
-	if (!isCoherentSampleSet)
-	{
-		// print warning?
-	}
-
-	std::vector<float> relevantSampleTimes;
-
-	if (clampWithinShutter)
-	{
-		FnKat::RenderOutputUtils::findSampleTimesRelevantToShutterRange(relevantSampleTimes, sampleTimes, shutterOpen, shutterClose);
-	}
-	else
-	{
-		std::copy(sampleTimes.begin(), sampleTimes.end(), std::back_inserter(relevantSampleTimes));
-	}
-
-	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
-
-	bool isAbsolute = false;
-
-	// specifying kAttributeInterpolation_Linear seems to give us absolute values for the shutter open/close
-	// time from Katana's animcurves
-	FnKat::RenderOutputUtils::calcXFormsFromAttr(xforms, isAbsolute, xformAttr, relevantSampleTimes,
-												 FnKat::RenderOutputUtils::kAttributeInterpolation_Linear);
-
-	return xforms;
-#endif
 }
 
 void KatanaHelpers::getRelevantSampleTimes(FnKat::DataAttribute attribute, std::vector<float>& aSampleTimes, float shutterOpen, float shutterClose)
 {
-#ifdef KAT_V_2
 	// we need to do this ourself...
 	std::vector<float> attributeSampleTimes;
 	unsigned int numAttributeSampleTimes = attribute.getNumberOfTimeSamples();
@@ -189,13 +118,6 @@ void KatanaHelpers::getRelevantSampleTimes(FnKat::DataAttribute attribute, std::
 	std::set<float> sampleTimes(attributeSampleTimes.begin(), attributeSampleTimes.end());
 
 	FnKat::RenderOutputUtils::findSampleTimesRelevantToShutterRange(aSampleTimes, sampleTimes, shutterOpen, shutterClose);
-#else
-	FnKat::FloatConstVector attributeSampleTimes = attribute.getSampleTimes();
-
-	std::set<float> sampleTimes(attributeSampleTimes.begin(), attributeSampleTimes.end());
-
-	FnKat::RenderOutputUtils::findSampleTimesRelevantToShutterRange(aSampleTimes, sampleTimes, shutterOpen, shutterClose);
-#endif
 }
 
 

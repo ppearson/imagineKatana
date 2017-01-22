@@ -56,7 +56,6 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 		isMatte = matteAttribute.getValue(0, false) == 1;
 	}
 
-#ifdef KAT_V_2
 	FnAttribute::Hash materialRawHash = materialAttrib.getHash();
 	Hash hash;
 	hash.addLongLong(materialRawHash.uint64());
@@ -64,18 +63,7 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 	HashValue materialHash = hash.getHash();
 
 	std::map<HashValue, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
-#else
-	// calculate a hash for the material
-	std::string materialHashRaw = getMaterialHash(materialAttrib);
 
-	Hash hash;
-	hash.addString(materialHashRaw);
-	hash.addUChar((unsigned char)isMatte);
-	HashValue materialHash = hash.getHash();
-
-	// see if we've got it already
-	std::map<HashValue, Material*>::const_iterator itFind = m_aMaterialInstances.find(materialHash);
-#endif
 	if (itFind != m_aMaterialInstances.end())
 	{
 		pMaterial = (*itFind).second;
@@ -101,13 +89,6 @@ FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraph
 	//       for multiple renderers are bundled together in different GroupAttribute batches for each renderer
 	return FnKat::RenderOutputUtils::getFlattenedMaterialAttr(iterator, m_terminatorNodes);
 }
-
-#ifndef KAT_V_2
-std::string MaterialHelper::getMaterialHash(const FnKat::GroupAttribute& attribute)
-{
-	return FnKat::RenderOutputUtils::hashAttr(attribute);
-}
-#endif
 
 Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte)
 {

@@ -2,12 +2,8 @@
 
 #include <stdio.h>
 
-#ifdef KAT_V_2
 #include <FnRenderOutputUtils/FnRenderOutputUtils.h>
 #include <FnGeolibServices/FnArbitraryOutputAttr.h>
-#else
-#include <RenderOutputUtils/RenderOutputUtils.h>
-#endif
 
 #include "katana_helpers.h"
 
@@ -151,14 +147,9 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 	const bool evictChildTraversal = true;
 
-#ifdef KAT_V_2
 	FnKat::FnScenegraphIterator child = iterator.getFirstChild(evictChildTraversal);
 	// evict so potentially Katana can free up memory that we've already processed.
 	for (; child.isValid(); child = child.getNextSibling(true))
-#else
-	FnKat::FnScenegraphIterator child = iterator.getFirstChild();
-	for (; child.isValid(); child = child.getNextSibling())
-#endif
 	{
 		processLocationRecursive(child, nextDepth);
 	}
@@ -323,12 +314,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::FloatAttribute pAttr = pointAttribute.getChildByName("P");
 
 	unsigned int numPointTimeSamples = 1;
-
-#ifdef KAT_V_2
 	numPointTimeSamples = (unsigned int)pAttr.getNumberOfTimeSamples();
-#else
-	numPointTimeSamples = pAttr.getSampleTimes().size();
-#endif
 
 	if (!m_creationSettings.m_motionBlur || numPointTimeSamples <= 1)
 	{
@@ -620,11 +606,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::FloatAttribute uvItemAttribute;
 	if (stAttribute.isValid())
 	{
-#ifdef KAT_V_2
 		FnKat::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
-#else
-		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
-#endif
 
 		if (arbitraryAttribute.isValid())
 		{
@@ -799,12 +781,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::FloatAttribute pAttr = pointAttribute.getChildByName("P");
 
 	unsigned int numPointTimeSamples = 1;
-
-#ifdef KAT_V_2
 	numPointTimeSamples = (unsigned int)pAttr.getNumberOfTimeSamples();
-#else
-	numPointTimeSamples = pAttr.getSampleTimes().size();
-#endif
 
 	if (!m_creationSettings.m_motionBlur || numPointTimeSamples <= 1)
 	{
@@ -865,11 +842,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::FloatAttribute uvItemAttribute;
 	if (stAttribute.isValid())
 	{
-#ifdef KAT_V_2
 		FnKat::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
-#else
-		FnKat::RenderOutputUtils::ArbitraryOutputAttr arbitraryAttribute("st", stAttribute, "polymesh", geometryAttribute);
-#endif
 
 		if (arbitraryAttribute.isValid())
 		{

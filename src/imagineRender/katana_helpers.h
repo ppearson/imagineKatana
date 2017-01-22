@@ -4,14 +4,8 @@
 #include <vector>
 
 #include <FnAttribute/FnAttribute.h>
-
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
-
-#ifdef KAT_V_2
 #include <FnRenderOutputUtils/XFormMatrix.h>
-#else
-#include <RenderOutputUtils/XFormMatrix.h>
-#endif
 
 
 #include "colour/colour3f.h"

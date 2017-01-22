@@ -9,11 +9,7 @@
 #include <FnAttribute/FnDataBuilder.h>
 #include <FnScenegraphIterator/FnScenegraphIterator.h>
 
-#ifdef KAT_V_2
 #include <FnRenderOutputUtils/FnRenderOutputUtils.h>
-#else
-#include <RenderOutputUtils/RenderOutputUtils.h>
-#endif
 
 #include "colour/colour3f.h"
 #include "core/hash.h"
@@ -38,9 +34,6 @@ public:
 	Imagine::Material* getDefaultMaterial() { return m_pDefaultMaterial; }
 
 protected:
-#ifndef KAT_V_2
-	static std::string getMaterialHash(const FnKat::GroupAttribute& attribute);
-#endif
 
 	// this adds to the instances map itself if materials are created
 	Imagine::Material* createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);

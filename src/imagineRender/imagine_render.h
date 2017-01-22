@@ -1,11 +1,7 @@
 #ifndef IMAGINE_RENDER_H
 #define IMAGINE_RENDER_H
 
-#ifdef KAT_V_2
 #include <FnRender/plugin/RenderBase.h>
-#else
-#include <Render/RenderBase.h>
-#endif
 
 #define ENABLE_PREVIEW_RENDERS 1
 

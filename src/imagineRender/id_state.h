@@ -1,11 +1,7 @@
 #ifndef ID_STATE_H
 #define ID_STATE_H
 
-#ifdef KAT_V_2
 #include <FnRender/plugin/IdSenderFactory.h>
-#else
-#include <Render/SocketIdSender.h>
-#endif
 
 #include <unistd.h>
 #include <stdio.h>
@@ -29,11 +25,7 @@ public:
 	
 	bool initState(const std::string& hostName, int64_t frameID)
 	{
-#ifdef KAT_V_2
 		m_pIDSender = FnKat::Render::IdSenderFactory::getNewInstance(hostName, frameID);
-#else
-		m_pIDSender = new FnKat::Render::SocketIdSender(hostName, frameID);
-#endif
 		
 		if (!m_pIDSender)
 		{
@@ -66,11 +58,7 @@ public:
 	}
 	
 protected:
-#ifdef KAT_V_2
 	FnKat::Render::IdSenderInterface*	m_pIDSender;
-#else
-	FnKat::Render::SocketIdSender*		m_pIDSender;
-#endif
 	
 	int64_t								m_maxID;
 	int64_t								m_nextID;	

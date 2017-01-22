@@ -2,11 +2,7 @@
 
 #include <vector>
 
-#ifdef KAT_V_2
 #include <FnRendererInfo/plugin/RendererInfoBase.h>
-#else
-#include <RendererInfo/RendererInfoBase.h>
-#endif
 
 #include <FnAttribute/FnDataBuilder.h>
 

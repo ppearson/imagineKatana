@@ -1,11 +1,7 @@
 #ifndef IMAGINERENDERERINFO_H
 #define IMAGINERENDERERINFO_H
 
-#ifdef KAT_V_2
 #include <FnRendererInfo/plugin/RendererInfoBase.h>
-#else
-#include <RendererInfo/RendererInfoBase.h>
-#endif
 
 #include "FnAttribute/FnAttribute.h"
 #include "FnAttribute/FnGroupBuilder.h"
@@ -27,9 +23,7 @@ public:
 
 	virtual std::string getRendererObjectDefaultType(const std::string& type) const;
 
-#ifdef KAT_V_2
 	virtual void fillLiveRenderTerminalOps(OpDefinitionQueue& terminalOps, const FnAttribute::GroupAttribute& stateArgs) const;
-#endif
 
 	virtual void fillRendererObjectNames(std::vector<std::string>& rendererObjectNames, const std::string& type,
 														const std::vector<std::string>& typeTags) const;
@@ -67,10 +61,8 @@ public:
 	void localAddRenderObjectParam(FnKat::GroupBuilder& renderObjectInfo, const std::string& name, int type, int arraySize,
 							  FnKat::Attribute defaultAttr, FnKat::Attribute hintsAttr, const EnumPairVector& enumValues) const;
 
-#ifdef KAT_V_2
 	void localSetShaderParameterMapping(FnAttribute::GroupBuilder& renderObjectInfo, const std::string& metaName,
 								   const std::string& actualName) const;
-#endif
 	
 protected:
 

@@ -2,11 +2,7 @@
 
 #include <vector>
 
-#ifdef KAT_V_2
 #include <FnRendererInfo/plugin/RendererInfoBase.h>
-#else
-#include <RendererInfo/RendererInfoBase.h>
-#endif
 
 #include <FnAttribute/FnDataBuilder.h>
 
@@ -200,9 +196,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 void ShaderInfoHelper::setShaderParameterMapping(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo, const std::string& metaName,
 									  const std::string& actualName)
 {
-#ifdef KAT_V_2
 	iri.localSetShaderParameterMapping(rendererObjectInfo, metaName, actualName);
-#endif
 }
 
 
@@ -410,7 +404,6 @@ void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& i
 
 	helper.addBoolParam("visible", visibleOn);
 
-#ifdef KAT_V_2
 	setShaderParameterMapping(iri, rendererObjectInfo, "shader", "imagineLightShader");
 	if (addColour)
 	{
@@ -419,7 +412,6 @@ void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& i
 
 	setShaderParameterMapping(iri, rendererObjectInfo, "intensity", "imagineLightParams.intensity");
 	setShaderParameterMapping(iri, rendererObjectInfo, "exposure", "imagineLightParams.exposure");
-#endif
 }
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)

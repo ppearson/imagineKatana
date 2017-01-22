@@ -2,15 +2,9 @@
 
 #include <stdio.h>
 
-#ifdef KAT_V_2
 #include <FnRender/plugin/GlobalSettings.h>
 #include <FnRendererInfo/plugin/RenderMethod.h>
 #include <FnRenderOutputUtils/FnRenderOutputUtils.h>
-#else
-#include <Render/GlobalSettings.h>
-#include <RendererInfo/RenderMethod.h>
-#include <RenderOutputUtils/RenderOutputUtils.h>
-#endif
 
 #include "utilities.h"
 

@@ -82,7 +82,6 @@ std::string ImagineRendererInfo::getRendererObjectDefaultType(const std::string&
 	return "";
 }
 
-#ifdef KAT_V_2
 void ImagineRendererInfo::fillLiveRenderTerminalOps(OpDefinitionQueue& terminalOps, const FnAttribute::GroupAttribute& stateArgs) const
 {
 	{
@@ -127,7 +126,6 @@ void ImagineRendererInfo::fillLiveRenderTerminalOps(OpDefinitionQueue& terminalO
 		terminalOps.push_back(std::make_pair("LiveRenderFilter", opArgs.build()));
 	}
 }
-#endif
 
 void ImagineRendererInfo::fillRendererObjectNames(std::vector<std::string>& rendererObjectNames, const std::string& type,
 											const std::vector<std::string>& typeTags) const
@@ -295,13 +293,11 @@ void ImagineRendererInfo::localAddRenderObjectParam(FnKat::GroupBuilder& renderO
 	addRenderObjectParam(renderObjectInfo, name, type, arraySize, defaultAttr, hintsAttr, enumValues);
 }
 
-#ifdef KAT_V_2
 void ImagineRendererInfo::localSetShaderParameterMapping(FnAttribute::GroupBuilder& renderObjectInfo, const std::string& metaName,
 							   const std::string& actualNames) const
 {
 	setShaderParameterMapping(renderObjectInfo, metaName, actualNames);
 }
-#endif
 
 namespace
 {
