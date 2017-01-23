@@ -699,7 +699,7 @@ void ImagineRender::startDiskRenderer()
 	}
 	else
 	{
-		renderImage.applyExposure(1.1f);
+		renderImage.applyExposure(1.0f);
 	}
 
 	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);

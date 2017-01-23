@@ -342,7 +342,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 	{
 		imageCopy.normaliseProgressive();
 	}
-	imageCopy.applyExposure(1.1f);
+	imageCopy.applyExposure(1.0f);
 
 	std::vector<RenderChannel>::const_iterator itRenderChannel = m_aInteractiveChannels.begin();
 	for (; itRenderChannel != m_aInteractiveChannels.end(); ++itRenderChannel)
@@ -492,7 +492,7 @@ void ImagineRender::sendFullFrameToMonitor()
 		{
 			imageCopy.normaliseProgressive();
 		}
-		imageCopy.applyExposure(1.1f);
+		imageCopy.applyExposure(1.0f);
 		
 		std::vector<RenderChannel>::const_iterator itRenderChannel = m_aInteractiveChannels.begin();
 		for (; itRenderChannel != m_aInteractiveChannels.end(); ++itRenderChannel)
