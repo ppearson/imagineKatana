@@ -25,7 +25,7 @@ class MaterialHelper
 public:
 	MaterialHelper();
 
-	Imagine::Material* getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements);
+	Imagine::Material* getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements, bool fallbackToDefault = true);
 
 	FnKat::GroupAttribute getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const;
 
@@ -36,7 +36,7 @@ public:
 protected:
 
 	// this adds to the instances map itself if materials are created
-	Imagine::Material* createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
+	Imagine::Material* createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte, bool fallbackToDefault);
 
 public:
 	// hack for live rendering prototyping

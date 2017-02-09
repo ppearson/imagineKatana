@@ -28,7 +28,7 @@ SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& c
 
 SGLocationProcessor::~SGLocationProcessor()
 {
-	
+
 }
 
 void SGLocationProcessor::processSG(FnKat::FnScenegraphIterator rootIterator)
@@ -54,7 +54,7 @@ void SGLocationProcessor::addObjectToScene(Object* pObject, FnKat::FnScenegraphI
 		// a lookup table
 		pObject->setName(sgIterator.getFullName(), false);
 	}
-	
+
 	m_scene.addObjectEmbedded(pObject, m_isLiveRender);
 }
 
@@ -69,9 +69,9 @@ void SGLocationProcessor::registerGeometryInstance(Imagine::GeometryInstance* pG
 void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
 {
 	std::string type = iterator.getType();
-	
+
 //	std::string fullName = iterator.getFullName();
-	
+
 //	fprintf(stderr, "location: %s, type: %s\n", fullName.c_str(), type.c_str());
 
 	if (m_creationSettings.m_enableSubdivision)
@@ -112,7 +112,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	{
 		return;
 	}
-	
+
 	if (m_creationSettings.m_specialiseType == CreationSettings::eAssembly && type == "assembly")
 	{
 		processSpecialisedType(iterator, currentDepth);
@@ -229,7 +229,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	}
 
 	processVisibilityAttributes(imagineStatements, pNewMeshObject);
-	
+
 	if (m_pIDState)
 	{
 		unsigned int objectID = sendObjectID(iterator);
@@ -381,7 +381,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	FnKat::GroupAttribute polyAttribute = geometryAttribute.getChildByName("poly");
 	FnKat::IntAttribute polyStartIndexAttribute = polyAttribute.getChildByName("startIndex");
 	FnKat::IntAttribute vertexListAttribute = polyAttribute.getChildByName("vertexList");
-	
+
 	// guard against bad data we sometime get from .abc files
 	if (!polyStartIndexAttribute.isValid() || polyStartIndexAttribute.getNumberOfTuples() == 0)
 	{
@@ -408,7 +408,10 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		unsigned int lastOffset = 0;
 
 		// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
-		// specifies this and not the last one, so we need to ignore the first one, and add an extra on the end
+		// specifies the first one and the last one, so we need to ignore the first one.
+		// Note: Although the assumption here is that the first index *is* actually 0, which in certain
+		//       cases it might not be - e.g. re-writing attributes to cull faces. But generally
+		//       this does work in practice.
 		for (unsigned int i = 0; i < numFaces; i++)
 		{
 			unsigned int numVertices;
@@ -419,6 +422,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			else
 			{
 				// last one...
+
+				// TODO: this isn't strictly-speaking safe - the if startIndex array is missing the last
+				//       item, but vertexList still has the correct number of items, then numVertices
+				//       ends up being bigger than it should be. But for correct geometry attributes
+				//       this does work.
 				numVertices = vertexListAttribute.getNumberOfTuples() - polyStartIndexAttributeValue[i];
 			}
 
@@ -441,7 +449,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		unsigned int lastOffset = 0;
 		unsigned int polyIndexCounter = 0;
 
-		// because of Katana's use of the first AND the last, we can skip the last one, as the last one (original first) should be 0...
+		// because of Katana's use of the first AND the last indices, we can skip the last one, as the last one (original first) should be 0...
 		for (int i = numFaces; i > 0; i--)
 		{
 			int startIndex = polyStartIndexAttributeValue[i];
@@ -1001,7 +1009,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 
 		pNewMeshObject->setCompactGeometryInstance(pNewGeoInstance);
 		registerGeometryInstance(pNewGeoInstance);
-		
+
 		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
 
 		if (pMaterial)
@@ -1038,21 +1046,21 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 			// we can't do anything...
 			return;
 		}
-	
+
 		std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
 		if (instanceSourcePath.empty())
 		{
 			// we can't do anything
 			return;
 		}
-		
+
 		InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 		if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 		{
 			// we can't do anything
 			return;
 		}
-		
+
 		return;
 	}
 
@@ -1069,7 +1077,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSourceItem(FnKat::FnScenegraphIterator iterator, const std::string& instanceSourcePath)
 {
 	InstanceInfo nullInfo; // NULL by default
-	
+
 	// see if we've created the source already...
 	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
 
@@ -1103,26 +1111,36 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 			return nullInfo;
 		}
 
-		bool isLeaf = !itInstanceSource.getFirstChild().isValid();
+		bool isSingleLeaf = !itInstanceSource.getFirstChild().isValid();
+		
 		// check two levels down, as that's more conventional...
-		bool hasSubLeaf = isLeaf && (itInstanceSource.getFirstChild().getFirstChild().isValid());
+		FnKat::FnScenegraphIterator itSubItem = itInstanceSource.getFirstChild();
+		bool hasSubLeaf = !isSingleLeaf && (itSubItem.isValid() && !itSubItem.getNextSibling().isValid() && !itSubItem.getFirstChild().isValid());
 		// if it's simply pointing to a mesh (so a leaf without a hierarchy)
-		if (isLeaf)
+		if (isSingleLeaf || hasSubLeaf)
 		{
 			// just build the source geometry and link to it....
+			
+			if (hasSubLeaf)
+			{
+				itInstanceSource = itSubItem;
+			}
 
 			bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
 
 			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
 			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
-			
+
 			unsigned int customFlags = getCustomGeoFlags();
 			pNewInstance->setCustomFlags(customFlags);
+			
+			Material* pInstanceSourceMaterial = m_materialHelper.getOrCreateMaterialForLocation(itInstanceSource, imagineStatements);
 
 			InstanceInfo ii;
 			ii.m_compound = false;
 			ii.pGeoInstance = pNewInstance;
+			ii.pSingleItemMaterial = pInstanceSourceMaterial;
 
 			m_aInstances[instanceSourcePath] = ii;
 
@@ -1134,7 +1152,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 			{
 				return nullInfo;
 			}
-			
+
 			registerGeometryInstance(pNewInstance);
 
 			return ii;
@@ -1162,7 +1180,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 			return ii;
 		}
 	}
-	
+
 	return nullInfo;
 }
 
@@ -1183,19 +1201,19 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	}
 
 	bool isSingleObject = true;
-	
-	
+
+
 	//
-	
+
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
 		// we can't do anything
 		return;
 	}
-	
+
 	Object* pNewObject = NULL;
-	
+
 	if (instanceInfo.m_compound)
 	{
 		CompoundInstance* pNewCI = new CompoundInstance(instanceInfo.pCompoundObject);
@@ -1210,21 +1228,31 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 		pNewObject = pNewMesh;
 	}
-	
+
 	// TODO: add per-instance attributes
-	
+
 	if (!pNewObject)
 		return;
 
 	//
 
-	// if it's a single object, we can assign a material to it, so look for one...
 	if (isSingleObject)
 	{
+		// if it's a single object, we can assign a material to it, so look for one...
 		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
-		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
-		pNewObject->setMaterial(pMaterial);
+		// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
+		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
+		
+		if (pMaterial)
+		{
+			pNewObject->setMaterial(pMaterial);
+		}
+		else
+		{
+			// otherwise set the material to be the source instance's material
+			pNewObject->setMaterial(instanceInfo.pSingleItemMaterial);
+		}
 	}
 
 	// do transform
@@ -1256,7 +1284,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 			pNewObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
 		}
 	}
-	
+
 	if (m_pIDState)
 	{
 		unsigned int objectID = sendObjectID(iterator);
@@ -1271,61 +1299,103 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
 	{
-		// we can't do anything...
+		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
 
 	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
 	if (instanceSourcePath.empty())
 	{
-		// we can't do anything
+		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
-	
+
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		// we can't do anything
+		fprintf(stderr, "imagineKatana: Failed to build instance source: %s\n", instanceSourcePath.c_str());
 		return;
 	}
-	
-	// only bother looking for float version, as Katana doesn't know to look for double versions here itself anyway (unlike with normal location xforms),
-	// and double doesn't give us any benefit.
-	FnKat::FloatAttribute instanceMatrixAttribute = iterator.getAttribute("geometry.instanceMatrix");
-	if (!instanceMatrixAttribute.isValid())
+
+	// instance array matrices can be float or double...
+	// look for float version first...
+	FnKat::FloatAttribute instanceMatrixAttributeF = iterator.getAttribute("geometry.instanceMatrix");
+	FnKat::DoubleAttribute instanceMatrixAttributeD;
+
+	bool isDoubleVersion = false;
+	int64_t numValues;
+
+	if (!instanceMatrixAttributeF.isValid())
 	{
-		// no transforms, so no point continuing...
-		return;
+		instanceMatrixAttributeD = iterator.getAttribute("geometry.instanceMatrix");
+
+		if (!instanceMatrixAttributeD.isValid())
+		{
+			fprintf(stderr, "imagineKatana: No geometry.instanceMatrix attribute specified on location: %s\n", iterator.getFullName().c_str());
+			return;
+		}
+		else
+		{
+			numValues = instanceMatrixAttributeD.getNumberOfValues();
+			isDoubleVersion = true;
+		}
 	}
-	
+	else
+	{
+		numValues = instanceMatrixAttributeF.getNumberOfValues();
+	}
+
 	// for the moment, we assume no motion blur, so there's only a single time sample, and we're assuming it's a flat
 	// list of the 4x4 matrix components, so check we have a multiple of 16
-	bool validMatrixLength = (instanceMatrixAttribute.getNumberOfValues() % 16) == 0;
+	bool validMatrixLength = (numValues % 16) == 0;
 	if (!validMatrixLength)
 	{
-		fprintf(stderr, "imagineKatana: Error: incorrect number of float values specified for 'instanceMatrix' on location: %s\n", iterator.getFullName().c_str());
+		fprintf(stderr, "imagineKatana: Error: incorrect number of values specified for 'instanceMatrix' attribute on location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
-	
-	FnKat::FloatConstVector matrixValues = instanceMatrixAttribute.getNearestSample(0.0f);
-	size_t fullSize = matrixValues.size();
+
+	FnKat::FloatConstVector matrixValuesF;
+	FnKat::DoubleConstVector matrixValuesD;
+
+	size_t fullSize = 0;
+
+	if (!isDoubleVersion)
+	{
+		matrixValuesF = instanceMatrixAttributeF.getNearestSample(0.0f);
+		fullSize = matrixValuesF.size();
+	}
+	else
+	{
+		matrixValuesD = instanceMatrixAttributeD.getNearestSample(0.0f);
+		fullSize = matrixValuesD.size();
+	}
+
 	size_t numInstances = fullSize / 16;
-	
 	size_t posIndex = 0;
-	
+
 	bool isCompound = instanceInfo.m_compound;
-	
+
 	Object* pNewObject = NULL;
-	
+
 	for (size_t i = 0; i < numInstances; i++)
 	{
 		// TODO: check the compiler's unrolling this correctly...
 		float tempValues[16];
-		for (unsigned int j = 0; j < 16; j++)
+		if (!isDoubleVersion)
 		{
-			tempValues[j] = matrixValues[posIndex++];
+			for (unsigned int j = 0; j < 16; j++)
+			{
+				tempValues[j] = matrixValuesF[posIndex++];
+			}
 		}
-		
+		else
+		{
+			for (unsigned int j = 0; j < 16; j++)
+			{
+				tempValues[j] = (float)matrixValuesF[posIndex++];
+			}
+		}
+
 		if (isCompound)
 		{
 			CompoundInstance* pNewCI = new CompoundInstance(instanceInfo.pCompoundObject);
@@ -1336,15 +1406,25 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 			CompactMesh* pNewMesh = new CompactMesh();
 			pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(instanceInfo.pGeoInstance));
 			pNewObject = pNewMesh;
-			
+
 			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
-	
-			Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements);
-			pNewObject->setMaterial(pMaterial);
+			
+			// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
+			Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
+			
+			if (pMaterial)
+			{
+				pNewObject->setMaterial(pMaterial);
+			}
+			else
+			{
+				// otherwise set the material to be the source instance's material
+				pNewObject->setMaterial(instanceInfo.pSingleItemMaterial);
+			}
 		}
-		
+
 		pNewObject->transform().setCachedMatrix(tempValues, true);
-		
+
 		addObjectToScene(pNewObject, iterator);
 	}
 }
@@ -1403,7 +1483,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 			pSphere->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
 		}
 	}
-	
+
 	if (m_pIDState)
 	{
 		unsigned int objectID = sendObjectID(iterator);
@@ -1426,6 +1506,9 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	const double* pMatrix = xforms[0].getValues();
 
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+	
+	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+	processVisibilityAttributes(imagineStatements, pNewLight);
 
 	addObjectToScene(pNewLight, iterator);
 }
@@ -1527,17 +1610,17 @@ unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, st
 unsigned int SGLocationProcessor::sendObjectID(FnKat::FnScenegraphIterator iterator)
 {
 	int64_t objectID = m_pIDState->getNextID();
-	
+
 	// only send the ID if it's greater than 0, otherwise it's invalid or we've run out of IDs (Katana only gives us 1000000)...
 	// If we send an ID Katana doesn't know about, renderboot gets a SIGPIPE, doesn't handle it correctly
 	// and then katanaBin dies during render, so we need to be careful on our side.
 	if (objectID > 0)
 	{
 		std::string name = iterator.getFullName();
-	
+
 		m_pIDState->sendID(objectID, name.c_str());
 	}
-	
+
 	return static_cast<unsigned int>(objectID);
 }
 
@@ -1566,6 +1649,6 @@ unsigned int SGLocationProcessor::getCustomGeoFlags()
 			customFlags |= CompactGeometryInstance::CUST_GEO_ATTRIBUTE_QUANTISE_NORMAL_STANDARD;
 		}
 	}
-	
+
 	return customFlags;
 }

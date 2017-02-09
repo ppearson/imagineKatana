@@ -142,7 +142,6 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	int shapeType = ah.getFloatParam("shape_type", 0);
 
 	bool isScale = ah.getIntParam("scale", 1) == 1;
-	bool isVisible = ah.getIntParam("visible", 1) == 1;
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setExposure(exposure);
@@ -150,7 +149,6 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setFalloffType((Light::FalloffType)falloffType);
 	pNewLight->setSamples(numSamples);
-	pNewLight->setVisible(isVisible);
 	pNewLight->setDimensions(width, depth);
 	pNewLight->setScale(isScale);
 
@@ -178,7 +176,6 @@ Light* LightHelpers::createDistantLight(const FnKat::GroupAttribute& shaderParam
 	pNewLight->setColour(colour);
 	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
-//	pNewLight->setVisible(isVisible);
 	pNewLight->setSpreadAngle(angle);
 
 	return pNewLight;
@@ -196,7 +193,6 @@ Light* LightHelpers::createSkydomeLight(const FnKat::GroupAttribute& shaderParam
 	std::string shadowType = ah.getStringParam("shadow_type", "normal");
 	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
-	bool isVisible = ah.getIntParam("visible", 1) == 1;
 
 	pNewLight->setIntensity(intensity);
 	pNewLight->setExposure(exposure);
@@ -204,7 +200,6 @@ Light* LightHelpers::createSkydomeLight(const FnKat::GroupAttribute& shaderParam
 	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
-	pNewLight->setVisible(isVisible);
 
 	return pNewLight;
 }
@@ -220,7 +215,6 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	std::string shadowType = ah.getStringParam("shadow_type", "normal");
 	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
-	bool isVisible = ah.getIntParam("visible", 1) == 1;
 	bool clampLuminance = ah.getIntParam("clamp_luminance", 0) == 1;
 
 	std::string envMapPath = ah.getStringParam("env_map_path");
@@ -231,8 +225,6 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setSamples(numSamples);
 	pNewLight->setEnvMapPath(envMapPath);
 	pNewLight->setRadius(2000.0f);
-	pNewLight->setVisible(isVisible);
-	pNewLight->setClampLuminance(clampLuminance);
 
 	return pNewLight;
 }
@@ -248,7 +240,6 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	std::string shadowType = ah.getStringParam("shadow_type", "normal");
 	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
-	int isVisible = ah.getIntParam("visible", 1);
 
 	int dayOfYear = ah.getIntParam("day", 174);
 	float time = ah.getFloatParam("time", 17.1f);
@@ -265,7 +256,6 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
-	pNewLight->setVisible(isVisible == 1);
 
 	pNewLight->setTurbidity(turbidity);
 

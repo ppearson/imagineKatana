@@ -388,7 +388,7 @@ void ShaderInfoHelper::buildLuminousShaderParams(const ImagineRendererInfo& iri,
 }
 
 void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo,
-													bool addColour, bool visibleOn)
+													bool addColour)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
@@ -402,8 +402,6 @@ void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& i
 	helper.addStringPopupParam("shadow_type", "normal", shadowTypeOptions, 3);
 	helper.addIntParam("num_samples", 1);
 
-	helper.addBoolParam("visible", visibleOn);
-
 	setShaderParameterMapping(iri, rendererObjectInfo, "shader", "imagineLightShader");
 	if (addColour)
 	{
@@ -416,7 +414,7 @@ void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& i
 
 void ShaderInfoHelper::buildPointLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true);
 
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
@@ -427,7 +425,7 @@ void ShaderInfoHelper::buildSpotLightShaderParams(const ImagineRendererInfo& iri
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	buildCommonLightShaderParams(iri, rendererObjectInfo, true, true);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true);
 
 	helper.addStringPopupParam("falloff", "quadratic", falloffTypeOptions, 3);
 
@@ -439,7 +437,7 @@ void ShaderInfoHelper::buildSpotLightShaderParams(const ImagineRendererInfo& iri
 
 void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	buildCommonLightShaderParams(iri, rendererObjectInfo, true, true);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true);
 
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
@@ -456,7 +454,7 @@ void ShaderInfoHelper::buildAreaLightShaderParams(const ImagineRendererInfo& iri
 
 void ShaderInfoHelper::buildDistantLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true);
 
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
@@ -465,7 +463,7 @@ void ShaderInfoHelper::buildDistantLightShaderParams(const ImagineRendererInfo& 
 
 void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
-	buildCommonLightShaderParams(iri, rendererObjectInfo, true, false);
+	buildCommonLightShaderParams(iri, rendererObjectInfo, true);
 }
 
 void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -476,7 +474,6 @@ void ShaderInfoHelper::buildEnvironmentLightShaderParams(const ImagineRendererIn
 	helper.addFloatSliderParam("exposure", 0.0f, 0.0f, 20.0f);
 	helper.addStringPopupParam("shadow_type", "normal", shadowTypeOptions, 3);
 	helper.addIntParam("num_samples", 1);
-	helper.addBoolParam("visible", true);
 	helper.addBoolParam("clamp_luminance", false);
 
 	helper.addStringParam("env_map_path");
@@ -490,7 +487,7 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 	helper.addFloatSliderParam("exposure", 0.0f, 0.0f, 20.0f);
 	helper.addStringPopupParam("shadow_type", "normal", shadowTypeOptions, 3);
 	helper.addIntParam("num_samples", 1);
-	helper.addBoolParam("visible", true);
+
 
 	helper.addFloatSliderParam("sky_intensity", 1.0f, 0.0f, 5.0f);
 	helper.addFloatSliderParam("sun_intensity", 1.0f, 0.0f, 5.0f);

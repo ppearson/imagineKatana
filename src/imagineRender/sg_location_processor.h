@@ -33,7 +33,7 @@ public:
 
 	struct InstanceInfo
 	{
-		InstanceInfo() : m_compound(false), pGeoInstance(NULL)
+		InstanceInfo() : m_compound(false), pGeoInstance(NULL), pSingleItemMaterial(NULL)
 		{
 			
 		}
@@ -45,6 +45,9 @@ public:
 			Imagine::GeometryInstance*			pGeoInstance;
 			Imagine::CompoundObject*			pCompoundObject;
 		};
+		
+		// TODO: could used tagged pointer here for the compound flag...
+		Imagine::Material*						pSingleItemMaterial;
 	};
 
 	void processSG(FnKat::FnScenegraphIterator rootIterator);

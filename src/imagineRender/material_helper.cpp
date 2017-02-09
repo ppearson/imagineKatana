@@ -12,7 +12,7 @@
 #include "materials/velvet_material.h"
 #include "materials/luminous_material.h"
 
-#include "textures/ops/op_invert.h"
+#include "textures/shader_ops/op_invert.h"
 
 #include "textures/constant.h"
 #include "textures/procedural_2d/checkerboard_2d.h"
@@ -40,7 +40,7 @@ MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL), m_pDefaultMaterialM
 	m_pDefaultMaterialMatte->setMatte(true);
 }
 
-Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements)
+Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements, bool fallbackToDefault)
 {
 	FnKat::GroupAttribute materialAttrib = getMaterialForLocation(iterator);
 
@@ -73,11 +73,14 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 	}
 
 	// otherwise, create a new material
-	pMaterial = createNewMaterial(materialAttrib, isMatte);
+	pMaterial = createNewMaterial(materialAttrib, isMatte, fallbackToDefault);
 
-	// add this new material to our list of material instances
-	m_aMaterialInstances[materialHash] = pMaterial;
-	m_aMaterials.push_back(pMaterial);
+	if (pMaterial)
+	{
+		// add this new material to our list of material instances
+		m_aMaterialInstances[materialHash] = pMaterial;
+		m_aMaterials.push_back(pMaterial);
+	}
 
 	return pMaterial;
 }
@@ -90,7 +93,7 @@ FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraph
 	return FnKat::RenderOutputUtils::getFlattenedMaterialAttr(iterator, m_terminatorNodes);
 }
 
-Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte)
+Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribute, bool isMatte, bool fallbackToDefault)
 {
 	// only add to map if we created material and attribute had a valid material, otherwise, return default
 	// material
@@ -107,7 +110,7 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 		pNewMaterial = createNetworkMaterial(attribute, isMatte);
 
 		// if we haven't, then just return the default material
-		if (!pNewMaterial)
+		if (!pNewMaterial && fallbackToDefault)
 		{
 			return isMatte ? m_pDefaultMaterialMatte : m_pDefaultMaterial;
 		}
@@ -170,8 +173,15 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 
 	if (pNewMaterial)
 		return pNewMaterial;
-
-	return m_pDefaultMaterial;
+	
+	if (fallbackToDefault)
+	{
+		return m_pDefaultMaterial;
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 Material* MaterialHelper::createNewMaterialStandAlone(const std::string& materialType, const FnKat::GroupAttribute& shaderParamsAttr)
