@@ -1112,7 +1112,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 		}
 
 		bool isSingleLeaf = !itInstanceSource.getFirstChild().isValid();
-		
+
 		// check two levels down, as that's more conventional...
 		FnKat::FnScenegraphIterator itSubItem = itInstanceSource.getFirstChild();
 		bool hasSubLeaf = !isSingleLeaf && (itSubItem.isValid() && !itSubItem.getNextSibling().isValid() && !itSubItem.getFirstChild().isValid());
@@ -1120,7 +1120,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 		if (isSingleLeaf || hasSubLeaf)
 		{
 			// just build the source geometry and link to it....
-			
+
 			if (hasSubLeaf)
 			{
 				itInstanceSource = itSubItem;
@@ -1134,7 +1134,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 
 			unsigned int customFlags = getCustomGeoFlags();
 			pNewInstance->setCustomFlags(customFlags);
-			
+
 			Material* pInstanceSourceMaterial = m_materialHelper.getOrCreateMaterialForLocation(itInstanceSource, imagineStatements);
 
 			InstanceInfo ii;
@@ -1243,7 +1243,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 		// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
 		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
-		
+
 		if (pMaterial)
 		{
 			pNewObject->setMaterial(pMaterial);
@@ -1392,7 +1392,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 		{
 			for (unsigned int j = 0; j < 16; j++)
 			{
-				tempValues[j] = (float)matrixValuesF[posIndex++];
+				tempValues[j] = (float)matrixValuesD[posIndex++];
 			}
 		}
 
@@ -1408,10 +1408,10 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 			pNewObject = pNewMesh;
 
 			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
-			
+
 			// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
 			Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
-			
+
 			if (pMaterial)
 			{
 				pNewObject->setMaterial(pMaterial);
@@ -1506,7 +1506,7 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	const double* pMatrix = xforms[0].getValues();
 
 	pNewLight->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
-	
+
 	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 	processVisibilityAttributes(imagineStatements, pNewLight);
 
