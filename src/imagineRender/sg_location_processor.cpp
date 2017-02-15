@@ -1189,26 +1189,25 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
 	{
-		// we can't do anything...
+		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on instance location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
 
 	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
 	if (instanceSourcePath.empty())
 	{
-		// we can't do anything
+		fprintf(stderr, "imagineKatana: Empty geometry.instanceSource attribute specified on instance location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
 
 	bool isSingleObject = true;
-
 
 	//
 
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		// we can't do anything
+		fprintf(stderr, "imagineKatana: Failed to build instance source: %s\n", instanceSourcePath.c_str());
 		return;
 	}
 
@@ -1227,6 +1226,10 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 		pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(instanceInfo.pGeoInstance));
 
 		pNewObject = pNewMesh;
+		
+		// because we're using the common CompactMesh class for single instance items, we need to set this flag for the moment, so that baked geo instances
+		// identify instances correctly...
+		pNewObject->setFlag(OBJECT_FLAG_INSTANCE);
 	}
 
 	// TODO: add per-instance attributes
@@ -1236,10 +1239,12 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 
 	//
 
+	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+	processVisibilityAttributes(imagineStatements, pNewObject);
+	
 	if (isSingleObject)
 	{
 		// if it's a single object, we can assign a material to it, so look for one...
-		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
 
 		// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
 		Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
@@ -1299,14 +1304,14 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
 	{
-		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on location: %s\n", iterator.getFullName().c_str());
+		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on instance array location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
 
 	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
 	if (instanceSourcePath.empty())
 	{
-		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on location: %s\n", iterator.getFullName().c_str());
+		fprintf(stderr, "imagineKatana: Empty geometry.instanceSource attribute specified on instance array location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
 
@@ -1376,6 +1381,24 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	bool isCompound = instanceInfo.m_compound;
 
 	Object* pNewObject = NULL;
+	
+	// In the interests of efficiency, only bother asking for one ID for the location which all resulting
+	// instances will share.
+	// Note: with heavily-instanced scenes, there's around a 20% overhead at expansion time
+	//       for requesting IDs for each instance, and it's much more noticable with instance arrays
+	//       as the request to FnKat::Render::IdSenderFactory (which does socket communication and probably
+	//       locks internally) is not amortised as much with instance arrays.
+	unsigned int objectID = 0;
+	if (m_pIDState)
+	{
+		objectID = sendObjectID(iterator);
+	}
+	
+	FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+	unsigned char renderVisibilityFlags = getRenderVisibilityFlags(imagineStatements);
+	
+	// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
+	Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
 
 	for (size_t i = 0; i < numInstances; i++)
 	{
@@ -1407,11 +1430,6 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 			pNewMesh->setCompactGeometryInstance(static_cast<CompactGeometryInstance*>(instanceInfo.pGeoInstance));
 			pNewObject = pNewMesh;
 
-			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
-
-			// we don't want to fall back to the default in this case, as we'll use the source instance's material if there is one
-			Material* pMaterial = m_materialHelper.getOrCreateMaterialForLocation(iterator, imagineStatements, false);
-
 			if (pMaterial)
 			{
 				pNewObject->setMaterial(pMaterial);
@@ -1421,9 +1439,20 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 				// otherwise set the material to be the source instance's material
 				pNewObject->setMaterial(instanceInfo.pSingleItemMaterial);
 			}
+			
+			// because we're using the common CompactMesh class for single instance items, we need to set this flag for the moment, so that baked geo instances
+			// identify instances correctly...
+			pNewObject->setFlag(OBJECT_FLAG_INSTANCE);
 		}
 
 		pNewObject->transform().setCachedMatrix(tempValues, true);
+		
+		if (objectID != 0)
+		{
+			pNewObject->setObjectID(objectID);
+		}
+		
+		pNewObject->setRenderVisibilityFlags(renderVisibilityFlags);
 
 		addObjectToScene(pNewObject, iterator);
 	}
@@ -1483,6 +1512,8 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 			pSphere->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
 		}
 	}
+	
+	processVisibilityAttributes(imagineStatements, pSphere);
 
 	if (m_pIDState)
 	{
@@ -1513,47 +1544,54 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	addObjectToScene(pNewLight, iterator);
 }
 
-void SGLocationProcessor::processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject)
+unsigned char SGLocationProcessor::getRenderVisibilityFlags(const FnKat::GroupAttribute& imagineStatements)
 {
 	if (!imagineStatements.isValid())
-		return;
-
+		return RENDER_VISIBILITY_FLAGS_ALL;
+	
 	FnKat::GroupAttribute visibilityAttributes = imagineStatements.getChildByName("visibility");
-	if (visibilityAttributes.isValid())
-	{
-		int cameraVis = 1;
-		int shadowVis = 1;
-		int diffuseVis = 1;
-		int glossyVis = 1;
-		int reflectionVis = 1;
-		int refractionVis = 1;
+	if (!visibilityAttributes.isValid())
+		return RENDER_VISIBILITY_FLAGS_ALL;
+	
+	unsigned char finalVisibility = 0;
+	
+	int cameraVis = 1;
+	int shadowVis = 1;
+	int diffuseVis = 1;
+	int glossyVis = 1;
+	int reflectionVis = 1;
+	int refractionVis = 1;
 
-		KatanaAttributeHelper helper(visibilityAttributes);
+	KatanaAttributeHelper helper(visibilityAttributes);
 
-		cameraVis = helper.getIntParam("camera", 1);
-		shadowVis = helper.getIntParam("shadow", 1);
-		diffuseVis = helper.getIntParam("diffuse", 1);
-		glossyVis = helper.getIntParam("glossy", 1);
-		reflectionVis = helper.getIntParam("reflection", 1);
-		refractionVis = helper.getIntParam("refraction", 1);
+	cameraVis = helper.getIntParam("camera", 1);
+	shadowVis = helper.getIntParam("shadow", 1);
+	diffuseVis = helper.getIntParam("diffuse", 1);
+	glossyVis = helper.getIntParam("glossy", 1);
+	reflectionVis = helper.getIntParam("reflection", 1);
+	refractionVis = helper.getIntParam("refraction", 1);
 
-		unsigned char finalVisibility = 0;
+	if (cameraVis)
+		finalVisibility |= RENDER_VISIBILITY_CAMERA;
+	if (shadowVis)
+		finalVisibility |= RENDER_VISIBILITY_SHADOW;
+	if (diffuseVis)
+		finalVisibility |= RENDER_VISIBILITY_DIFFUSE;
+	if (glossyVis)
+		finalVisibility |= RENDER_VISIBILITY_GLOSSY;
+	if (reflectionVis)
+		finalVisibility |= RENDER_VISIBILITY_REFLECTION;
+	if (refractionVis)
+		finalVisibility |= RENDER_VISIBILITY_REFRACTION;
+	
+	return finalVisibility;
+}
 
-		if (cameraVis)
-			finalVisibility |= RENDER_VISIBILITY_CAMERA;
-		if (shadowVis)
-			finalVisibility |= RENDER_VISIBILITY_SHADOW;
-		if (diffuseVis)
-			finalVisibility |= RENDER_VISIBILITY_DIFFUSE;
-		if (glossyVis)
-			finalVisibility |= RENDER_VISIBILITY_GLOSSY;
-		if (reflectionVis)
-			finalVisibility |= RENDER_VISIBILITY_REFLECTION;
-		if (refractionVis)
-			finalVisibility |= RENDER_VISIBILITY_REFRACTION;
+void SGLocationProcessor::processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Object* pObject)
+{
+	unsigned char renderVisibilityFlags = getRenderVisibilityFlags(imagineStatements);
 
-		pObject->setRenderVisibilityFlags(finalVisibility);
-	}
+	pObject->setRenderVisibilityFlags(renderVisibilityFlags);
 }
 
 unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, std::vector<UV>& aUVs)

@@ -87,6 +87,7 @@ protected:
 
 	void processLight(FnKat::FnScenegraphIterator iterator);
 
+	static unsigned char getRenderVisibilityFlags(const FnKat::GroupAttribute& imagineStatements);
 	static void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Imagine::Object* pObject);
 
 	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<Imagine::UV>& aUVs);
