@@ -265,9 +265,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_renderSettings.add("textureTileDataFix", textureTileDataFixType);
 
 		FnKat::IntAttribute textureCacheCacheFileHandlesAttribute = imagineGSAttribute.getChildByName("texture_cache_cache_file_handles");
-		int textureCacheCacheFileHandles = 1;
+		int textureCacheCacheFileHandles = 0;
 		if (textureCacheCacheFileHandlesAttribute.isValid())
-			textureCacheCacheFileHandles = textureCacheCacheFileHandlesAttribute.getValue(1, false);
+			textureCacheCacheFileHandles = textureCacheCacheFileHandlesAttribute.getValue(0, false);
 
 		if (textureCacheCacheFileHandles == 1)
 		{

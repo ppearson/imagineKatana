@@ -1,7 +1,7 @@
 ## imagineKatana - Imagine Renderer plugin for Katana
 Peter Pearson
 
-This is an integration of my [Imagine Renderer][blog] into Katana 1.x and 2.x (controlled with #ifdefs for the moment).
+This is an integration of my [Imagine Renderer][blog] into Katana 2.x.
 
 As Imagine doesn't have a proper API yet, it's a slightly hacky situation of just hosting Imagine's infrastructure within the Katana Renderer plugin.
 
