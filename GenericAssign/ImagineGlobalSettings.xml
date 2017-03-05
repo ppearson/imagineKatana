@@ -85,7 +85,7 @@
 			<int name="enable_subdivision" default="0" widget="checkBox" help="Enable using subdivision surfaces. With this off, subdmesh types will be interpreted as standard polygons."/>
 		</page>
 		<page name='scene' open="True">
-			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and uses more memory, and doesn't support instancing or transform motion blur, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
+			<int name="bake_down_scene" default="0" widget="checkBox" help="Whether to bake down the scene to one single acceleration structure. Build time is longer and can use more memory, but intersection time can be drastically reduced when there are lots of overlapping objects."/>
 
 			<int name="specialise_types" widget="mapper" default="0" help="Whether to detect certain locations and interpret them as Compound Objects. This can speed up rendering complex objects with overlapping geometry objects significantly.">
 				<hintdict name='options'>
@@ -94,6 +94,8 @@
 					<int name="component" value="2"/>
 				</hintdict>
 			</int>
+
+			<int name="specialise_detect_instances" default="1" widget="checkBox" help="when using specialised types, whether to detect instanced objects and treat them as instances, or treat them as normal geometry. This is a debug option as disabling this means that instancing won't be enabled (geometry will be duplicated per instance object)."/>
 
 			<int name="deduplicate_vertex_normals" default="0" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
 			<int name="use_geo_normals" default="1" widget="checkBox" help="Use normals from geo attributes"/>

@@ -3,6 +3,7 @@
 #include "utilities.h"
 
 #include "katana_helpers.h"
+#include "imagine_utils.h"
 
 // imagine stuff
 #include "global_context.h"
@@ -144,6 +145,14 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	{
 		m_creationSettings.m_specialisedTriangleType = specialisedTriangleTypeAttribute.getValue(0, false);
 	}
+	
+	FnKat::IntAttribute specialisedDetectInstancesAttribute = imagineGSAttribute.getChildByName("specialise_detect_instances");
+	m_creationSettings.m_specialisedDetectInstances = true;
+	if (specialisedDetectInstancesAttribute.isValid())
+	{
+		m_creationSettings.m_specialisedDetectInstances = (specialisedDetectInstancesAttribute.getValue(1, false) == 1);
+	}
+	
 
 	//
 	FnKat::IntAttribute bakeDownSceneAttribute = imagineGSAttribute.getChildByName("bake_down_scene");
@@ -345,13 +354,17 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		
 		unsigned int triangleType = m_creationSettings.m_specialisedTriangleType;
 		
-		static const unsigned int QUANT = 4;
-		
+		// first 3 bytes are triangle type		
 		flags = triangleType;
 		
 		if (m_creationSettings.m_geoQuantisationType != 0)
 		{
-			flags |= QUANT;
+			flags |= GEO_QUANTISED;
+		}
+		
+		if (m_creationSettings.m_specialisedDetectInstances)
+		{
+			flags |= USE_INSTANCES;
 		}
 		
 		m_pScene->setGeometryBakingFlags(flags);

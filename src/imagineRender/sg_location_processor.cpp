@@ -6,6 +6,8 @@
 #include <FnGeolibServices/FnArbitraryOutputAttr.h>
 
 #include "katana_helpers.h"
+#include "id_state.h"
+#include "imagine_utils.h"
 
 #include "objects/mesh.h"
 #include "objects/primitives/sphere.h"
@@ -17,11 +19,11 @@
 
 #include "lights/light.h"
 
-#include "id_state.h"
 
 using namespace Imagine;
 
-SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings, IDState* pIDState) : m_scene(scene), m_creationSettings(creationSettings), m_pIDState(pIDState),
+SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings, IDState* pIDState)
+	: m_scene(scene), m_creationSettings(creationSettings), m_pIDState(pIDState),
 											m_isLiveRender(false)
 {
 }
@@ -941,9 +943,12 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 
 	if (m_creationSettings.m_geoQuantisationType != 0)
 	{
-		// nasty hack, but...
-		unsigned int GEO_QUANTISED = 4;
 		bakedFlags |= GEO_QUANTISED;
+	}
+	
+	if (m_creationSettings.m_specialisedDetectInstances)
+	{
+		bakedFlags |= USE_INSTANCES;
 	}
 
 	pNewCO->setBakedFlags(bakedFlags);
