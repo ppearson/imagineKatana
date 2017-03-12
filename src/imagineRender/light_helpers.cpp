@@ -225,6 +225,7 @@ Light* LightHelpers::createEnvironmentLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setSamples(numSamples);
 	pNewLight->setEnvMapPath(envMapPath);
 	pNewLight->setRadius(2000.0f);
+	pNewLight->setClampLuminance(clampLuminance);
 
 	return pNewLight;
 }
