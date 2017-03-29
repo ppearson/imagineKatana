@@ -95,7 +95,7 @@
 				</hintdict>
 			</int>
 
-			<int name="specialise_detect_instances" default="1" widget="checkBox" help="when using specialised types, whether to detect instanced objects and treat them as instances, or treat them as normal geometry. This is a debug option as disabling this means that instancing won't be enabled (geometry will be duplicated per instance object)."/>
+			<int name="specialise_detect_instances" default="1" widget="checkBox" help="when using specialised types, whether to detect instanced object and treat them as instances, or treat them as normal geometry. This is a debug option as disabling this means that instancing won't be enabled (geometry will be duplicated per instance object)."/>
 
 			<int name="deduplicate_vertex_normals" default="0" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
 			<int name="use_geo_normals" default="1" widget="checkBox" help="Use normals from geo attributes"/>
@@ -227,6 +227,7 @@
 			<int name="debug_popup" default="0" widget="checkBox" help="Pops up xmessage box so debugger can be attached to renderboot."/>
 			<int name="discard_geometry" default="0" widget="checkBox" help="Doesn't actually add geometry to Imagine. Useful for debugging Katana memory usage via renderboot."/>
 			<int name="enable_id_picking" default="1" widget="checkBox" help="Enables the use of ID picking for preview / live interactive renders. Works in tandem with Monitor 3D menu control option - both need to be enabled (default) for Imagine to register locations for IDs and send the buffer."/>
+			<int name="chunked_parallel_build" default="0" widget="checkBox" help="Whether to use chunked parallel building of acceleration structures."/>
 		</page>
 
 		<page name='camera' open="False">

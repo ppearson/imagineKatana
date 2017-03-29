@@ -235,6 +235,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	FnKat::IntAttribute discardGeometryAttribute = imagineGSAttribute.getChildByName("discard_geometry");
 	if (discardGeometryAttribute.isValid())
 		m_creationSettings.m_discardGeometry = (discardGeometryAttribute.getValue(0, false) == 1);
+	
+	FnKat::IntAttribute chunkedParallelBuildAttribute = imagineGSAttribute.getChildByName("chunked_parallel_build");
+	if (chunkedParallelBuildAttribute.isValid())
+		m_creationSettings.m_chunkedParallelBuild = (chunkedParallelBuildAttribute.getValue(0, false) == 1);
 
 	//
 
@@ -367,6 +371,11 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 			flags |= USE_INSTANCES;
 		}
 		
+		if (m_creationSettings.m_chunkedParallelBuild)
+		{
+			flags |= CHUNKED_PARALLEL_BUILD;
+		}
+				
 		m_pScene->setGeometryBakingFlags(flags);
 	}
 

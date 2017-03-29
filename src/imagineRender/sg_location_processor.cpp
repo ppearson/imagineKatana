@@ -125,7 +125,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 		processSpecialisedType(iterator, currentDepth);
 		return;
 	}
-	else if (/*type == "sphere" || */type == "nurbspatch") // hack, but works for now...
+	else if (type == "sphere" || type == "nurbspatch") // hack, but works for now...
 	{
 		processSphere(iterator);
 		return;
@@ -950,6 +950,11 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	{
 		bakedFlags |= USE_INSTANCES;
 	}
+	
+	if (m_creationSettings.m_chunkedParallelBuild)
+	{
+		bakedFlags |= CHUNKED_PARALLEL_BUILD;
+	}
 
 	pNewCO->setBakedFlags(bakedFlags);
 
@@ -1363,6 +1368,15 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 		fprintf(stderr, "imagineKatana: Error: incorrect number of values specified for 'instanceMatrix' attribute on location: %s\n", iterator.getFullName().c_str());
 		return;
 	}
+	
+	// get hold of the location hierarchy xform
+	// unfortunately, due to the way we're creating these and we don't have a graphics state hierarchy,
+	// we have to manually concat the matrices for each instance item ourself, which isn't great, but...
+	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
+	Matrix4 baseTransform;
+	baseTransform.setFromArray(xforms[0].getValues(), true);
+	
+	bool isIdentityBaseTransform = baseTransform.isIdentity();
 
 	FnKat::FloatConstVector matrixValuesF;
 	FnKat::DoubleConstVector matrixValuesD;
@@ -1449,8 +1463,21 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 			// identify instances correctly...
 			pNewObject->setFlag(OBJECT_FLAG_INSTANCE);
 		}
-
-		pNewObject->transform().setCachedMatrix(tempValues, true);
+		
+		// it shaves a tiny bit of expansion time off specialising doing this, so...
+		if (isIdentityBaseTransform)
+		{
+			// if our location has no overall xform, we can just set individual matrix directly, which is slightly faster
+			// than doing a concat transform with an identity matrix when processing millions of instances
+			
+			pNewObject->transform().setCachedMatrix(tempValues, true);
+		}
+		else
+		{
+			// we have to do the concatenation of transforms ourselves...
+			Matrix4 finalTransform = Matrix4::multiply(baseTransform, Matrix4(tempValues));
+			pNewObject->transform().setCachedMatrix(finalTransform);
+		}
 		
 		if (objectID != 0)
 		{
@@ -1465,21 +1492,16 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 
 void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 {
-	// get the geometry attributes group
-	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
-	if (!geometryAttribute.isValid())
-	{
-		std::string name = iterator.getFullName();
-		fprintf(stderr, "Warning: sphere: %s does not have a geometry attribute...\n", name.c_str());
-		return;
-	}
-
 	float radius = 1.0f;
 
-	FnKat::DoubleAttribute radiusAttr = geometryAttribute.getChildByName("radius");
-	if (radiusAttr.isValid())
+	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
+	if (geometryAttribute.isValid())
 	{
-		radius = radiusAttr.getValue(1.0f, false);
+		FnKat::DoubleAttribute radiusAttr = geometryAttribute.getChildByName("radius");
+		if (radiusAttr.isValid())
+		{
+			radius = radiusAttr.getValue(1.0f, false);
+		}
 	}
 
 	Sphere* pSphere = new Sphere((float)radius, 16);
