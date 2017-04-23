@@ -885,7 +885,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
-	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.4f, 0.4f, 1.0f));
+	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.3f, 0.3f, 0.7f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
 
 	std::string surfaceColourTexture = ah.getStringParam("surface_col_texture");
@@ -913,11 +913,17 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
 	float samplingSensity = ah.getFloatParam("sampling_density", 0.35f);
 	pNewMaterial->setSamplingDensity(samplingSensity);
+	
+	unsigned int scatterLimit = ah.getIntParam("scatter_limit", 6);
+	pNewMaterial->setScatterLimit(scatterLimit);
 
 	float transmittance = ah.getFloatParam("transmittance", 0.41f);
 	pNewMaterial->setTransmittance(transmittance);
 	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.7f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
+	
+	bool refractiveEntryExit = ah.getIntParam("refractive_entry_exit", 1) == 1;
+	pNewMaterial->setRefractiveEntryExit(refractiveEntryExit);
 
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);

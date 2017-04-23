@@ -241,6 +241,7 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	std::string shadowType = ah.getStringParam("shadow_type", "normal");
 	int shadowTypeEnum = getShadowTypeEnumValFromString(shadowType);
 	int numSamples = ah.getIntParam("num_samples", 1);
+	bool clampLuminance = ah.getIntParam("clamp_luminance", 0) == 1;
 
 	int dayOfYear = ah.getIntParam("day", 174);
 	float time = ah.getFloatParam("time", 17.1f);
@@ -257,6 +258,7 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	pNewLight->setShadowType((Light::ShadowType)shadowTypeEnum);
 	pNewLight->setSamples(numSamples);
 	pNewLight->setRadius(2000.0f);
+	pNewLight->setClampLuminance(clampLuminance);
 
 	pNewLight->setTurbidity(turbidity);
 

@@ -337,7 +337,7 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("surface_col", Col3f(0.4f, 0.4f, 1.0f));
+	helper.addColourParam("surface_col", Col3f(0.3f, 0.3f, 0.7f));
 	helper.addStringParam("surface_col_texture");
 
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
@@ -347,10 +347,14 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addFloatSliderParam("subsurface_density", 3.1f, 0.0001f, 10.0f);
 	helper.addFloatSliderParam("sampling_density", 0.35f, 0.001f, 2.0f);
+	
+	helper.addIntParam("scatter_limit", 6);
 
 	helper.addFloatSliderParam("transmittance", 0.41f);
 	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
 
+	helper.addBoolParam("refractive_entry_exit", true);
+	
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 
 	helper.addFloatParam("refractionIndex", 1.42f);
@@ -487,7 +491,7 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 	helper.addFloatSliderParam("exposure", 0.0f, 0.0f, 20.0f);
 	helper.addStringPopupParam("shadow_type", "normal", shadowTypeOptions, 3);
 	helper.addIntParam("num_samples", 1);
-
+	helper.addBoolParam("clamp_luminance", false);
 
 	helper.addFloatSliderParam("sky_intensity", 1.0f, 0.0f, 5.0f);
 	helper.addFloatSliderParam("sun_intensity", 1.0f, 0.0f, 5.0f);

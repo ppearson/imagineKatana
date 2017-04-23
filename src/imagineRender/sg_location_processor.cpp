@@ -290,6 +290,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		return NULL;
 	}
 
+	// default setting is false from the user's perspective, but in reality, we do the opposite
 	bool flipFaces = false;
 
 	FnKat::FloatAttribute creaseAngleAttribute;
@@ -303,6 +304,10 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			flipFaces = flipFacesAttribute.getValue(0, false);
 		}
 	}
+	
+	// invert flip to actually do the correct logic from Imagine's point-of-view to convert the faces
+	// to native Imagine winding order...
+	flipFaces = !flipFaces;
 
 	CompactGeometryInstance* pNewGeoInstance = new CompactGeometryInstance();
 
@@ -451,7 +456,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		unsigned int lastOffset = 0;
 		unsigned int polyIndexCounter = 0;
 
-		// because of Katana's use of the first AND the last indices, we can skip the last one, as the last one (original first) should be 0...
+		// because of Katana's use of the first AND the last indices, we can skip the last one, as the last one (original first) should be 0 (but it's not guarenteed to be!)...
 		for (int i = numFaces; i > 0; i--)
 		{
 			int startIndex = polyStartIndexAttributeValue[i];
