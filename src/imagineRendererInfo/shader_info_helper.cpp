@@ -22,6 +22,8 @@ static const char* shadowTypeOptions[] = { "normal", "transparent", "none", 0 };
 static const char* areaShapeTypeOptions[] = { "quad", "disc", "sphere", "cylinder", 0 };
 static const char* swatchGridTypeOptions[] = { "none", "hue", "fixed colour", 0 };
 static const char* microfacetTypeOptions[] = { "phong", "beckmann", "ggx", 0 };
+static const char* translucentSurfaceTypeOptions[] = { "diffuse", "dielectric layer", 0 };
+static const char* translucentEntryExitTypeOptions[] = { "refractive fresnel", "refractive", "transmissive", 0 };
 
 ShaderInfoHelper::ShaderInfoHelper(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo) : m_iri(iri),
 	m_rendererObjectInfo(rendererObjectInfo)
@@ -343,6 +345,8 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
 	helper.addStringParam("specular_col_texture");
 	helper.addFloatParam("specular_roughness", 0.05f);
+	
+	helper.addStringPopupParam("surface_type", "diffuse", translucentSurfaceTypeOptions, 2);
 
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addFloatSliderParam("subsurface_density", 3.1f, 0.0001f, 10.0f);
@@ -353,7 +357,7 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatSliderParam("transmittance", 0.41f);
 	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
 
-	helper.addBoolParam("refractive_entry_exit", true);
+	helper.addStringPopupParam("entry_exit_type", "refractive fresnel", translucentEntryExitTypeOptions, 3);
 	
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 

@@ -905,6 +905,16 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	float surfaceRoughness = ah.getFloatParam("specular_roughness", 0.05f);
 	pNewMaterial->setSpecularRoughness(surfaceRoughness);
+	
+	std::string surfaceType = ah.getStringParam("surface_type", "diffuse");
+	if (surfaceType == "diffuse")
+	{
+		pNewMaterial->setSurfaceType(0);
+	}
+	else if (surfaceType == "dielectric layer")
+	{
+		pNewMaterial->setSurfaceType(1);
+	}
 
 	Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
 	pNewMaterial->setInnerColour(innerColour);
@@ -922,8 +932,19 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.7f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
 	
-	bool refractiveEntryExit = ah.getIntParam("refractive_entry_exit", 1) == 1;
-	pNewMaterial->setRefractiveEntryExit(refractiveEntryExit);
+	std::string entryExitType = ah.getStringParam("entry_exit_type");
+	if (entryExitType == "refractive fresnel")
+	{
+		pNewMaterial->setEntryExitType(0);
+	}
+	else if (entryExitType == "refractive")
+	{
+		pNewMaterial->setEntryExitType(1);
+	}
+	else if (entryExitType == "transmissive")
+	{
+		pNewMaterial->setEntryExitType(2);
+	}
 
 	float absorption = ah.getFloatParam("absorption_ratio", 0.46f);
 	pNewMaterial->setAbsorptionRatio(absorption);
