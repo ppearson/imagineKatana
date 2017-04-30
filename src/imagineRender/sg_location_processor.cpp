@@ -307,7 +307,6 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	
 	// invert flip to actually do the correct logic from Imagine's point-of-view to convert the faces
 	// to native Imagine winding order...
-	flipFaces = !flipFaces;
 
 	CompactGeometryInstance* pNewGeoInstance = new CompactGeometryInstance();
 
@@ -410,72 +409,41 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	std::vector<uint32_t>& aPolyIndices = pNewGeoInstance->getPolygonIndices();
 	aPolyIndices.resize(numIndices);
 
-	if (!flipFaces)
+	unsigned int lastOffset = 0;
+
+	// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
+	// specifies the first one and the last one, so we need to ignore the first one.
+	// Note: Although the assumption here is that the first index *is* actually 0, which in certain
+	//       cases it might not be - e.g. re-writing attributes to cull faces. But generally
+	//       this does work in practice.
+	for (unsigned int i = 0; i < numFaces; i++)
 	{
-		unsigned int lastOffset = 0;
-
-		// Imagine's CompactGeometryInstance assumes 0 is the first starting index, whereas Katana
-		// specifies the first one and the last one, so we need to ignore the first one.
-		// Note: Although the assumption here is that the first index *is* actually 0, which in certain
-		//       cases it might not be - e.g. re-writing attributes to cull faces. But generally
-		//       this does work in practice.
-		for (unsigned int i = 0; i < numFaces; i++)
+		unsigned int numVertices;
+		if (i + 1 < numFaces)
 		{
-			unsigned int numVertices;
-			if (i + 1 < numFaces)
-			{
-				numVertices = polyStartIndexAttributeValue[i + 1] - polyStartIndexAttributeValue[i];
-			}
-			else
-			{
-				// last one...
+			numVertices = polyStartIndexAttributeValue[i + 1] - polyStartIndexAttributeValue[i];
+		}
+		else
+		{
+			// last one...
 
-				// TODO: this isn't strictly-speaking safe - the if startIndex array is missing the last
-				//       item, but vertexList still has the correct number of items, then numVertices
-				//       ends up being bigger than it should be. But for correct geometry attributes
-				//       this does work.
-				numVertices = vertexListAttribute.getNumberOfTuples() - polyStartIndexAttributeValue[i];
-			}
-
-			unsigned int polyOffset = lastOffset + numVertices;
-			aPolyOffsets.push_back(polyOffset);
-
-			lastOffset += numVertices;
+			// TODO: this isn't strictly-speaking safe - the if startIndex array is missing the last
+			//       item, but vertexList still has the correct number of items, then numVertices
+			//       ends up being bigger than it should be. But for correct geometry attributes
+			//       this does work.
+			numVertices = vertexListAttribute.getNumberOfTuples() - polyStartIndexAttributeValue[i];
 		}
 
-		for (unsigned int i = 0; i < numIndices; i++)
-		{
-			const int& value = vertexListAttributeValue[i];
-			aPolyIndices[i] = (uint32_t)value;
-		}
+		unsigned int polyOffset = lastOffset + numVertices;
+		aPolyOffsets.push_back(polyOffset);
+
+		lastOffset += numVertices;
 	}
-	else
+
+	for (unsigned int i = 0; i < numIndices; i++)
 	{
-		// do them backwards, to reverse the faces
-
-		unsigned int lastOffset = 0;
-		unsigned int polyIndexCounter = 0;
-
-		// because of Katana's use of the first AND the last indices, we can skip the last one, as the last one (original first) should be 0 (but it's not guarenteed to be!)...
-		for (int i = numFaces; i > 0; i--)
-		{
-			int startIndex = polyStartIndexAttributeValue[i];
-			int endIndex = polyStartIndexAttributeValue[i - 1];
-
-			int numVertices = startIndex - endIndex;
-
-			int polyOffset = lastOffset + numVertices;
-			aPolyOffsets.push_back(polyOffset);
-
-			lastOffset += numVertices;
-
-			// now copy the indices within this loop, walking backwards from startIndex (which should be bigger) to endIndex
-			for (int j = startIndex; j > endIndex; j--)
-			{
-				const int& value = vertexListAttributeValue[j - 1];
-				aPolyIndices[polyIndexCounter++] = (uint32_t)value;
-			}
-		}
+		const int& value = vertexListAttributeValue[i];
+		aPolyIndices[i] = (uint32_t)value;
 	}
 
 	unsigned int geoBuildFlags = GeometryInstance::GEO_BUILD_TESSELATE;
@@ -496,7 +464,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 		// TODO: pull in crease values...
 	}
-
+	
 	// see if we've got any Normals....
 	FnKat::FloatAttribute normalsAttribute = iterator.getAttribute("geometry.vertex.N");
 	if (m_creationSettings.m_useGeoNormals && normalsAttribute.isValid() && !asSubD)
@@ -509,12 +477,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			unsigned int numItems = normalsData.size();
 
 			std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
+			
+			aNormals.resize(numItems / 3);
+			// convert to Normal items
 
-			if (!flipFaces)
-			{
 #if FAST
-				aNormals.resize(numItems / 3);
-				// convert to Normal items
 				unsigned int normalCount = 0;
 				for (unsigned int i = 0; i < numItems; i += 3)
 				{
@@ -526,7 +493,6 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 					normal.z = -normalsData[i + 2];
 				}
 #else
-				aNormals.reserve(numItems / 3);
 				// convert to Normal items
 				for (unsigned int i = 0; i < numItems; i += 3)
 				{
@@ -538,34 +504,6 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 					aNormals.push_back(-Normal(x, y, z));
 				}
 #endif
-			}
-			else
-			{
-#if FAST
-				aNormals.resize(numItems / 3);
-				// convert to Normal items
-				unsigned int normalCount = 0;
-				for (unsigned int i = 0; i < numItems; i += 3)
-				{
-					Normal& normal = aNormals[normalCount++];
-
-					normal.x = normalsData[i];
-					normal.y = normalsData[i + 1];
-					normal.z = normalsData[i + 2];
-				}
-#else
-				aNormals.reserve(numItems / 3);
-				// convert to Normal items
-				for (unsigned int i = 0; i < numItems; i += 3)
-				{
-					float x = normalsData[i];
-					float y = normalsData[i + 1];
-					float z = normalsData[i + 2];
-
-					aNormals.push_back(Normal(x, y, z));
-				}
-#endif
-			}
 		}
 		else
 		{
@@ -580,7 +518,8 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			unsigned int numItems = sampleData0.size();
 
 			aNormals.reserve((numItems / 3) * 2);
-			// convert to Point items
+
+			// convert to Normal items
 			for (unsigned int i = 0; i < numItems; i += 3)
 			{
 				// first sample
@@ -658,6 +597,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		hasUVs = true;
 		std::vector<UV>& aUVs = pNewGeoInstance->getUVs();
 		FnKat::FloatConstVector uvlist = uvItemAttribute.getNearestSample(0);
+		
 		numUVValues = processUVs(uvlist, aUVs);
 	}
 
@@ -692,12 +632,14 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			unsigned int numUVIndices = uvIndicesValue.size();
 			std::vector<uint32_t> aUVIndices;
 			aUVIndices.resize(numUVIndices);
+
 			for (unsigned int i = 0; i < numUVIndices; i++)
 			{
 				const int& value = uvIndicesValue[i];
 
 				aUVIndices[i] = (uint32_t)value;
 			}
+			
 
 			pNewGeoInstance->setUVIndices(aUVIndices);
 #endif
@@ -736,6 +678,11 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 
 		pNewGeoInstance->setHasPerVertexUVs(true);
 	}
+	
+	// invert flip to actually do the correct logic from Imagine's point-of-view to convert the faces
+	// to native Imagine winding order...
+	bool reverseOrientation = !flipFaces;
+	pNewGeoInstance->setHasReverseOrientation(reverseOrientation);
 
 	FnKat::DoubleAttribute boundAttr = iterator.getAttribute("bound");
 	if (m_creationSettings.m_useBounds && boundAttr.isValid())
