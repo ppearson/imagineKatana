@@ -42,13 +42,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-g -D_GLIBCXX_DEBUG ${DEBUG_WARNINGS} ${DEBUG_WARNING
 #SET(CMAKE_CXX_FLAGS_DEBUG "-g ${DEBUG_WARNINGS} ${DEBUG_WARNINGS_SUPPRESS} ${GENERAL_COMPILER_FLAGS}")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 ${GENERAL_COMPILER_FLAGS}")
 
-SET(KATANA_VERSION 2)
-IF(${KATANA_VERSION} MATCHES 1)
-# Katana APIs
-	SET(KATANA_PLUGIN_API_PATH "/home/peter/katana/apis/")
-ELSE()
-	SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
-ENDIF(${KATANA_VERSION} MATCHES 1)
+SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
 
 SET(DISPLAY_DRIVER 1) # set this to 1 to build with zeromq support (and preview and liverender support) - this
 #					#   includes zeromq support (which is embedded as a separate project which gets built by this CMakeLists.txt),
@@ -70,40 +64,40 @@ ENDIF(${BOOST_MANUAL} MATCHES 1)
 
 FILE(GLOB_RECURSE katanaAPI_SOURCES_ORIGINAL "${KATANA_PLUGIN_API_PATH}/src/*.cpp")
 SET(katanaAPI_SOURCES "")
-IF(${DISPLAY_DRIVER} MATCHES 1)
-	set(ZEROMQ_INCLUDE_DIRS "${PROJECT_BINARY_DIR}/external/dist/zeromq/include")
-	set(ZEROMQ_LIBRARY ${PROJECT_BINARY_DIR}/external/dist/zeromq/lib/libzeromq.a)
 
-	IF(${BOOST_MANUAL} MATCHES 1)
-		SET(BOOST_EXT_LIBS ${BOOST_THREAD_LIB})
+set(ZEROMQ_INCLUDE_DIRS "${PROJECT_BINARY_DIR}/external/dist/zeromq/include")
+set(ZEROMQ_LIBRARY ${PROJECT_BINARY_DIR}/external/dist/zeromq/lib/libzeromq.a)
 
-		INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${BOOST_INCLUDE_DIR}")
-	ELSE()
-		SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BOOST_CUST_PATH}")
-		SET(Boost_USE_STATIC_LIBS OFF)
-		SET(Boost_USE_MULTITHREADED ON)
-		FIND_PACKAGE(Boost 1.58 COMPONENTS thread)
+IF(${BOOST_MANUAL} MATCHES 1)
+	SET(BOOST_EXT_LIBS ${BOOST_THREAD_LIB})
 
-		SET(BOOST_EXT_LIBS "${Boost_LIBRARIES}")
-
-		INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${Boost_INCLUDE_DIRS}")
-	ENDIF(${BOOST_MANUAL} MATCHES 1)
-
-	SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
+	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${BOOST_INCLUDE_DIR}")
 ELSE()
-	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/")
+	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BOOST_CUST_PATH}")
+	SET(Boost_USE_STATIC_LIBS OFF)
+	SET(Boost_USE_MULTITHREADED ON)
+	FIND_PACKAGE(Boost 1.58 COMPONENTS thread)
 
-	# strip out display driver stuff from katanaAPI_SOURCES
-	FOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
-		STRING(REGEX MATCH "([/]FnDisplayDriver[/])" test1 ${file})
-		IF(test1)
-		ELSE(test1)
-			LIST(APPEND katanaAPI_SOURCES ${file})
-		ENDIF(test1)
-	ENDFOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
-ENDIF(${DISPLAY_DRIVER} MATCHES 1)
+	SET(BOOST_EXT_LIBS "${Boost_LIBRARIES}")
+
+	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${Boost_INCLUDE_DIRS}")
+ENDIF(${BOOST_MANUAL} MATCHES 1)
+
+# strip out plugin dirs we don't want before adding them to katanaAPI_SOURCES
+FOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
+	STRING(REGEX MATCH "([/]FnAsset[/]|[/]FnDefaultAttributeProducer[/]|[/]FnRenderOutputLocation[/]|[/]FnScenegraphGenerator[/]|[/]FnViewer[/])" test1 ${file})
+	IF(test1)
+	ELSE(test1)
+		LIST(APPEND katanaAPI_SOURCES ${file})
+	ENDIF(test1)
+ENDFOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
+
+SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
 
 ADD_LIBRARY(katanaAPI ${katanaAPI_SOURCES})
+
+
+# Imagine Core stuff
 
 SET(EXTERNAL_DEPENDS "OPENEXR_LOCAL")
 
@@ -236,7 +230,7 @@ FILE(GLOB_RECURSE imagine_SOURCES_ORIGINAL "${IMAGINE_SRC_PATH}/*.cpp")
 # a modified copy
 SET(imagine_SOURCES "")
 FOREACH(file ${imagine_SOURCES_ORIGINAL})
-	STRING(REGEX MATCH "([/]ui[/]|[/]app[/]|[/]io[/]geometry[/]|[/]io[/]scene[/]|[/]scene_builders[/])" test1 ${file})
+	STRING(REGEX MATCH "([/]ui[/]|[/]app[/]|[/]io[/]geometry[/]|[/]io[/]scene[/]|[/]io[/]volume[/]|[/]scene_builders[/]|[/]volumes[/]|[/]objects[/]primitives[/]freeform[/])" test1 ${file})
 	IF(test1)
 
 	ELSE(test1)
@@ -263,6 +257,7 @@ ADD_DEPENDENCIES(imagineCore OPENEXR_LOCAL)
 ####
 
 ## katanaImagineRendererInfo
+
 FILE(GLOB_RECURSE katanaImagineRendererInfo_SOURCES "${CMAKE_SOURCE_DIR}/src/imagineRendererInfo/*.cpp")
 
 ADD_LIBRARY(katanaImagineRendererInfo SHARED ${katanaImagineRendererInfo_SOURCES})
@@ -286,7 +281,7 @@ SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
 #SET(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=address -lasan")
 TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY} ${BOOST_EXT_LIBS})
 
-# imagineViewerModifier
+## imagineViewerModifier
 
 FIND_PACKAGE(OpenGL REQUIRED)
 
