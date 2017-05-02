@@ -344,21 +344,21 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
 	helper.addStringParam("specular_col_texture");
-	helper.addFloatParam("specular_roughness", 0.05f);
-	
+	helper.addFloatSliderParam("specular_roughness", 0.05f);
+
 	helper.addStringPopupParam("surface_type", "diffuse", translucentSurfaceTypeOptions, 2);
 
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addFloatSliderParam("subsurface_density", 3.1f, 0.0001f, 10.0f);
 	helper.addFloatSliderParam("sampling_density", 0.35f, 0.001f, 2.0f);
-	
+
 	helper.addIntParam("scatter_limit", 6);
 
 	helper.addFloatSliderParam("transmittance", 0.41f);
 	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
 
 	helper.addStringPopupParam("entry_exit_type", "refractive fresnel", translucentEntryExitTypeOptions, 3);
-	
+
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 
 	helper.addFloatParam("refractionIndex", 1.42f);
@@ -504,7 +504,7 @@ void ShaderInfoHelper::buildPhysicalSkyLightShaderParams(const ImagineRendererIn
 
 	helper.addFloatSliderParam("turbidity", 3.0f, 0.001f, 20.0f);
 
-	helper.addFloatSliderParam("time", 17.1f, 0.0f, 24.0f);
+	helper.addFloatSliderParam("time", 17.2f, 0.0f, 24.0f);
 	helper.addIntParam("day", 174);
 }
 

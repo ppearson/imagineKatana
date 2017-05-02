@@ -244,7 +244,7 @@ Light* LightHelpers::createPhysicalSkyLight(const FnKat::GroupAttribute& shaderP
 	bool clampLuminance = ah.getIntParam("clamp_luminance", 0) == 1;
 
 	int dayOfYear = ah.getIntParam("day", 174);
-	float time = ah.getFloatParam("time", 17.1f);
+	float time = ah.getFloatParam("time", 17.2f);
 
 	float skyIntensity = ah.getFloatParam("sky_intensity", 1.0f);
 	float sunIntensity = ah.getFloatParam("sun_intensity", 1.0f);
