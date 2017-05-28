@@ -20,11 +20,13 @@
 #include "textures/procedural_2d/swatch.h"
 #include "textures/procedural_2d/wireframe.h"
 
+#include "utils/logger.h"
+
 #include "katana_helpers.h"
 
 using namespace Imagine;
 
-MaterialHelper::MaterialHelper() : m_pDefaultMaterial(NULL), m_pDefaultMaterialMatte(NULL)
+MaterialHelper::MaterialHelper(Imagine::Logger& logger) : m_logger(logger), m_pDefaultMaterial(NULL), m_pDefaultMaterialMatte(NULL)
 {
 	FnKat::StringBuilder tnBuilder;
 	tnBuilder.push_back("imagineSurface");
@@ -238,7 +240,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 		if (!isShader && !isOp && !isTexture && !isNonNetworkShaderType)
 		{
 			// if we don't know what it is, it's probably not for us, so just skip it
-			fprintf(stderr, "Unknown network material type: %s\n", nodeType.c_str());
+			m_logger.warning("Unknown network material type: %s", nodeType.c_str());
 			continue;
 		}
 
@@ -356,12 +358,12 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 					}
 
 					// otherwise, we didn't find it..
-					fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
+					m_logger.error("Can't find existing Node: %s for connection: %s", connectionNodeName.c_str(), paramName.c_str());
 					continue;
 				}
 				else
 				{
-					fprintf(stderr, "Invalid connection item...\n");
+					m_logger.error("Invalid connection item...");
 				}
 			}
 		}
@@ -395,7 +397,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 					if (itFindItem == aOpNodes.end())
 					{
-						fprintf(stderr, "Can't find existing Node: %s for connection: %s\n", connectionNodeName.c_str(), paramName.c_str());
+						m_logger.error("Can't find existing Node: %s for connection: %s", connectionNodeName.c_str(), paramName.c_str());
 						continue;
 					}
 
@@ -405,7 +407,7 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 				}
 				else
 				{
-					fprintf(stderr, "Invalid connection item...\n");
+					m_logger.error("Invalid connection item...");
 				}
 			}
 		}

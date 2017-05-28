@@ -19,12 +19,17 @@
 
 #include "lights/light.h"
 
+#include "utils/logger.h"
+
 
 using namespace Imagine;
 
-SGLocationProcessor::SGLocationProcessor(Scene& scene, const CreationSettings& creationSettings, IDState* pIDState)
-	: m_scene(scene), m_creationSettings(creationSettings), m_pIDState(pIDState),
-											m_isLiveRender(false)
+SGLocationProcessor::SGLocationProcessor(Scene& scene, Logger& logger, const CreationSettings& creationSettings, IDState* pIDState)
+	: m_scene(scene), m_logger(logger), 
+	  m_creationSettings(creationSettings),
+	  m_materialHelper(logger),
+	  m_pIDState(pIDState),
+	  m_isLiveRender(false)
 {
 }
 
@@ -73,7 +78,6 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	std::string type = iterator.getType();
 
 //	std::string fullName = iterator.getFullName();
-
 //	fprintf(stderr, "location: %s, type: %s\n", fullName.c_str(), type.c_str());
 
 	if (m_creationSettings.m_enableSubdivision)
@@ -150,7 +154,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	const bool evictChildTraversal = true;
 
 	FnKat::FnScenegraphIterator child = iterator.getFirstChild(evictChildTraversal);
-	// evict so potentially Katana can free up memory that we've already processed.
+	// evict so potentially Katana can free up memory for stuff that we've already processed.
 	for (; child.isValid(); child = child.getNextSibling(true))
 	{
 		processLocationRecursive(child, nextDepth);
@@ -166,7 +170,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	if (!geometryAttribute.isValid())
 	{
 		std::string name = iterator.getFullName();
-		fprintf(stderr, "Warning: polymesh '%s' does not have a 'geometry' attribute...\n", name.c_str());
+		getLogger().warning("polymesh '%s' does not have a 'geometry' attribute, skipping...", name.c_str());
 		return;
 	}
 
@@ -945,7 +949,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 		if (!geometryAttribute.isValid())
 		{
 			std::string name = iterator.getFullName();
-			fprintf(stderr, "Warning: polymesh '%s' does not have a 'geometry' attribute...\n", name.c_str());
+			getLogger().warning("polymesh '%s' does not have a 'geometry' attribute, skipping...", name.c_str());
 			return;
 		}
 
@@ -1151,14 +1155,14 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
 	{
-		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on instance location: %s\n", iterator.getFullName().c_str());
+		getLogger().error("No geometry.instanceSource attribute specified on instance location: %s", iterator.getFullName().c_str());
 		return;
 	}
 
 	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
 	if (instanceSourcePath.empty())
 	{
-		fprintf(stderr, "imagineKatana: Empty geometry.instanceSource attribute specified on instance location: %s\n", iterator.getFullName().c_str());
+		getLogger().error("Empty geometry.instanceSource attribute specified on instance location: %s", iterator.getFullName().c_str());
 		return;
 	}
 
@@ -1169,7 +1173,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		fprintf(stderr, "imagineKatana: Failed to build instance source: %s\n", instanceSourcePath.c_str());
+		getLogger().error("Failed to build instance source: %s", instanceSourcePath.c_str());
 		return;
 	}
 
@@ -1266,21 +1270,21 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
 	{
-		fprintf(stderr, "imagineKatana: No geometry.instanceSource attribute specified on instance array location: %s\n", iterator.getFullName().c_str());
+		getLogger().error("No geometry.instanceSource attribute specified on instance array location: %s", iterator.getFullName().c_str());
 		return;
 	}
 
 	std::string instanceSourcePath = instanceSourceAttribute.getValue("", false);
 	if (instanceSourcePath.empty())
 	{
-		fprintf(stderr, "imagineKatana: Empty geometry.instanceSource attribute specified on instance array location: %s\n", iterator.getFullName().c_str());
+		getLogger().error("Empty geometry.instanceSource attribute specified on instance array location: %s", iterator.getFullName().c_str());
 		return;
 	}
 
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		fprintf(stderr, "imagineKatana: Failed to build instance source: %s\n", instanceSourcePath.c_str());
+		getLogger().error("Failed to build instance source: %s", instanceSourcePath.c_str());
 		return;
 	}
 
@@ -1298,7 +1302,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 
 		if (!instanceMatrixAttributeD.isValid())
 		{
-			fprintf(stderr, "imagineKatana: No geometry.instanceMatrix attribute specified on location: %s\n", iterator.getFullName().c_str());
+			getLogger().error("No geometry.instanceMatrix attribute specified on location: %s", iterator.getFullName().c_str());
 			return;
 		}
 		else
@@ -1317,7 +1321,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	bool validMatrixLength = (numValues % 16) == 0;
 	if (!validMatrixLength)
 	{
-		fprintf(stderr, "imagineKatana: Error: incorrect number of values specified for 'instanceMatrix' attribute on location: %s\n", iterator.getFullName().c_str());
+		getLogger().error("Incorrect number of values specified for 'instanceMatrix' attribute on location: %s", iterator.getFullName().c_str());
 		return;
 	}
 	

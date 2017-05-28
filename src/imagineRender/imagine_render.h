@@ -17,8 +17,10 @@ namespace FnKat = Foundry::Katana;
 namespace FnKatRender = FnKat::Render;
 
 #include "scene.h"
-#include "utils/params.h"
 #include "raytracer/raytracer.h"
+
+#include "utils/params.h"
+#include "utils/logger.h"
 
 class IDState;
 
@@ -122,6 +124,8 @@ protected:
 protected:
 	Imagine::Scene*				m_pScene;
 	Imagine::Params				m_renderSettings;
+	
+	Imagine::Logger				m_logger;
 
 	// for use with live-renders only...
 	Imagine::Raytracer*			m_pRaytracer;

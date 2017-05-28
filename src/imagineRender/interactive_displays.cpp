@@ -28,7 +28,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 	if (portSep == std::string::npos)
 	{
-		fprintf(stderr, "Error: Katana host and port not specified...\n");
+		m_logger.error("Katana host and port not specified...");
 		return false;
 	}
 
@@ -100,7 +100,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 			m_extraAOVsFlags |= COMPONENT_WPP;
 		}
 
-//		fprintf(stderr, "Buffers: %s: %i, %s\n", channelBufferName.c_str(), frameBufferID, channelType.c_str());
+		m_logger.debug("Interactive Output Buffer: %s: %i, %s", channelBufferName.c_str(), localChannelID, channelType.c_str());
 	}
 	
 	if (m_enableIDPicking)
@@ -119,7 +119,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 	if (m_aInteractiveChannels.empty())
 	{
-		fprintf(stderr, "Error: no channel buffers specified for interactive rendering...\n");
+		m_logger.error("No channel buffers specified for interactive rendering...");
 		return false;
 	}
 
@@ -139,7 +139,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	// try and connect...
 	if (m_pDataPipe->connect() != 0)
 	{
-		fprintf(stderr, "Error: Can't connect to Katana data socket: %s:%u\n", m_katanaHost.c_str(), m_katanaPort);
+		m_logger.error("Can't connect to Katana data socket: %s:%u", m_katanaHost.c_str(), m_katanaPort);
 		return false;
 	}
 #endif
@@ -213,7 +213,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		// try and connect...
 		if (rChannel.pDataPipe->connect() != 0)
 		{
-			fprintf(stderr, "Error: Can't connect to Katana channel data socket: %s:%u\n", m_katanaHost.c_str(), m_katanaPort);
+			m_logger.error("Can't connect to Katana channel data socket: %s:%u", m_katanaHost.c_str(), m_katanaPort);
 			return false;
 		}
 		

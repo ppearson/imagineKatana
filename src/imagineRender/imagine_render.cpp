@@ -51,6 +51,11 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 
 	m_renderWidth = 512;
 	m_renderHeight = 512;
+	
+	// set initial log level, that will be overwritten later on...
+	m_logger.initialiseConsoleLogger(Logger::eLogStdErr, Logger::eLevelInfo, true);
+	// override the main logger to use this one
+	GlobalContext::instance().setLogger(&m_logger);
 }
 
 int ImagineRender::start()
@@ -108,7 +113,7 @@ int ImagineRender::start()
 
 	if (!configureGeneralSettings(renderSettings, rootIterator, diskRender))
 	{
-		fprintf(stderr, "Can't configure general settings...\n");
+		m_logger.error("Can't configure general settings...");
 		return -1;
 	}
 
@@ -116,7 +121,7 @@ int ImagineRender::start()
 	{
 		if (!configureDiskRenderOutputs(renderSettings, rootIterator))
 		{
-			fprintf(stderr, "Error: Can't find any valid Render Outputs for Disk Render...\n");
+			m_logger.error("Can't find any valid Render Outputs for Disk Render...");
 			return -1;
 		}
 
@@ -187,12 +192,12 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 	m_renderWidth = settings.getResolutionX();
 	m_renderHeight = settings.getResolutionY();
 
-//	fprintf(stderr, "Render dimensions: %d, %d\n", m_renderWidth, m_renderHeight);
+	m_logger.debug("Render dimensions: %d, %d", m_renderWidth, m_renderHeight);
 
 	int dataWindow[4];
 	settings.getDataWindow(dataWindow);
 
-//	fprintf(stderr, "Data window: (%i, %i, %i, %i)\n", dataWindow[0], dataWindow[1], dataWindow[2], dataWindow[3]);
+	m_logger.debug("Data window: (%i, %i, %i, %i)", dataWindow[0], dataWindow[1], dataWindow[2], dataWindow[3]);
 
 	m_renderSettings.add("width", m_renderWidth);
 	m_renderSettings.add("height", m_renderHeight);
@@ -207,7 +212,7 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 	FnKat::FnScenegraphIterator cameraIterator = rootIterator.getByPath(m_renderCameraLocation);
 	if (!cameraIterator.isValid())
 	{
-		fprintf(stderr, "Error: Can't get hold of render camera attributes...\n");
+		m_logger.error("Can't get hold of render camera attributes...");
 		return false;
 	}
 
@@ -219,7 +224,7 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 		FnKat::IntConstVector roiValues = regionOfInterestAttribute.getNearestSample(0.0f);
 
 		// should be four of them...
-//		fprintf(stderr, "ROI found: (%i, %i, %i, %i)\n", roiValues[0], roiValues[1], roiValues[2], roiValues[3]);
+		m_logger.debug("ROI found: (%i, %i, %i, %i)", roiValues[0], roiValues[1], roiValues[2], roiValues[3]);
 
 		m_ROIActive = true;
 
@@ -318,7 +323,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	FnKat::GroupAttribute cameraGeometryAttribute = cameraIterator.getAttribute("geometry");
 	if (!cameraGeometryAttribute.isValid())
 	{
-		fprintf(stderr, "Error: Can't find geometry attribute on the camera: %s...\n", cameraIterator.getFullName().c_str());
+		m_logger.error("Can't find geometry attribute on the camera: %s.", cameraIterator.getFullName().c_str());
 		return;
 	}
 
@@ -496,7 +501,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 		}
 	}
 
-	SGLocationProcessor locProcessor(*m_pScene, m_creationSettings, m_pIDState);
+	SGLocationProcessor locProcessor(*m_pScene, m_logger, m_creationSettings, m_pIDState);
 
 	if (isliveRender)
 	{
@@ -531,11 +536,11 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 {
 	if (m_diskRenderOutputPath.empty())
 		return;
-
-	fprintf(stderr, "Performing disk render to: %s\n", m_diskRenderOutputPath.c_str());
+	
+	m_logger.info("Performing disk render to: %s", m_diskRenderOutputPath.c_str());
 
 	{
-		Timer t1("Katana scene expansion");
+		Timer t1("Katana scene expansion", m_logger);
 		buildSceneGeometry(settings, rootIterator, false);
 	}
 
@@ -544,8 +549,6 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 	flushCaches();
 
 	// assumes render settings have been set correctly before hand...
-
-	fprintf(stderr, "Imagine: Starting Disk render...\n");
 
 	startDiskRenderer();
 
@@ -556,9 +559,11 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 {
 	if (!setupPreviewDataChannel(settings))
 		return;
+	
+	m_logger.info("Performing preview render");
 
 	{
-		Timer t1("Katana scene expansion");
+		Timer t1("Katana scene expansion", m_logger);
 		buildSceneGeometry(settings, rootIterator, false);
 	}
 
@@ -567,8 +572,6 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 	flushCaches();
 
 	// assumes render settings have been set correctly before hand...
-
-	fprintf(stderr, "Imagine: Starting Preview render...\n");
 
 	startInteractiveRenderer(false);
 
@@ -579,9 +582,11 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 {
 	if (!setupPreviewDataChannel(settings))
 		return;
+	
+	m_logger.info("Performing live render");
 
 	{
-		Timer t1("Katana scene expansion");
+		Timer t1("Katana scene expansion", m_logger);
 		buildSceneGeometry(settings, rootIterator, true);
 	}
 
@@ -607,8 +612,6 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 
 	m_renderSettings.add("integrated_rerender", true);
 
-	fprintf(stderr, "Imagine: Starting Live render...\n");
-
 	startInteractiveRenderer(true);
 
 //	renderFinished();
@@ -616,7 +619,7 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 
 void ImagineRender::flushCaches()
 {
-	fprintf(stderr, "Imagine: Scene expansion complete - flushing caches...\n");
+	m_logger.info("Scene expansion complete - flushing caches...");
 
 	FnKat::RenderOutputUtils::flushProceduralDsoCaches();
 
@@ -657,7 +660,7 @@ void ImagineRender::startDiskRenderer()
 
 	if (!FileHelpers::doesDirectoryExist(directory))
 	{
-		fprintf(stderr, "Error: The specified output directory for the file does not exist.\n");
+		m_logger.error("The specified output directory for the file does not exist:", m_diskRenderOutputPath.c_str());
 		return;
 	}
 
@@ -666,7 +669,7 @@ void ImagineRender::startDiskRenderer()
 	ImageWriter* pWriter = FileIORegistry::instance().createImageWriterForExtension(extension);
 	if (!pWriter)
 	{
-		fprintf(stderr, "Error: The output file extension '%s' was not recognised.\n", extension.c_str());
+		m_logger.error("The output file extension '%s' was not recognised.", extension.c_str());
 		return;
 	}
 
@@ -783,7 +786,7 @@ void ImagineRender::renderFinished()
 	sendFullFrameToMonitor();
 #endif
 
-	fprintf(stderr, "Render complete.\n");
+	m_logger.info("Render complete.");
 
 	if (m_printMemoryStatistics != 0)
 	{
@@ -857,7 +860,7 @@ void ImagineRender::progressChanged(float progress)
 	if (iProgress >= m_lastProgress + 5)
 	{
 		m_lastProgress = iProgress;
-		fprintf(stderr, "Render progress: %d%%\n", iProgress);
+		m_logger.notice("Render progress: %d%%", iProgress);
 	}
 }
 

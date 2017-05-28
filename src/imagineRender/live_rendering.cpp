@@ -3,7 +3,9 @@
 #include "katana_helpers.h"
 #include "material_helper.h"
 
+// Imagine stuff
 #include "materials/material.h"
+#include "utils/logger.h"
 
 using namespace Imagine;
 
@@ -147,7 +149,7 @@ bool ImagineRender::hasPendingDataUpdates() const
 
 int ImagineRender::applyPendingDataUpdates()
 {
-//	fprintf(stderr, "applyPendingDataUpdates()\n");
+	m_logger.debug("applyPendingDataUpdates() called");
 	
 	m_liveRenderState.lock();
 	
@@ -169,7 +171,7 @@ int ImagineRender::applyPendingDataUpdates()
 
 			pCamera->transform().setCachedMatrix(update.xform.data(), true);
 			
-//			fprintf(stderr, "Updating Camera\n");
+			m_logger.debug("Updating Camera matrix");
 		}
 		else if (update.type == KatanaUpdateItem::eTypeObjectMaterial && update.pMaterial)
 		{
@@ -177,7 +179,7 @@ int ImagineRender::applyPendingDataUpdates()
 			
 			if (!pLocationObject)
 			{
-				fprintf(stderr, "Can't find object: %s in scene to update material of.\n", update.location.c_str());
+				m_logger.error("Can't find object: %s in scene to update material of.", update.location.c_str());
 				continue;
 			}
 			
@@ -203,7 +205,7 @@ void ImagineRender::restartLiveRender()
 
 	m_liveRenderState.unlock();
 	
-//	fprintf(stderr, "Restarting render\n");
-
+	m_logger.debug("Restarting render");
+	
 	m_pRaytracer->renderScene(1.0f, &m_renderSettings, false);
 }

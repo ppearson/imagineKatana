@@ -18,12 +18,13 @@ namespace Imagine
 {
 	class Material;
 	class Texture;
+	class Logger;
 }
 
 class MaterialHelper
 {
 public:
-	MaterialHelper();
+	MaterialHelper(Imagine::Logger& logger);
 
 	Imagine::Material* getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements, bool fallbackToDefault = true);
 
@@ -78,6 +79,7 @@ protected:
 	static bool isRecognisedShaderType(const std::string& name);
 
 protected:
+	Imagine::Logger&						m_logger;
 	FnKat::StringAttribute					m_terminatorNodes;
 
 	std::map<Imagine::HashValue, Imagine::Material*>	m_aMaterialInstances; // all materials with hashes

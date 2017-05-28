@@ -304,6 +304,26 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 			m_renderSettings.add("textureGlobalMipmapBias", (float)textureCacheGlobalMipmapBias);
 		}
 	}
+	
+	int logOutputDestination = gsHelper.getIntParam("log_output_destination", 0);
+	int logOutputLevel = gsHelper.getIntParam("log_output_level", 1);
+
+	if (logOutputDestination == 2)
+	{
+		// file logger
+		std::string logFilePath = gsHelper.getStringParam("log_output_path");
+		m_logger.initialiseFileLogger(logFilePath, (Logger::LogLevel)logOutputLevel, Logger::eTimeStampTimeAndDate);
+	}
+	else
+	{
+		// console stderr/stdout
+		bool colouredLog = !diskRender;
+		m_logger.initialiseConsoleLogger((Logger::LogOutputDestination)logOutputDestination, (Logger::LogLevel)logOutputLevel, colouredLog);
+		
+		// due to the fact renderboot isn't really a real tty, we need to force override the coloured log flag
+		m_logger.setColouredOutput(colouredLog, true);
+	}
+	
 
 	//
 

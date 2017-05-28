@@ -21,6 +21,7 @@ namespace Imagine
 	class GeometryInstance;
 	class CompoundObject;
 	class Object;
+	class Logger;
 }
 
 class IDState;
@@ -28,7 +29,7 @@ class IDState;
 class SGLocationProcessor
 {
 public:
-	SGLocationProcessor(Imagine::Scene& scene, const CreationSettings& creationSettings, IDState* pIDState);
+	SGLocationProcessor(Imagine::Scene& scene, Imagine::Logger& logger, const CreationSettings& creationSettings, IDState* pIDState);
 	~SGLocationProcessor();
 
 	struct InstanceInfo
@@ -95,9 +96,15 @@ protected:
 	unsigned int sendObjectID(FnKat::FnScenegraphIterator iterator);
 	
 	unsigned int getCustomGeoFlags();
+	
+	Imagine::Logger& getLogger()
+	{
+		return m_logger;
+	}
 
 protected:
 	Imagine::Scene&				m_scene;
+	Imagine::Logger&			m_logger;
 	
 	const CreationSettings&		m_creationSettings;
 
