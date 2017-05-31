@@ -317,7 +317,9 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	else
 	{
 		// console stderr/stdout
-		bool colouredLog = !diskRender;
+		const char* batchModeEnv = getenv("KATANA_BATCH_MODE");
+		bool isBatchMode = batchModeEnv != NULL;
+		bool colouredLog = !isBatchMode;
 		m_logger.initialiseConsoleLogger((Logger::LogOutputDestination)logOutputDestination, (Logger::LogLevel)logOutputLevel, colouredLog);
 		
 		// due to the fact renderboot isn't really a real tty, we need to force override the coloured log flag
