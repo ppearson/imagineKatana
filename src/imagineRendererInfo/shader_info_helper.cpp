@@ -357,7 +357,7 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatSliderParam("transmittance", 0.41f);
 	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
 
-	helper.addStringPopupParam("entry_exit_type", "refractive fresnel", translucentEntryExitTypeOptions, 3);
+	helper.addStringPopupParam("entry_exit_type", "refractive", translucentEntryExitTypeOptions, 3);
 
 	helper.addFloatSliderParam("absorption_ratio", 0.46f);
 
