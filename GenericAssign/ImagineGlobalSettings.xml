@@ -1,4 +1,4 @@
-<args format='1.0' scope='/root' fixedCEL='/root' >
+﻿<args format='1.0' scope='/root' fixedCEL='/root' >
 	<group name='imagineGlobalStatements' hideTitle='True' widget='pagedargs' closed='False' groupinherit='False'>
 		<page name='general' open="True">
 			<page name='light transport' open="False">
@@ -100,6 +100,7 @@
 			<int name="deduplicate_vertex_normals" default="0" widget="checkBox" help="de-duplicate per-vertex normals for meshes. Build time is longer (and peak memory is higher), but can reduce final memory usage significantly in some cases."/>
 			<int name="use_geo_normals" default="1" widget="checkBox" help="Use normals from geo attributes"/>
 			<int name="use_location_bounds" default="1" widget="checkBox" help="Use bound attributes from locations for bboxes. If turned off or no bound attribute exists, Imagine will calculate them."/>
+			<int name="follow_relative_instance_sources" default="1" widget="checkBox" help="Resolve all instanceSource strings on instances to see if they're relative paths and if so, resolve them to the full absolute path. This has a minor overhead."/>
 
 			<int name="triangle_type" widget="mapper" default="0" help="Triangle type to use. Fast uses the 48-byte Shevtsov triangle intersection test which is very fast, but caches extra info, so requires 48 bytes per triangle. Compact uses the Moller intersection algorithm, which calculates everything on-the-fly, requiring 4/0 bytes per triangle. Compact is on average 30-65% slower than Fast.">
 				<hintdict name='options'>
@@ -195,6 +196,27 @@
 					<int name="verbose" value="2"/>
 				</hintdict>
 			</int>
+			
+            <int name="log_output_destination" default="0" widget="mapper">
+                <hintdict name='options'>
+                    <int name="stderr" value="0"/>
+                    <int name="stdout" value="1"/>
+                    <int name="file" value="2"/>
+                </hintdict>
+            </int>
+            <string name="log_output_path" default="" conditionalVisOp='equalTo' conditionalVisPath='../log_output_destination' conditionalVisValue='2' widget="default"/>
+            <int name="log_output_level" default="1" widget="mapper">
+                <hintdict name='options'>
+                    <int name="debug" value="0"/>
+                    <int name="info" value="1"/>
+                    <int name="warning" value="2"/>
+                    <int name="notice" value="3"/>
+                    <int name="error" value="4"/>
+                    <int name="critical" value="5"/>
+                    <int name="off" value="6"/>
+                </hintdict>
+            </int>
+      
 			<int name="bucket_size" widget="mapper" default="48">
 				<hintdict name='options'>
 					<int name="16" value="16"/>

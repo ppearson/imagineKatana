@@ -173,6 +173,10 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	FnKat::IntAttribute useBoundsAttribute = imagineGSAttribute.getChildByName("use_location_bounds");
 	if (useBoundsAttribute.isValid())
 		m_creationSettings.m_useBounds = (useBoundsAttribute.getValue(1, false) == 1);
+	
+	FnKat::IntAttribute followRelativeInstanceSources = imagineGSAttribute.getChildByName("follow_relative_instance_sources");
+	if (followRelativeInstanceSources.isValid())
+		m_creationSettings.m_followRelativeInstanceSources = (followRelativeInstanceSources.getValue(1, false) == 1);
 
 	FnKat::IntAttribute specialiseTypeAttribute = imagineGSAttribute.getChildByName("specialise_types");
 	if (specialiseTypeAttribute.isValid())

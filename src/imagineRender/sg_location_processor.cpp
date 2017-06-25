@@ -4,6 +4,7 @@
 
 #include <FnRenderOutputUtils/FnRenderOutputUtils.h>
 #include <FnGeolibServices/FnArbitraryOutputAttr.h>
+#include <FnGeolib/util/Path.h>
 
 #include "katana_helpers.h"
 #include "id_state.h"
@@ -20,7 +21,6 @@
 #include "lights/light.h"
 
 #include "utils/logger.h"
-
 
 using namespace Imagine;
 
@@ -485,29 +485,16 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			aNormals.resize(numItems / 3);
 			// convert to Normal items
 
-#if FAST
-				unsigned int normalCount = 0;
-				for (unsigned int i = 0; i < numItems; i += 3)
-				{
-					Normal& normal = aNormals[normalCount++];
+			unsigned int normalCount = 0;
+			for (unsigned int i = 0; i < numItems; i += 3)
+			{
+				Normal& normal = aNormals[normalCount++];
 
-					// need to reverse the normals as the winding order is opposite
-					normal.x = -normalsData[i];
-					normal.y = -normalsData[i + 1];
-					normal.z = -normalsData[i + 2];
-				}
-#else
-				// convert to Normal items
-				for (unsigned int i = 0; i < numItems; i += 3)
-				{
-					float x = normalsData[i];
-					float y = normalsData[i + 1];
-					float z = normalsData[i + 2];
-
-					// we need to reverse the normals as the winding order is opposite...
-					aNormals.push_back(-Normal(x, y, z));
-				}
-#endif
+				// need to reverse the normals as the winding order is opposite
+				normal.x = -normalsData[i];
+				normal.y = -normalsData[i + 1];
+				normal.z = -normalsData[i + 2];
+			}
 		}
 		else
 		{
@@ -532,7 +519,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 				float z = sampleData0[i + 2];
 
 				// we need to reverse the normals as the winding order is opposite...
-				aNormals.push_back(-Normal(x, y, z));
+				aNormals.push_back(Normal(-x, -y, -z));
 
 				// second sample
 				x = sampleData1[i];
@@ -540,7 +527,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 				z = sampleData1[i + 2];
 
 				// we need to reverse the normals as the winding order is opposite...
-				aNormals.push_back(-Normal(x, y, z));
+				aNormals.push_back(Normal(-x, -y, -z));
 			}
 		}
 	}
@@ -1043,9 +1030,20 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSourceItem(FnKat::FnScenegraphIterator iterator, const std::string& instanceSourcePath)
 {
 	InstanceInfo nullInfo; // NULL by default
-
+	
 	// see if we've created the source already...
-	std::map<std::string, InstanceInfo>::const_iterator itFind = m_aInstances.find(instanceSourcePath);
+	std::map<std::string, InstanceInfo>::const_iterator itFind;
+	
+	std::string absInstanceSourcePath;
+	if (m_creationSettings.m_followRelativeInstanceSources)
+	{
+		absInstanceSourcePath = FnKat::Util::Path::RelativeToAbsPath(iterator.getFullName(), instanceSourcePath);
+		itFind = m_aInstances.find(absInstanceSourcePath);
+	}
+	else
+	{
+		itFind = m_aInstances.find(instanceSourcePath);
+	}
 
 	if (itFind != m_aInstances.end())
 	{
@@ -1066,85 +1064,93 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 
 		return ii;
 	}
+		
+	// do the expensive lookup of the item...
+	FnKat::FnScenegraphIterator itInstanceSource;
+	
+	if (m_creationSettings.m_followRelativeInstanceSources)
+	{
+		itInstanceSource = iterator.getRoot().getByPath(absInstanceSourcePath);
+	}
 	else
 	{
-		// do the expensive lookup of the item...
-		FnKat::FnScenegraphIterator itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
-		if (!itInstanceSource.isValid())
+		itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
+	}
+	
+	if (!itInstanceSource.isValid())
+	{
+		// TODO: maybe add a placeholder to the map so that we don't try to uselessly attempt to find
+		// it using getByPath() (which is expensive) in the future?
+		return nullInfo;
+	}
+
+	bool isSingleLeaf = !itInstanceSource.getFirstChild().isValid();
+
+	// check two levels down, as that's more conventional...
+	FnKat::FnScenegraphIterator itSubItem = itInstanceSource.getFirstChild();
+	bool hasSubLeaf = !isSingleLeaf && (itSubItem.isValid() && !itSubItem.getNextSibling().isValid() && !itSubItem.getFirstChild().isValid());
+	// if it's simply pointing to a mesh (so a leaf without a hierarchy)
+	if (isSingleLeaf || hasSubLeaf)
+	{
+		// just build the source geometry and link to it....
+
+		if (hasSubLeaf)
 		{
-			// TODO: maybe add a placeholder to the map so that we don't try to uselessly attempt to find
-			// it using getByPath() (which is expensive) in the future?
+			itInstanceSource = itSubItem;
+		}
+
+		bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
+
+		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+
+		CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
+
+		unsigned int customFlags = getCustomGeoFlags();
+		pNewInstance->setCustomFlags(customFlags);
+
+		Material* pInstanceSourceMaterial = m_materialHelper.getOrCreateMaterialForLocation(itInstanceSource, imagineStatements);
+
+		InstanceInfo ii;
+		ii.m_compound = false;
+		ii.pGeoInstance = pNewInstance;
+		ii.pSingleItemMaterial = pInstanceSourceMaterial;
+
+		m_aInstances[instanceSourcePath] = ii;
+
+		// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
+		// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
+		// based off the location name isn't continually done, so make sure that's done before we return.
+
+		if (!pNewInstance)
+		{
 			return nullInfo;
 		}
 
-		bool isSingleLeaf = !itInstanceSource.getFirstChild().isValid();
+		registerGeometryInstance(pNewInstance);
 
-		// check two levels down, as that's more conventional...
-		FnKat::FnScenegraphIterator itSubItem = itInstanceSource.getFirstChild();
-		bool hasSubLeaf = !isSingleLeaf && (itSubItem.isValid() && !itSubItem.getNextSibling().isValid() && !itSubItem.getFirstChild().isValid());
-		// if it's simply pointing to a mesh (so a leaf without a hierarchy)
-		if (isSingleLeaf || hasSubLeaf)
+		return ii;
+	}
+	else
+	{
+		// it's a full hierarchy, so we can specialise by building a compound object containing all the sub-objects
+
+		// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
+		// is what we want...
+		CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
+
+		if (!pCO)
 		{
-			// just build the source geometry and link to it....
-
-			if (hasSubLeaf)
-			{
-				itInstanceSource = itSubItem;
-			}
-
-			bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
-
-			FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
-
-			CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
-
-			unsigned int customFlags = getCustomGeoFlags();
-			pNewInstance->setCustomFlags(customFlags);
-
-			Material* pInstanceSourceMaterial = m_materialHelper.getOrCreateMaterialForLocation(itInstanceSource, imagineStatements);
-
-			InstanceInfo ii;
-			ii.m_compound = false;
-			ii.pGeoInstance = pNewInstance;
-			ii.pSingleItemMaterial = pInstanceSourceMaterial;
-
-			m_aInstances[instanceSourcePath] = ii;
-
-			// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
-			// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
-			// based off the location name isn't continually done, so make sure that's done before we return.
-
-			if (!pNewInstance)
-			{
-				return nullInfo;
-			}
-
-			registerGeometryInstance(pNewInstance);
-
-			return ii;
+			// TODO: add NULL item to the map?
+			return nullInfo;
 		}
-		else
-		{
-			// it's a full hierarchy, so we can specialise by building a compound object containing all the sub-objects
 
-			// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
-			// is what we want...
-			CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
+		InstanceInfo ii;
+		ii.m_compound = true;
+		ii.pCompoundObject = pCO;
 
-			if (!pCO)
-			{
-				// TODO: add NULL item to the map?
-				return nullInfo;
-			}
+		m_aInstances[instanceSourcePath] = ii;
 
-			InstanceInfo ii;
-			ii.m_compound = true;
-			ii.pCompoundObject = pCO;
-
-			m_aInstances[instanceSourcePath] = ii;
-
-			return ii;
-		}
+		return ii;
 	}
 
 	return nullInfo;
@@ -1173,7 +1179,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		getLogger().error("Failed to build instance source: %s", instanceSourcePath.c_str());
+		getLogger().error("Failed to build instance source: %s referenced at location: %s", instanceSourcePath.c_str(), iterator.getFullName().c_str());
 		return;
 	}
 
@@ -1284,7 +1290,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	InstanceInfo instanceInfo = findOrBuildInstanceSourceItem(iterator, instanceSourcePath);
 	if (!instanceInfo.pCompoundObject && !instanceInfo.pGeoInstance)
 	{
-		getLogger().error("Failed to build instance source: %s", instanceSourcePath.c_str());
+		getLogger().error("Failed to build instance source: %s referenced at location: %s", instanceSourcePath.c_str(), iterator.getFullName().c_str());
 		return;
 	}
 
