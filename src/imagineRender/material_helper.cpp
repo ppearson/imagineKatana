@@ -917,6 +917,10 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	{
 		pNewMaterial->setSurfaceType(1);
 	}
+	else if (surfaceType== "transmission only")
+	{
+		pNewMaterial->setSurfaceType(2);
+	}
 
 	Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
 	pNewMaterial->setInnerColour(innerColour);
@@ -933,6 +937,9 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	pNewMaterial->setTransmittance(transmittance);
 	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.7f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
+	
+	bool surfaceColourAsTransmittance = ah.getIntParam("use_surf_col_as_trans", 0);
+	pNewMaterial->setUseSurfaceColourAsTransmittance(surfaceColourAsTransmittance);
 	
 	std::string entryExitType = ah.getStringParam("entry_exit_type");
 	if (entryExitType == "refractive fresnel")
