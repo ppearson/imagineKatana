@@ -887,7 +887,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	KatanaAttributeHelper ah(shaderParamsAttr);
 
-	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.3f, 0.3f, 0.7f));
+	Colour3f surfaceColour = ah.getColourParam("surface_col", Colour3f(0.0f, 0.0f, 0.0f));
 	pNewMaterial->setSurfaceColour(surfaceColour);
 
 	std::string surfaceColourTexture = ah.getStringParam("surface_col_texture");
@@ -917,23 +917,43 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	{
 		pNewMaterial->setSurfaceType(1);
 	}
-	else if (surfaceType== "transmission only")
+	else if (surfaceType == "transmission only")
 	{
 		pNewMaterial->setSurfaceType(2);
 	}
-
-	Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
-	pNewMaterial->setInnerColour(innerColour);
-
-	float subsurfaceDensity = ah.getFloatParam("subsurface_density", 3.1f);
-	pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
+	
+	std::string scatterMode = ah.getStringParam("scatter_mode", "mean free path");
+	if (scatterMode == "legacy")
+	{
+		pNewMaterial->setScatteringMode(0);
+		
+		Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
+		pNewMaterial->setInnerColour(innerColour);
+	
+		float subsurfaceDensity = ah.getFloatParam("subsurface_density", 3.1f);
+		pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
+	}
+	else
+	{
+		pNewMaterial->setScatteringMode(1);
+		
+		Colour3f mfp = ah.getColourParam("mfp", Colour3f(0.22f, 0.081f, 0.06f));
+		pNewMaterial->setMeanFreePath(mfp);
+		
+		float mfpScale = ah.getFloatParam("mfp_scale", 2.7f);
+		pNewMaterial->setMeanFreePathScale(mfpScale);
+		
+		Colour3f scatterAlbedo = ah.getColourParam("scatter_albedo", Colour3f(0.3f));
+		pNewMaterial->setScatterAlbedo(scatterAlbedo);
+	}
+	
 	float samplingSensity = ah.getFloatParam("sampling_density", 0.35f);
 	pNewMaterial->setSamplingDensity(samplingSensity);
 	
 	unsigned int scatterLimit = ah.getIntParam("scatter_limit", 6);
 	pNewMaterial->setScatterLimit(scatterLimit);
 
-	float transmittance = ah.getFloatParam("transmittance", 0.41f);
+	float transmittance = ah.getFloatParam("transmittance", 1.0f);
 	pNewMaterial->setTransmittance(transmittance);
 	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.7f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);

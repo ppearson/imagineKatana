@@ -23,6 +23,7 @@ static const char* areaShapeTypeOptions[] = { "quad", "disc", "sphere", "cylinde
 static const char* swatchGridTypeOptions[] = { "none", "hue", "fixed colour", 0 };
 static const char* microfacetTypeOptions[] = { "phong", "beckmann", "ggx", 0 };
 static const char* translucentSurfaceTypeOptions[] = { "diffuse", "dielectric layer", "transmission only", 0 };
+static const char* translucentScatterModeOptions[] = { "legacy", "mean free path", 0 };
 static const char* translucentEntryExitTypeOptions[] = { "refractive fresnel", "refractive", "transmissive", 0 };
 
 ShaderInfoHelper::ShaderInfoHelper(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo) : m_iri(iri),
@@ -339,7 +340,7 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
 
-	helper.addColourParam("surface_col", Col3f(0.3f, 0.3f, 0.7f));
+	helper.addColourParam("surface_col", Col3f(0.0f, 0.0f, 0.0f));
 	helper.addStringParam("surface_col_texture");
 
 	helper.addColourParam("specular_col", Col3f(0.1f, 0.1f, 0.1f));
@@ -347,16 +348,22 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 	helper.addFloatSliderParam("specular_roughness", 0.05f);
 
 	helper.addStringPopupParam("surface_type", "diffuse", translucentSurfaceTypeOptions, 3);
+	helper.addStringPopupParam("scatter_mode", "mean free path", translucentScatterModeOptions, 2);
 
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addFloatSliderParam("subsurface_density", 3.1f, 0.0001f, 10.0f);
+	
+	helper.addColourParam("mfp", Col3f(0.22f, 0.081f, 0.06f));
+	helper.addFloatSliderParam("mfp_scale", 2.7f, 0.001f, 25.0f);
+	helper.addColourParam("scatter_albedo", Col3f(0.3f, 0.3f, 0.3f));
+	
 	helper.addFloatSliderParam("sampling_density", 0.35f, 0.001f, 2.0f);
 
 	helper.addIntParam("scatter_limit", 6);
 
 	helper.addBoolParam("use_surf_col_as_trans", false);
 	
-	helper.addFloatSliderParam("transmittance", 0.41f);
+	helper.addFloatSliderParam("transmittance", 1.0f);
 	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
 
 	helper.addStringPopupParam("entry_exit_type", "refractive", translucentEntryExitTypeOptions, 3);
