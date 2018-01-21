@@ -352,19 +352,19 @@ void ShaderInfoHelper::buildTranslucentShaderParams(const ImagineRendererInfo& i
 
 	helper.addColourParam("inner_col", Col3f(0.4f, 0.4f, 0.4f));
 	helper.addFloatSliderParam("subsurface_density", 3.1f, 0.0001f, 10.0f);
-	
+
 	helper.addColourParam("mfp", Col3f(0.22f, 0.081f, 0.06f));
 	helper.addFloatSliderParam("mfp_scale", 2.7f, 0.001f, 25.0f);
 	helper.addColourParam("scatter_albedo", Col3f(0.3f, 0.3f, 0.3f));
-	
-	helper.addFloatSliderParam("sampling_density", 0.35f, 0.001f, 2.0f);
+
+	helper.addFloatSliderParam("sampling_density", 0.65f, 0.0001f, 2.0f);
 
 	helper.addIntParam("scatter_limit", 6);
 
 	helper.addBoolParam("use_surf_col_as_trans", false);
-	
+
 	helper.addFloatSliderParam("transmittance", 1.0f);
-	helper.addFloatSliderParam("transmittance_roughness", 0.7f);
+	helper.addFloatSliderParam("transmittance_roughness", 0.8f);
 
 	helper.addStringPopupParam("entry_exit_type", "refractive", translucentEntryExitTypeOptions, 3);
 

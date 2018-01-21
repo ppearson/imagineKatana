@@ -175,7 +175,7 @@ Material* MaterialHelper::createNewMaterial(const FnKat::GroupAttribute& attribu
 
 	if (pNewMaterial)
 		return pNewMaterial;
-	
+
 	if (fallbackToDefault)
 	{
 		return m_pDefaultMaterial;
@@ -907,7 +907,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 
 	float surfaceRoughness = ah.getFloatParam("specular_roughness", 0.05f);
 	pNewMaterial->setSpecularRoughness(surfaceRoughness);
-	
+
 	std::string surfaceType = ah.getStringParam("surface_type", "diffuse");
 	if (surfaceType == "diffuse")
 	{
@@ -921,46 +921,46 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	{
 		pNewMaterial->setSurfaceType(2);
 	}
-	
+
 	std::string scatterMode = ah.getStringParam("scatter_mode", "mean free path");
 	if (scatterMode == "legacy")
 	{
 		pNewMaterial->setScatteringMode(0);
-		
+
 		Colour3f innerColour = ah.getColourParam("inner_col", Colour3f(0.4f, 0.4f, 0.4f));
 		pNewMaterial->setInnerColour(innerColour);
-	
+
 		float subsurfaceDensity = ah.getFloatParam("subsurface_density", 3.1f);
 		pNewMaterial->setSubsurfaceDensity(subsurfaceDensity);
 	}
 	else
 	{
 		pNewMaterial->setScatteringMode(1);
-		
+
 		Colour3f mfp = ah.getColourParam("mfp", Colour3f(0.22f, 0.081f, 0.06f));
 		pNewMaterial->setMeanFreePath(mfp);
-		
+
 		float mfpScale = ah.getFloatParam("mfp_scale", 2.7f);
 		pNewMaterial->setMeanFreePathScale(mfpScale);
-		
+
 		Colour3f scatterAlbedo = ah.getColourParam("scatter_albedo", Colour3f(0.3f));
 		pNewMaterial->setScatterAlbedo(scatterAlbedo);
 	}
-	
-	float samplingSensity = ah.getFloatParam("sampling_density", 0.35f);
+
+	float samplingSensity = ah.getFloatParam("sampling_density", 0.65f);
 	pNewMaterial->setSamplingDensity(samplingSensity);
-	
+
 	unsigned int scatterLimit = ah.getIntParam("scatter_limit", 6);
 	pNewMaterial->setScatterLimit(scatterLimit);
 
 	float transmittance = ah.getFloatParam("transmittance", 1.0f);
 	pNewMaterial->setTransmittance(transmittance);
-	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.7f);
+	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.8f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
-	
+
 	bool surfaceColourAsTransmittance = ah.getIntParam("use_surf_col_as_trans", 0);
 	pNewMaterial->setUseSurfaceColourAsTransmittance(surfaceColourAsTransmittance);
-	
+
 	std::string entryExitType = ah.getStringParam("entry_exit_type");
 	if (entryExitType == "refractive fresnel")
 	{
