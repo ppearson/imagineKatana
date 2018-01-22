@@ -24,7 +24,7 @@ IF(${MODERN_GCC} MATCHES "1")
 	SET(ARCH "corei7")
 	SET(SSE_FLAGS "-msse -msse2 -msse3 -mssse3 -msse4")
 ELSE()
-	SET(ARCH "core2")
+	SET(ARCH "corei7")
 	SET(SSE_FLAGS "-msse -msse2 -msse3 -mssse3 -msse4")
 ENDIF(${MODERN_GCC} MATCHES "1")
 
@@ -43,24 +43,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG "-g ${DEBUG_WARNINGS} ${DEBUG_WARNINGS_SUPPRESS} ${GEN
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 ${GENERAL_COMPILER_FLAGS}")
 
 SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
-
-SET(DISPLAY_DRIVER 1) # set this to 1 to build with zeromq support (and preview and liverender support) - this
-#					#   includes zeromq support (which is embedded as a separate project which gets built by this CMakeLists.txt),
-#					#   but also requires boost 1.42/1.43 support for threads and locks...
-
-# boost stuff (needed for display driver)
-SET(BOOST_CUST_PATH "/opt/boost_144/include")
-SET(BOOST_EXT_LIBS "")
-SET(BOOST_MANUAL 0)
-
-IF(${BOOST_MANUAL} MATCHES 1)
-	SET(BOOST_INCLUDE_DIR "/opt/boost_144/include")
-	SET(BOOST_LIB_DIR "/opt/boost_144/lib")
-	SET(BOOST_THREAD_LIB "libboost_thread.dylib")
-
-	ADD_LIBRARY(${BOOST_THREAD_LIB} SHARED IMPORTED)
-	SET_TARGET_PROPERTIES(${BOOST_THREAD_LIB} PROPERTIES IMPORTED_LOCATION "${BOOST_LIB_DIR}/${BOOST_THREAD_LIB}")
-ENDIF(${BOOST_MANUAL} MATCHES 1)
+#SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
 
 FILE(GLOB_RECURSE katanaAPI_SOURCES_ORIGINAL "${KATANA_PLUGIN_API_PATH}/src/*.cpp")
 SET(katanaAPI_SOURCES "")
@@ -68,20 +51,7 @@ SET(katanaAPI_SOURCES "")
 set(ZEROMQ_INCLUDE_DIRS "${PROJECT_BINARY_DIR}/external/dist/zeromq/include")
 set(ZEROMQ_LIBRARY ${PROJECT_BINARY_DIR}/external/dist/zeromq/lib/libzeromq.a)
 
-IF(${BOOST_MANUAL} MATCHES 1)
-	SET(BOOST_EXT_LIBS ${BOOST_THREAD_LIB})
-
-	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${BOOST_INCLUDE_DIR}")
-ELSE()
-	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BOOST_CUST_PATH}")
-	SET(Boost_USE_STATIC_LIBS OFF)
-	SET(Boost_USE_MULTITHREADED ON)
-	FIND_PACKAGE(Boost 1.58 COMPONENTS thread)
-
-	SET(BOOST_EXT_LIBS "${Boost_LIBRARIES}")
-
-	INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}" "${Boost_INCLUDE_DIRS}")
-ENDIF(${BOOST_MANUAL} MATCHES 1)
+INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}")
 
 # strip out plugin dirs we don't want before adding them to katanaAPI_SOURCES
 FOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
@@ -203,10 +173,6 @@ set(EXTERNAL_LINK_FLAGS "")
 set(EXTERNAL_LIBRARY_DIRS ${ILMBASE_DIST}/lib ${OPENEXR_DIST}/lib)
 set(EXTERNAL_LIBRARIES ${EXTERNAL_OPENEXR_LIBRARIES} ${ZEROMQ_LIBRARY})
 
-#	IF(${BOOST_MANUAL} MATCHES 1)
-#		SET(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} "${BOOST_LIB_DIR}/${BOOST_THREAD_LIB}")
-#	ENDIF(${BOOST_MANUAL} MATCHES 1)
-
 # add libtiff if it was available
 IF(${HAVE_LIBTIFF} MATCHES 1)
 	set(EXTERNAL_INCLUDE_DIRS ${EXTERNAL_INCLUDE_DIRS} ${LIBTIFF_INCLUDE_DIRS})
@@ -279,7 +245,7 @@ ENDIF(${HAVE_LIBTIFF} MATCHES 1)
 ADD_DEPENDENCIES(katanaImagineRender katanaAPI imagineCore)
 SET_TARGET_PROPERTIES(katanaImagineRender PROPERTIES PREFIX "")
 #SET(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=address -lasan")
-TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY} ${BOOST_EXT_LIBS})
+TARGET_LINK_LIBRARIES(katanaImagineRender katanaAPI imagineCore ${EXTERNAL_LIBRARIES} ${ZLIB_LIBRARY})
 
 ## imagineViewerModifier
 
