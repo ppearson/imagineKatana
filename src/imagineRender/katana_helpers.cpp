@@ -68,7 +68,12 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 
 	std::pair<FnAttribute::DoubleAttribute, bool> res = Foundry::Katana::FnXFormUtil::CalcTransformMatrixAtTime(xformAttr, 0.0f);
 
+#ifdef KATANA_V3
+	FnAttribute::DoubleAttribute::array_type data = res.first.getNearestSample(0.0f);
+	FnKat::RenderOutputUtils::XFormMatrix matrix(data.data());
+#else
 	FnKat::RenderOutputUtils::XFormMatrix matrix(res.first.getNearestSample(0.0f).data());
+#endif
 	xforms.push_back(matrix);
 
 	return xforms;

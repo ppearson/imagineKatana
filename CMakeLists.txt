@@ -6,6 +6,8 @@ project (imagineKatana)
 
 include(ExternalProject)
 
+SET(KATANA_V3 0)
+
 set(MODERN_GCC 1)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	set(MODERN_GCC 0)
@@ -42,8 +44,12 @@ SET(GENERAL_COMPILER_FLAGS "-mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
 SET(CMAKE_CXX_FLAGS_DEBUG "-g ${DEBUG_WARNINGS} ${DEBUG_WARNINGS_SUPPRESS} ${GENERAL_COMPILER_FLAGS}")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 ${GENERAL_COMPILER_FLAGS}")
 
-SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
-#SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
+IF (${KATANA_V3} MATCHES "1")
+    SET(KATANA_PLUGIN_API_PATH "/opt/Katana3.0v1.001402a/plugin_apis")
+    ADD_DEFINITIONS(-DKATANA_V3)
+ELSE()
+    SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
+ENDIF(${KATANA_V3} MATCHES "1")
 
 FILE(GLOB_RECURSE katanaAPI_SOURCES_ORIGINAL "${KATANA_PLUGIN_API_PATH}/src/*.cpp")
 SET(katanaAPI_SOURCES "")
@@ -55,14 +61,14 @@ INCLUDE_DIRECTORIES("${KATANA_PLUGIN_API_PATH}/include/" "${ZEROMQ_INCLUDE_DIRS}
 
 # strip out plugin dirs we don't want before adding them to katanaAPI_SOURCES
 FOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
-	STRING(REGEX MATCH "([/]FnAsset[/]|[/]FnDefaultAttributeProducer[/]|[/]FnRenderOutputLocation[/]|[/]FnScenegraphGenerator[/]|[/]FnViewer[/])" test1 ${file})
+	STRING(REGEX MATCH "([/]FnDefaultAttributeProducer[/]|[/]FnRenderOutputLocation[/]|[/]FnScenegraphGenerator[/]|FnViewer[/])" test1 ${file})
 	IF(test1)
 	ELSE(test1)
 		LIST(APPEND katanaAPI_SOURCES ${file})
 	ENDIF(test1)
 ENDFOREACH(file ${katanaAPI_SOURCES_ORIGINAL})
 
-SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
+#SET(katanaAPI_SOURCES ${katanaAPI_SOURCES_ORIGINAL})
 
 ADD_LIBRARY(katanaAPI ${katanaAPI_SOURCES})
 
