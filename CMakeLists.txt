@@ -8,11 +8,6 @@ include(ExternalProject)
 
 SET(KATANA_V3 0)
 
-set(MODERN_GCC 1)
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	set(MODERN_GCC 0)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING
 	  "Choose the type of build, options are: None Debug Release"
@@ -126,37 +121,23 @@ ADD_DEPENDENCIES(OPENEXR_LOCAL ILMBASE_LOCAL)
 
 set(ILMBASE_LIB ${ILMBASE_DIST}/lib)
 set(OPENEXR_LIB ${OPENEXR_DIST}/lib)
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	# As above for OpenEXR, debug on OS X should use shared, but release static libs
-	IF (CMAKE_BUILD_TYPE MATCHES "Release")
-		set(EXTERNAL_OPENEXR_LIBRARIES ${ILMBASE_LIB}/libHalf.a ${ILMBASE_LIB}/libIex-2_0.a ${ILMBASE_LIB}/libIlmThread-2_0.a ${ILMBASE_LIB}/libImath-2_0.a ${OPENEXR_LIB}/libImf-2_0.a)
-	ELSE()
-		set(EXTERNAL_OPENEXR_LIBRARIES ${ILMBASE_LIB}/libHalf.dylib ${ILMBASE_LIB}/libIex-2_0.dylib ${ILMBASE_LIB}/libIlmThread-2_0.dylib ${ILMBASE_LIB}/libImath-2_0.dylib ${OPENEXR_LIB}/libImf-2_0.dylib)
-	ENDIF(CMAKE_BUILD_TYPE MATCHES "Release")
-ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	set(EXTERNAL_OPENEXR_LIBRARIES ${ILMBASE_LIB}/libHalf.so ${ILMBASE_LIB}/libIex-2_0.so ${ILMBASE_LIB}/libIlmThread-2_0.so ${ILMBASE_LIB}/libImath-2_0.so ${OPENEXR_LIB}/libImf-2_0.so)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+set(EXTERNAL_OPENEXR_LIBRARIES ${ILMBASE_LIB}/libHalf.so ${ILMBASE_LIB}/libIex-2_0.so ${ILMBASE_LIB}/libIlmThread-2_0.so ${ILMBASE_LIB}/libImath-2_0.so ${OPENEXR_LIB}/libImf-2_0.so)
 
 #MESSAGE(${EXTERNAL_OPENEXR_LIBRARIES})
 
+set(ZEROMQ_VERSION 3.2.4)
+ExternalProject_Add(ZMQ_LOCAL
+	URL ${CMAKE_SOURCE_DIR}/external/zmq-${ZEROMQ_VERSION}.tar.bz2
+	BINARY_DIR external/build/zeromq/
+	INSTALL_DIR external/dist
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/external/dist
+)
 
-IF(${DISPLAY_DRIVER} MATCHES 1)
-	set(ZEROMQ_VERSION 3.2.4)
-	ExternalProject_Add(ZMQ_LOCAL
-		URL ${CMAKE_SOURCE_DIR}/external/zmq-${ZEROMQ_VERSION}.tar.bz2
-		BINARY_DIR external/build/zeromq/
-		INSTALL_DIR external/dist
-		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/external/dist
-	)
+# This is a bit messy, as some stuff is done here, other stuff above for the KatanaAPI part...
 
-	# This is a bit messy, as some stuff is done here, other stuff above for the KatanaAPI part...
+ADD_DEPENDENCIES(katanaAPI ZMQ_LOCAL)
+TARGET_LINK_LIBRARIES(katanaAPI ${ZEROMQ_LIBRARY})
 
-	ADD_DEPENDENCIES(katanaAPI ZMQ_LOCAL)
-	TARGET_LINK_LIBRARIES(katanaAPI ${ZEROMQ_LIBRARY})
-ELSE()
-	set(ZEROMQ_INCLUDE_DIRS "")
-	set(ZEROMQ_LIBRARY "")
-ENDIF(${DISPLAY_DRIVER} MATCHES 1)
 
 IF (${FIND_LIBTIFF} MATCHES 1)
 	FIND_PACKAGE(TIFF)
