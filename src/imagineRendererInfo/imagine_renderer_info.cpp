@@ -105,7 +105,7 @@ void ImagineRendererInfo::fillLiveRenderTerminalOps(OpDefinitionQueue& terminalO
 		FnAttribute::GroupBuilder opArgs;
 		opArgs.set("type", FnAttribute::StringAttribute("light"));
 		opArgs.set("location", FnAttribute::StringAttribute("/root/world"));
-		opArgs.set("collectUpstream", FnAttribute::IntAttribute(1));
+//		opArgs.set("collectUpstream", FnAttribute::IntAttribute(1));
 
 		std::string attributes[] = {"xform", "material", "mute", "solo"};
 		opArgs.set("attributeNames", FnAttribute::StringAttribute(attributes, 4, 1));
@@ -123,6 +123,21 @@ void ImagineRendererInfo::fillLiveRenderTerminalOps(OpDefinitionQueue& terminalO
 
 		std::string attributes[] = {"info", "material", "geometry.faces",};
 		opArgs.set("attributeNames", FnAttribute::StringAttribute(attributes, 3, 1));
+		terminalOps.push_back(std::make_pair("LiveRenderFilter", opArgs.build()));
+	}
+	
+	{
+		// Watch for changes to other attributes on any locations that are not lights or camera
+		FnAttribute::GroupBuilder opArgs;
+		opArgs.set("type", FnAttribute::StringAttribute(""));
+		opArgs.set("location", FnAttribute::StringAttribute("/root"));
+		opArgs.set("typeAlias", FnAttribute::StringAttribute("geo"));
+		std::string excludeTypes[] = {"light", "camera",};
+		opArgs.set("exclusions", FnAttribute::StringAttribute(excludeTypes, 2, 1));
+		opArgs.set("collectUpstream", FnAttribute::IntAttribute(1));
+
+		std::string attributes[] = {"xform",};
+		opArgs.set("attributeNames", FnAttribute::StringAttribute(attributes, 1, 1));
 		terminalOps.push_back(std::make_pair("LiveRenderFilter", opArgs.build()));
 	}
 }

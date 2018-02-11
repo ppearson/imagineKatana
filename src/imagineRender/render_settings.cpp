@@ -12,7 +12,7 @@
 using namespace Imagine;
 
 // Imagine-specific settings
-bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender)
+bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, RenderType renderType)
 {
 	FnKat::GroupAttribute imagineGSAttribute = rootIterator.getAttribute("imagineGlobalStatements");
 
@@ -39,7 +39,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 
 	FnKat::IntAttribute iterationsAttribute = imagineGSAttribute.getChildByName("iterations");
 	unsigned int iterations = 1;
-	if (iterationsAttribute.isValid() && !diskRender)
+	if (iterationsAttribute.isValid() && renderType != eRenderDisk)
 	{
 		iterations = iterationsAttribute.getValue(1, false);
 		samplesPerPixel /= iterations;
@@ -376,7 +376,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 		m_pScene->getAccelerationStructureSettings().setType(2);
 	}
 
-	if (bakeDownScene == 1)
+	if (renderType != eRenderLive && bakeDownScene == 1)
 	{
 		m_pScene->setBakeDownScene(true);
 		

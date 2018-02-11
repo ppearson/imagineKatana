@@ -109,9 +109,9 @@ int ImagineRender::start()
 	FnKatRender::RenderSettings renderSettings(rootIterator);
 	FnKatRender::GlobalSettings globalSettings(rootIterator, "imagine");
 
-	bool diskRender = renderMethodName == FnKat::RendererInfo::DiskRenderMethod::kDefaultName;
+	RenderType renderType = (renderMethodName == FnKat::RendererInfo::DiskRenderMethod::kDefaultName) ? eRenderDisk : eRenderPreview;
 
-	if (!configureGeneralSettings(renderSettings, rootIterator, diskRender))
+	if (!configureGeneralSettings(renderSettings, rootIterator, renderType))
 	{
 		m_logger.error("Can't configure general settings...");
 		return -1;
@@ -187,7 +187,7 @@ void ImagineRender::configureDiskRenderOutputProcess(FnKatRender::DiskRenderOutp
 	diskRender.setRenderAction(renderAction);
 }
 
-bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool diskRender)
+bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, RenderType renderType)
 {
 	m_renderWidth = settings.getResolutionX();
 	m_renderHeight = settings.getResolutionY();
@@ -252,7 +252,7 @@ bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSett
 		m_ROIHeight = m_renderHeight;
 	}
 
-	configureRenderSettings(settings, rootIterator, diskRender);
+	configureRenderSettings(settings, rootIterator, renderType);
 
 	// build camera at the end (after motion blur settings have been loaded by above)
 	buildCamera(settings, cameraIterator);
@@ -488,7 +488,7 @@ void ImagineRender::buildCamera(Foundry::Katana::Render::RenderSettings& setting
 	m_pScene->setDefaultCamera(pRenderCamera);
 }
 
-void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, bool isliveRender)
+void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, RenderType renderType)
 {
 	// force expand, using procedurals isn't worth it in this day and age, especially as there's a fair amount of memory overhead for the state...
 
@@ -503,7 +503,7 @@ void ImagineRender::buildSceneGeometry(Foundry::Katana::Render::RenderSettings& 
 
 	SGLocationProcessor locProcessor(*m_pScene, m_logger, m_creationSettings, m_pIDState);
 
-	if (isliveRender)
+	if (renderType == eRenderLive)
 	{
 		locProcessor.setIsLiveRender(true);
 	}
@@ -541,7 +541,7 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 
 	{
 		Timer t1("Katana scene expansion", m_logger);
-		buildSceneGeometry(settings, rootIterator, false);
+		buildSceneGeometry(settings, rootIterator, eRenderDisk);
 	}
 
 	enforceSaneSceneSetup();
@@ -564,7 +564,7 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 
 	{
 		Timer t1("Katana scene expansion", m_logger);
-		buildSceneGeometry(settings, rootIterator, false);
+		buildSceneGeometry(settings, rootIterator, eRenderPreview);
 	}
 
 	enforceSaneSceneSetup();
@@ -587,7 +587,7 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 
 	{
 		Timer t1("Katana scene expansion", m_logger);
-		buildSceneGeometry(settings, rootIterator, true);
+		buildSceneGeometry(settings, rootIterator, eRenderLive);
 	}
 
 	enforceSaneSceneSetup();

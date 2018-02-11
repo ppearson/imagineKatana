@@ -136,15 +136,6 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 	}
 	else if (type == "light")
 	{
-		// see if it's muted...
-		FnKat::IntAttribute mutedAttribute = iterator.getAttribute("mute", true);
-		if (mutedAttribute.isValid())
-		{
-			int mutedValue = mutedAttribute.getValue(0, false);
-			if (mutedValue == 1)
-				return;
-		}
-
 		processLight(iterator);
 		return;
 	}
@@ -1516,11 +1507,35 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 {
 	FnKat::GroupAttribute lightMaterialAttrib = m_materialHelper.getMaterialForLocation(iterator);
+	
+	bool isMuted = false;
+	
+	FnKat::IntAttribute mutedAttribute = iterator.getAttribute("mute", true);
+	if (mutedAttribute.isValid())
+	{
+		int mutedValue = mutedAttribute.getValue(0, false);
+		if (mutedValue == 1)
+		{
+			isMuted = true;
+		}
+	}
+	
+	// if we're not live rendering, don't bother adding muted lights...
+	if (!m_isLiveRender && isMuted)
+		return;
 
 	Light* pNewLight = m_lightHelper.createLight(lightMaterialAttrib);
 
 	if (!pNewLight)
 		return;
+	
+	if (m_isLiveRender && isMuted)
+	{
+		// if we are live rendering, and it's a muted light, cheat, and set
+		// the intensity to 0.0f.
+		pNewLight->setIntensity(0.0f);
+		pNewLight->setExposure(0.0f);
+	}
 
 	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
 	const double* pMatrix = xforms[0].getValues();

@@ -5,6 +5,8 @@
 
 // Imagine stuff
 #include "materials/material.h"
+#include "lights/light.h"
+
 #include "utils/logger.h"
 
 using namespace Imagine;
@@ -59,42 +61,33 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 
 		if (type == "camera" && location == m_renderCameraLocation)
 		{
+			KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeCamera, KatanaUpdateItem::eLocCamera, location);
+			
 			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
-
 			if (xformAttribute.isValid())
 			{
-				KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeCamera, KatanaUpdateItem::eLocCamera, location);
-
-				newUpdate.xform.resize(16);
-
-				FnKat::DoubleAttribute xformMatrixAttribute = xformAttribute.getChildByName("global");			
-				if (xformMatrixAttribute.isValid())
-				{
-					FnKat::DoubleConstVector matrixValues = xformMatrixAttribute.getNearestSample(0.0f);
-	
-					if (matrixValues.size() != 16)
-						continue;					
-					
-					std::copy(matrixValues.begin(), matrixValues.end(), newUpdate.xform.begin());
-				}
-				else
-				{
-					// see if there's an interactive one
-					
-					FnKat::GroupAttribute xformInteractiveAttribute = xformAttribute.getChildByName("interactive");
-					if (xformInteractiveAttribute.isValid())
-					{
-						FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(xformInteractiveAttribute);
-						const double* pMatrix = xforms[0].getValues();
-						for (unsigned int i = 0; i < 16; i++)
-						{
-							newUpdate.xform[i] = pMatrix[i];
-						}
-					}
-				}				
-
-				m_liveRenderState.addUpdate(newUpdate);
+				LiveRenderHelpers::setUpdateXFormFromAttribute(xformAttribute, newUpdate);
 			}
+			
+			FnKat::GroupAttribute geometryAttribute = attributesAttribute.getChildByName("geometry");
+			if (geometryAttribute.isValid())
+			{
+				FnKat::DoubleAttribute fovAttribute = geometryAttribute.getChildByName("fov");
+				if (fovAttribute.isValid())
+				{
+					double fovValue = fovAttribute.getValue(70.0, false);
+					newUpdate.extra.add("fov", (float)fovValue);
+				}
+				
+				FnKat::DoubleAttribute nearClipAttribute = geometryAttribute.getChildByName("near");
+				if (nearClipAttribute.isValid())
+				{
+					double nearClipValue = nearClipAttribute.getValue(0.1, false);
+					newUpdate.extra.add("nearClip", (float)nearClipValue);
+				}
+			}
+			
+			m_liveRenderState.addUpdate(newUpdate);
 		}
 		else if (type == "geoMaterial")
 		{
@@ -133,8 +126,73 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 			FnKat::GroupAttribute nodesAttribute = materialAttribute.getChildByName("nodes");
 			if (nodesAttribute.isValid())
 			{
+				MaterialHelper materialHelper(m_logger);
+				// we have a network material
 				
+				Material* pNewMaterial = materialHelper.createNetworkMaterial(materialAttribute, false);
+				if (pNewMaterial)
+				{
+					// extremely hacky for the moment...
+					KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObjectMaterial, KatanaUpdateItem::eLocObject, location);
+					
+					newUpdate.pMaterial = pNewMaterial;
+					
+					m_liveRenderState.addUpdate(newUpdate);
+				}
 			}
+		}
+		else if (type == "geo")
+		{
+			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
+			if (xformAttribute.isValid())
+			{
+				KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObject, KatanaUpdateItem::eLocObject, location);
+				
+				LiveRenderHelpers::setUpdateXFormFromAttribute(xformAttribute, newUpdate);
+				m_liveRenderState.addUpdate(newUpdate);
+			}
+		}
+		else if (type == "light")
+		{
+//			fprintf(stderr, "\n\n%s\n\n", attributesAttribute.getXML().c_str());
+			
+			KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeLight, KatanaUpdateItem::eLocLight, location);
+			
+			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
+			if (xformAttribute.isValid())
+			{
+				LiveRenderHelpers::setUpdateXFormFromAttribute(xformAttribute, newUpdate);
+			}
+			
+			FnKat::GroupAttribute materialAttribute = attributesAttribute.getChildByName("material");
+			if (materialAttribute.isValid())
+			{
+				FnKat::GroupAttribute shaderParamsAttribute = materialAttribute.getChildByName("imagineLightParams");
+				if (shaderParamsAttribute.isValid())
+				{
+					KatanaAttributeHelper helper(shaderParamsAttribute);
+					
+					float intensity = helper.getFloatParam("intensity", 1.0f);
+					newUpdate.extra.add("intensity", intensity);
+					
+					float exposure = helper.getFloatParam("exposure", 1.0f);
+					newUpdate.extra.add("exposure", exposure);
+				}
+			}
+			
+			FnKat::IntAttribute muteAttribute = attributesAttribute.getChildByName("mute");
+			if (muteAttribute.isValid())
+			{
+				int muteValue = muteAttribute.getValue(0, false);
+				if (muteValue == 1)
+				{
+					// cheat, and set intensity and exposure to 0.0f to mute it
+					newUpdate.extra.add("intensity", 0.0f);
+					newUpdate.extra.add("exposure", 0.0f);
+				}
+			}
+			
+			m_liveRenderState.addUpdate(newUpdate);
 		}
 	}
 
@@ -157,7 +215,7 @@ int ImagineRender::applyPendingDataUpdates()
 	m_pRaytracer->terminate();
 	
 	// for the moment, we need to pause a bit for some update types, but this should really be behind an interface in Imagine...
-	::usleep(500);
+//	::usleep(100);
 
 	std::vector<KatanaUpdateItem>::const_iterator itUpdate = m_liveRenderState.updatesBegin();
 	for (; itUpdate != m_liveRenderState.updatesEnd(); ++itUpdate)
@@ -172,6 +230,12 @@ int ImagineRender::applyPendingDataUpdates()
 			pCamera->transform().setCachedMatrix(update.xform.data(), true);
 			
 			m_logger.debug("Updating Camera matrix");
+			
+			if (!update.extra.isEmpty())
+			{
+				pCamera->setFOV(update.extra.getFloat("fov", 70.0f));
+				pCamera->setNearClippingPlane(update.extra.getFloat("nearClip", 0.1f));
+			}
 		}
 		else if (update.type == KatanaUpdateItem::eTypeObjectMaterial && update.pMaterial)
 		{
@@ -179,12 +243,46 @@ int ImagineRender::applyPendingDataUpdates()
 			
 			if (!pLocationObject)
 			{
-				m_logger.error("Can't find object: %s in scene to update material of.", update.location.c_str());
+				m_logger.error("Can't find object: %s in scene in order to update its material.", update.location.c_str());
 				continue;
 			}
 			
 			update.pMaterial->preRenderMaterial();
 			pLocationObject->setMaterial(update.pMaterial);
+		}
+		else if (update.type == KatanaUpdateItem::eTypeObject)
+		{
+			Object* pLocationObject = m_pScene->getObjectByName(update.location);
+			
+			if (!pLocationObject)
+			{
+				m_logger.error("Can't find object: %s in scene in order to update its properties.", update.location.c_str());
+				continue;
+			}
+			
+			m_logger.debug("Updating properties of object: %s", update.location.c_str());
+			
+			pLocationObject->transform().setCachedMatrix(update.xform.data(), true);
+		}
+		else if (update.type == KatanaUpdateItem::eTypeLight)
+		{
+			Light* pLocationLight = m_pScene->getLightByName(update.location);
+			
+			if (!pLocationLight)
+			{
+				m_logger.error("Can't find light: %s in scene in order to update its parameters.", update.location.c_str());
+				continue;
+			}
+			
+			m_logger.debug("Updating properties of light: %s", update.location.c_str());
+			
+			pLocationLight->transform().setCachedMatrix(update.xform.data(), true);
+			
+			if (!update.extra.isEmpty())
+			{
+				pLocationLight->setIntensity(update.extra.getFloat("intensity", 1.0f));
+				pLocationLight->setExposure(update.extra.getFloat("exposure", 1.0f));
+			}
 		}
 	}
 

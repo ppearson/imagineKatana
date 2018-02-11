@@ -43,13 +43,13 @@ public:
 	// hack for live rendering prototyping
 	static Imagine::Material* createNewMaterialStandAlone(const std::string& materialType, const FnKat::GroupAttribute& shaderParamsAttr);
 
-protected:
 	// called by createNewMaterial to try and create a network material from the attribute...
 	// TODO: all this stuff is pretty horrendous, but while verbose, it's easiest for the moment until we work
 	//       out what we're doing with built-in shaders which use static const init registration (so don't work in .so files),
 	//       and how to pass in Args in a nice generic way
 	Imagine::Material* createNetworkMaterial(const FnKat::GroupAttribute& attribute, bool isMatte);
 
+protected:
 	static Imagine::Texture* createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params);
 	static Imagine::Texture* createNetworkTextureItem(const std::string& textureName, const FnKat::GroupAttribute& params);
 

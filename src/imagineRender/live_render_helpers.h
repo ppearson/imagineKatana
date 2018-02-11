@@ -4,9 +4,12 @@
 #include <string>
 #include <vector>
 
+#include <FnAttribute/FnAttribute.h>
+
 #include "core/hash.h"
 #include "colour/colour3f.h"
 #include "utils/threads/mutex.h"
+#include "utils/params.h"
 
 namespace Imagine
 {
@@ -52,6 +55,9 @@ struct KatanaUpdateItem
 	Imagine::Material*		pMaterial;
 	
 	std::vector<double>		xform;
+	
+	// anything extra
+	Imagine::Params			extra;
 };
 
 
@@ -105,6 +111,13 @@ protected:
 	std::vector<KatanaUpdateItem>	m_aUpdateItems;
 	
 	Imagine::HashValue				m_lastCameraTransformHash;
+};
+
+class LiveRenderHelpers
+{
+public:
+	
+	static void setUpdateXFormFromAttribute(const FnKat::GroupAttribute& xFormUpdateAttribute, KatanaUpdateItem& updateItem);
 };
 
 #endif // LIVE_RENDER_HELPERS_H
