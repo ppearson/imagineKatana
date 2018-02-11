@@ -262,7 +262,7 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 	helper.addFloatParam("refraction_index", 1.49f);
 
 	helper.addFloatSliderParam("transparency", 0.0f);
-	helper.addFloatSliderParam("transmission", 0.0f);
+	helper.addFloatSliderParam("transmittance", 1.0f);
 
 	helper.addBoolParam("double_sided", 0);
 }

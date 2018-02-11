@@ -631,6 +631,9 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 
 	float transparency = ah.getFloatParam("transparency", 0.0f);
 	pNewStandardMaterial->setTransparancy(transparency);
+	
+	float transmittance = ah.getFloatParam("transmittance", 1.0f);
+	pNewStandardMaterial->setTransmittance(transmittance);
 
 	int doubleSided = ah.getIntParam("double_sided", 0);
 	if (doubleSided == 1)
