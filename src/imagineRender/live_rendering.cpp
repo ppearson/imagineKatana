@@ -36,7 +36,7 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 		if (!dataUpdateItemAttribute.isValid())
 			continue;
 		
-//		fprintf(stderr, "\n\n\n%s\n\n\n", dataUpdateItemAttribute.getXML().c_str());
+//		fprintf(stderr, "\n\n%s\n\n", dataUpdateItemAttribute.getXML().c_str());
 
 		FnKat::StringAttribute typeAttribute = dataUpdateItemAttribute.getChildByName("type");
 
@@ -46,8 +46,8 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 		FnKat::StringAttribute locationAttribute = dataUpdateItemAttribute.getChildByName("location");
 		FnKat::GroupAttribute attributesAttribute = dataUpdateItemAttribute.getChildByName("attributes");
 		
-//		fprintf(stderr, "\n\n\n%s\n\n\n", attributesAttribute.getXML().c_str());
-
+//		fprintf(stderr, "\n\n%s\n\n", attributesAttribute.getXML().c_str());
+		
 		bool partialUpdate = false;
 
 		FnKat::StringAttribute partialUpdateAttribute = attributesAttribute.getChildByName("partialUpdate");
@@ -143,12 +143,30 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 		}
 		else if (type == "geo")
 		{
+			KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObject, KatanaUpdateItem::eLocObject, location);
+			
+			bool changed = false;
+			
 			FnKat::GroupAttribute xformAttribute = attributesAttribute.getChildByName("xform");
 			if (xformAttribute.isValid())
 			{
-				KatanaUpdateItem newUpdate(KatanaUpdateItem::eTypeObject, KatanaUpdateItem::eLocObject, location);
-				
 				LiveRenderHelpers::setUpdateXFormFromAttribute(xformAttribute, newUpdate);
+				changed = true;
+			}
+			
+			FnKat::IntAttribute deletedAttribute = attributesAttribute.getChildByName("deleted");
+			if (deletedAttribute.isValid())
+			{
+				int deletedValue = deletedAttribute.getValue(0, false);
+				if (deletedValue == 1)
+				{
+					newUpdate.extra.add("deleted", true);
+					changed = true;
+				}
+			}
+			
+			if (changed)
+			{
 				m_liveRenderState.addUpdate(newUpdate);
 			}
 		}
@@ -184,12 +202,7 @@ int ImagineRender::queueDataUpdates(FnKat::GroupAttribute updateAttribute)
 			if (muteAttribute.isValid())
 			{
 				int muteValue = muteAttribute.getValue(0, false);
-				if (muteValue == 1)
-				{
-					// cheat, and set intensity and exposure to 0.0f to mute it
-					newUpdate.extra.add("intensity", 0.0f);
-					newUpdate.extra.add("exposure", 0.0f);
-				}
+				newUpdate.extra.add("muted", (bool)muteValue);
 			}
 			
 			m_liveRenderState.addUpdate(newUpdate);
@@ -214,9 +227,6 @@ int ImagineRender::applyPendingDataUpdates()
 	// stop tracing as early as possible, so the render threads can shut down
 	m_pRaytracer->terminate();
 	
-	// for the moment, we need to pause a bit for some update types, but this should really be behind an interface in Imagine...
-//	::usleep(100);
-
 	std::vector<KatanaUpdateItem>::const_iterator itUpdate = m_liveRenderState.updatesBegin();
 	for (; itUpdate != m_liveRenderState.updatesEnd(); ++itUpdate)
 	{
@@ -227,7 +237,10 @@ int ImagineRender::applyPendingDataUpdates()
 			// get hold of camera
 			Camera* pCamera = m_pScene->getRenderCamera();
 
-			pCamera->transform().setCachedMatrix(update.xform.data(), true);
+			if (update.haveXForm)
+			{
+				pCamera->transform().setCachedMatrix(update.xform.data(), true);
+			}
 			
 			m_logger.debug("Updating Camera matrix");
 			
@@ -262,7 +275,25 @@ int ImagineRender::applyPendingDataUpdates()
 			
 			m_logger.debug("Updating properties of object: %s", update.location.c_str());
 			
-			pLocationObject->transform().setCachedMatrix(update.xform.data(), true);
+			if (pLocationObject->getRenderVisibilityFlags() == 0)
+			{
+				// we can cheat here, and assume that if we've made it invisible before, we need to add it again.
+				// This isn't really correct, as we can't tell the difference between deleted and hidden, but...
+				pLocationObject->setRenderVisibilityFlags(RENDER_VISIBILITY_FLAGS_ALL);
+			}
+			else
+			{
+				if (update.extra.getBool("deleted", false))
+				{
+					// hacky and wrong, but...
+					pLocationObject->setRenderVisibilityFlags(0);
+				}
+			}			
+			
+			if (update.haveXForm)
+			{
+				pLocationObject->transform().setCachedMatrix(update.xform.data(), true);
+			}
 		}
 		else if (update.type == KatanaUpdateItem::eTypeLight)
 		{
@@ -276,13 +307,15 @@ int ImagineRender::applyPendingDataUpdates()
 			
 			m_logger.debug("Updating properties of light: %s", update.location.c_str());
 			
-			pLocationLight->transform().setCachedMatrix(update.xform.data(), true);
-			
-			if (!update.extra.isEmpty())
+			if (update.haveXForm)
 			{
-				pLocationLight->setIntensity(update.extra.getFloat("intensity", 1.0f));
-				pLocationLight->setExposure(update.extra.getFloat("exposure", 1.0f));
+				pLocationLight->transform().setCachedMatrix(update.xform.data(), true);
 			}
+			
+			pLocationLight->setMuted(update.extra.getBool("muted", false));
+			
+			pLocationLight->setIntensity(update.extra.getFloat("intensity", 1.0f));
+			pLocationLight->setExposure(update.extra.getFloat("exposure", 1.0f));
 		}
 	}
 

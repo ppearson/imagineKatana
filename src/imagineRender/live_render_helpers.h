@@ -35,14 +35,8 @@ struct KatanaUpdateItem
 		eTypeLight
 	};
 	
-	// pretty disgusting - only for prototype purposes - need full Args stuff here.
-	struct MaterialDef
-	{
-		Imagine::Colour3f		diffColour;
-	};
-	
 	KatanaUpdateItem(UpdateType ty, UpdateLocationType locType, const std::string& loc) : type(ty), locationType(locType), location(loc),
-									pMaterial(NULL)
+									pMaterial(NULL), haveXForm(false)
 	{
 		
 	}	
@@ -51,9 +45,9 @@ struct KatanaUpdateItem
 	UpdateLocationType		locationType;
 	std::string				location;
 	
-//	MaterialDef				material;
 	Imagine::Material*		pMaterial;
 	
+	bool					haveXForm;
 	std::vector<double>		xform;
 	
 	// anything extra

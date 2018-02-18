@@ -7,6 +7,7 @@
 void LiveRenderHelpers::setUpdateXFormFromAttribute(const FnKat::GroupAttribute& xFormUpdateAttribute, KatanaUpdateItem& updateItem)
 {
 	updateItem.xform.resize(16);
+	updateItem.haveXForm = true;
 
 	FnKat::DoubleAttribute xformMatrixAttribute = xFormUpdateAttribute.getChildByName("global");			
 	if (xformMatrixAttribute.isValid())

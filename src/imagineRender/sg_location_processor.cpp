@@ -1531,10 +1531,7 @@ void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
 	
 	if (m_isLiveRender && isMuted)
 	{
-		// if we are live rendering, and it's a muted light, cheat, and set
-		// the intensity to 0.0f.
-		pNewLight->setIntensity(0.0f);
-		pNewLight->setExposure(0.0f);
+		pNewLight->setMuted(true);
 	}
 
 	FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(iterator);
