@@ -51,7 +51,7 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 
 	m_renderWidth = 512;
 	m_renderHeight = 512;
-	
+
 	// set initial log level, that will be overwritten later on...
 	m_logger.initialiseConsoleLogger(Logger::eLogStdErr, Logger::eLevelInfo, true);
 	// override the main logger to use this one
@@ -536,7 +536,7 @@ void ImagineRender::performDiskRender(Foundry::Katana::Render::RenderSettings& s
 {
 	if (m_diskRenderOutputPath.empty())
 		return;
-	
+
 	m_logger.info("Performing disk render to: %s", m_diskRenderOutputPath.c_str());
 
 	{
@@ -559,7 +559,7 @@ void ImagineRender::performPreviewRender(Foundry::Katana::Render::RenderSettings
 {
 	if (!setupPreviewDataChannel(settings))
 		return;
-	
+
 	m_logger.info("Performing preview render");
 
 	{
@@ -582,7 +582,7 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 {
 	if (!setupPreviewDataChannel(settings))
 		return;
-	
+
 	m_logger.info("Performing live render");
 
 	{
@@ -600,13 +600,13 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 	m_renderSettings.add("preview", true);
 	if (m_fastLiveRenders)
 	{
-		m_renderSettings.add("SamplesPerIteration", 4);
-		m_renderSettings.add("Iterations", 60);
+		m_renderSettings.add("SamplesPerIteration", 2);
+		m_renderSettings.add("Iterations", 256);
 	}
 	else
 	{
 		m_renderSettings.add("SamplesPerIteration", 16);
-		m_renderSettings.add("Iterations", 30);
+		m_renderSettings.add("Iterations", 144);
 	}
 	m_renderSettings.add("progressive", true);
 
