@@ -293,7 +293,7 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 	helper.addFloatParam("k", 4.8f);
 	helper.addFloatSliderParam("roughness", 0.01f);
 
-	helper.addIntEnumParam("microfacet_type", 1, microfacetTypeOptions, 3);
+	helper.addStringPopupParam("microfacet_type", "beckmann", microfacetTypeOptions, 3);
 
 	helper.addBoolParam("double_sided", 0);
 }
