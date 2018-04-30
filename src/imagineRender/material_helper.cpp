@@ -12,9 +12,12 @@
 #include "materials/velvet_material.h"
 #include "materials/luminous_material.h"
 
+#include "textures/shader_ops/op_adjust.h"
 #include "textures/shader_ops/op_invert.h"
+#include "textures/shader_ops/op_mix.h"
 
 #include "textures/constant.h"
+#include "textures/shader_ops/op_texture_read.h"
 #include "textures/procedural_2d/checkerboard_2d.h"
 #include "textures/procedural_2d/gridlines.h"
 #include "textures/procedural_2d/swatch.h"
@@ -338,8 +341,8 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 					bool foundConnection = false;
 
 					// now find what it's connected to
-					// for the moment, hopefully we're only going to be connecting Ops (Textures)
 
+					// first see if it's an op
 					std::map<std::string, Texture*>::const_iterator itFindItem = aOpNodes.find(connectionNodeName);
 					if (itFindItem != aOpNodes.end())
 					{
@@ -394,8 +397,13 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 					// for the moment, hopefully we're only going to be connecting Ops (Textures)
 
 					std::map<std::string, Texture*>::const_iterator itFindItem = aOpNodes.find(connectionNodeName);
-
+					// otherwise, see if it was a texture
 					if (itFindItem == aOpNodes.end())
+					{
+						itFindItem = aTextureNodes.find(connectionNodeName);
+					}
+
+					if (itFindItem == aOpNodes.end() || itFindItem == aTextureNodes.end())
 					{
 						m_logger.error("Can't find existing Node: %s for connection: %s", connectionNodeName.c_str(), paramName.c_str());
 						continue;
@@ -425,12 +433,29 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 Texture* MaterialHelper::createNetworkOpItem(const std::string& opName, const FnKat::GroupAttribute& params)
 {
 	// TODO: do something better than this...
+	
+	Texture* pNewOp = NULL;
+	
+	KatanaAttributeHelper ah(params);
 
-	if (opName == "Mix")
+	if (opName == "Adjust")
 	{
-
+		OpAdjust* pTypedNewOp = new OpAdjust();
+		
+		pTypedNewOp->setAdjustValue(ah.getFloatParam("adjust_value", 1.0f));
+		
+		return pTypedNewOp;
 	}
-	return NULL;
+	else if (opName == "Mix")
+	{
+		OpMix* pTypedNewOp = new OpMix();
+		
+		pTypedNewOp->setConstantMixValue(ah.getFloatParam("mix_value", 0.5f));
+		
+		return pTypedNewOp;
+	}
+	
+	return pNewOp;
 }
 
 Texture* MaterialHelper::createNetworkTextureItem(const std::string& textureName, const FnKat::GroupAttribute& params)
@@ -441,7 +466,7 @@ Texture* MaterialHelper::createNetworkTextureItem(const std::string& textureName
 
 	if (textureName == "TextureRead")
 	{
-
+		pNewTexture = createTextureReadTexture(params);
 	}
 	else if (textureName == "Constant")
 	{
@@ -495,9 +520,35 @@ void MaterialHelper::connectTextureToMaterial(Material* pMaterial, const std::st
 	}
 }
 
+// TODO: again, just making this worse and worse instead of doing things properly with the Args API, but...
 void MaterialHelper::connectOpToOp(Texture* pTargetOp, const std::string& opName, const std::string& paramName, const Texture* pSourceOp)
 {
-
+	if (opName == "Adjust")
+	{
+		OpAdjust* pOA = static_cast<OpAdjust*>(pTargetOp);
+		
+		if (paramName == "input")
+		{
+			pOA->setInputTexture(pSourceOp);
+		}
+	}
+	else if (opName == "Mix")
+	{
+		OpMix* pOM = static_cast<OpMix*>(pTargetOp);
+		
+		if (paramName == "mix_amount")
+		{
+			pOM->setInputTexture(pSourceOp);
+		}
+		else if (paramName == "input_A")
+		{
+			pOM->setInputATexture(pSourceOp);
+		}
+		else if (paramName == "input_B")
+		{
+			pOM->setInputBTexture(pSourceOp);
+		}
+	}
 }
 
 // TODO: this is crap and is just getting silly - need to finish the Args interface API so none of this hard-coded stuff
@@ -1140,6 +1191,19 @@ Texture* MaterialHelper::createSwatchTexture(const FnKat::GroupAttribute& textur
 
 	pNewTexture->setScaleValues(scaleU, scaleV);
 
+	return pNewTexture;
+}
+
+Imagine::Texture* MaterialHelper::createTextureReadTexture(const FnKat::GroupAttribute& textureParamsAttr)
+{
+	OpTextureRead* pNewTexture = new OpTextureRead();
+	
+	KatanaAttributeHelper ah(textureParamsAttr);
+	
+	std::string texturePath = ah.getStringParam("texture_path");
+	
+	pNewTexture->setTexturePath(texturePath);
+	
 	return pNewTexture;
 }
 

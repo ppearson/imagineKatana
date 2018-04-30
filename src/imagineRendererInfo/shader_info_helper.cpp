@@ -44,6 +44,16 @@ void ShaderInfoHelper::fillShaderInputNames(const std::string& shaderName, std::
 		names.push_back("transparency");
 		names.push_back("transmittance");
 	}
+	else if (shaderName == "Op/Adjust")
+	{
+		names.push_back("input");
+	}
+	else if (shaderName == "Op/Mix")
+	{
+		names.push_back("mix_amount");
+		names.push_back("input_A");
+		names.push_back("input_B");
+	}
 }
 
 void ShaderInfoHelper::fillShaderOutputNames(const std::string& shaderName, std::vector<std::string>& names)
@@ -187,9 +197,24 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 		{
 			buildSwatchTextureParams(iri, rendererObjectInfo);
 		}
+		else if (buildName == "TextureRead")
+		{
+			buildWireframeTextureParams(iri, rendererObjectInfo);
+		}
 		else if (buildName == "Wireframe")
 		{
 			buildWireframeTextureParams(iri, rendererObjectInfo);
+		}
+	}
+	else if (typeName == "Op")
+	{
+		if (buildName == "Adjust")
+		{
+			buildAdjustOpParams(iri, rendererObjectInfo);
+		}
+		else if (buildName == "Mix")
+		{
+			buildMixOpParams(iri, rendererObjectInfo);
 		}
 	}
 
@@ -231,7 +256,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 
 	helper.addBoolParam("double_sided", 0);
 }
-
+					// for the moment, hopefully we're only going to be connecting Ops
 void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
@@ -478,7 +503,7 @@ void ShaderInfoHelper::buildDistantLightShaderParams(const ImagineRendererInfo& 
 	helper.addFloatSliderParam("spread_angle", 1.0f, 0.0f, 33.0f);
 }
 
-void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+void ShaderInfoHelper::buildSkydomeLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)					// for the moment, hopefully we're only going to be connecting Ops
 {
 	buildCommonLightShaderParams(iri, rendererObjectInfo, true);
 }
@@ -576,6 +601,13 @@ void ShaderInfoHelper::buildSwatchTextureParams(const ImagineRendererInfo& iri, 
 	helper.addBoolParam("checkerboard", false);
 }
 
+void ShaderInfoHelper::buildTextureReadTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+
+	helper.addStringParam("texture_path");
+}
+
 void ShaderInfoHelper::buildWireframeTextureParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
 {
 	ShaderInfoHelper helper(iri, rendererObjectInfo);
@@ -587,6 +619,22 @@ void ShaderInfoHelper::buildWireframeTextureParams(const ImagineRendererInfo& ir
 	helper.addFloatSliderParam("edge_softness", 0.3f);
 
 	helper.addIntParam("edge_type", 1);
+}
+
+//
+
+void ShaderInfoHelper::buildAdjustOpParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+	
+	helper.addFloatSliderParam("adjust_value", 1.0f, 0.0f, 5.0f);
+}
+
+void ShaderInfoHelper::buildMixOpParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
+{
+	ShaderInfoHelper helper(iri, rendererObjectInfo);
+	
+	helper.addFloatSliderParam("mix_value", 0.5f);
 }
 
 //

@@ -74,6 +74,7 @@ protected:
 	static Imagine::Texture* createCheckerboardTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createGridTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createSwatchTexture(const FnKat::GroupAttribute& textureParamsAttr);
+	static Imagine::Texture* createTextureReadTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	static Imagine::Texture* createWireframeTexture(const FnKat::GroupAttribute& textureParamsAttr);
 	
 	static bool isRecognisedShaderType(const std::string& name);
