@@ -600,12 +600,12 @@ void ImagineRender::performLiveRender(Foundry::Katana::Render::RenderSettings& s
 	m_renderSettings.add("preview", true);
 	if (m_fastLiveRenders)
 	{
-		m_renderSettings.add("SamplesPerIteration", 2);
+		m_renderSettings.add("SamplesPerIteration", 1);
 		m_renderSettings.add("Iterations", 256);
 	}
 	else
 	{
-		m_renderSettings.add("SamplesPerIteration", 16);
+		m_renderSettings.add("SamplesPerIteration", 9);
 		m_renderSettings.add("Iterations", 144);
 	}
 	m_renderSettings.add("progressive", true);
