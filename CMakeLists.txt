@@ -37,6 +37,11 @@ ENDIF(${MODERN_GCC} MATCHES "1")
 #SET(GENERAL_COMPILER_FLAGS "-fsanitize=address -mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
 SET(GENERAL_COMPILER_FLAGS "-mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
 
+SET(CXX11 1)
+IF(${CXX11} MATCHES 1)
+	SET(GENERAL_COMPILER_FLAGS "${GENERAL_COMPILER_FLAGS} -std=c++11")
+ENDIF(${CXX11} MATCHES 1)
+
 # -fvisibility-inlines-hidden -fvisibility=hidden
 
 # CFLAGS = -ffunction-sections
