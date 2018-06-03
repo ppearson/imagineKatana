@@ -1354,6 +1354,9 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 
 	Object* pNewObject = NULL;
 	
+	if (m_creationSettings.m_discardGeometry)
+		return;
+	
 	// In the interests of efficiency, only bother asking for one ID for the location which all resulting
 	// instances will share.
 	// Note: with heavily-instanced scenes, there's around a 20% overhead at expansion time
@@ -1456,6 +1459,9 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 			radius = radiusAttr.getValue(1.0f, false);
 		}
 	}
+	
+	if (m_creationSettings.m_discardGeometry)
+		return;
 
 	Sphere* pSphere = new Sphere((float)radius, 16);
 
