@@ -169,7 +169,11 @@ void ImagineRender::configureDiskRenderOutputProcess(FnKatRender::DiskRenderOutp
 	// Get the attributes we need for the render output from renderSettings attrib on the root node.
 	FnKatRender::RenderSettings::RenderOutput output = renderSettings.getRenderOutputByName(outputName);
 
+#if KATANA_V3
+	Foundry::Katana::Render::DiskRenderOutputProcess::RenderActionPtr renderAction;
+#else
 	std::auto_ptr<FnKatRender::RenderAction> renderAction;
+#endif
 
 	if (output.type == "color")
 	{
@@ -184,7 +188,11 @@ void ImagineRender::configureDiskRenderOutputProcess(FnKatRender::DiskRenderOutp
 		}
 	}
 
+#if KATANA_V3
+	diskRender.setRenderAction(FnPlatform::internal::UniquePtr<FnKatRender::RenderAction>::move(renderAction));
+#else
 	diskRender.setRenderAction(renderAction);
+#endif
 }
 
 bool ImagineRender::configureGeneralSettings(Foundry::Katana::Render::RenderSettings& settings, FnKat::FnScenegraphIterator rootIterator, RenderType renderType)
@@ -748,6 +756,24 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 		raytracer.renderScene(1.0f, NULL, true);
 
 		m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
+		
+		// as each render (other than live rendering) is within its own forked process which dies
+		// at the end of the render, there's no reason to really do this, but the below is useful
+		// for when tracking memory leaks...
+
+/*
+		if (m_pScene)
+		{
+			delete m_pScene;
+			m_pScene = NULL;
+		}
+		
+		if (m_pOutputImage)
+		{
+			delete m_pOutputImage;
+			m_pOutputImage = NULL;
+		}
+*/
 	}
 	else
 	{

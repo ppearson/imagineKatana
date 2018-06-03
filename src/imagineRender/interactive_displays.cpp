@@ -19,6 +19,12 @@ using namespace Imagine;
 // to try and work out what's actually needed, it makes things cleaner for the moment...
 // TODO: This stuff in here can be encapsulated in a class quite easily...
 
+#if KATANA_V3
+#define USE_KAT3_ZERO_COPY_DATA 1
+#else
+#define USE_KAT3_ZERO_COPY_DATA 0
+#endif
+
 bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
 {
 	m_interactiveFrameID = -1;
@@ -236,8 +242,14 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		pMainFrame = m_pFrame;
 #endif
 		
+#ifdef KATANA_V3_TODO
+		// this technically speaking leaks, but there's not really that much point freeing it on renderBase::stop(), as the process dies anyway...
+		rChannel.pChannelMessage = new FnKat::NewChannelMessage_v2(*pMainFrame, localChannelID, FnKat::NewChannelMessage_v2::RGBA,
+																   m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
+#else
 		// this technically speaking leaks, but there's not really that much point freeing it on renderBase::stop(), as the process dies anyway...
 		rChannel.pChannelMessage = new FnKat::NewChannelMessage(*pMainFrame, localChannelID, m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
+#endif
 
 		std::string channelName;
 #if INCREMENTAL_CHANNEL_IDS
@@ -270,6 +282,14 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 #endif
 	return true;
 }
+
+#if USE_KAT3_ZERO_COPY_DATA
+void ImageDataBufferDeleter(void* pData)
+{
+    char* dataArray = reinterpret_cast<char*>(pData);
+    delete [] dataArray;
+}
+#endif
 
 void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 {
@@ -459,7 +479,11 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 			}
 		}
 
+#if USE_KAT3_ZERO_COPY_DATA
+		pNewTileMessage->setData(pData, dataSize, ImageDataBufferDeleter);
+#else
 		pNewTileMessage->setData(pData, dataSize);
+#endif
 		pNewTileMessage->setByteSkip(skipSize);
 
 #if USE_PIPE_PER_CHANNEL
@@ -468,8 +492,11 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		m_pDataPipe->send(*pNewTileMessage);
 #endif
 
+#if USE_KAT3_ZERO_COPY_DATA
+#else
 		delete [] pData;
 		pData = NULL;
+#endif
 
 		delete pNewTileMessage;
 		pNewTileMessage = NULL;
@@ -598,18 +625,23 @@ void ImagineRender::sendFullFrameToMonitor()
 				}
 			}
 			
-			pNewTileMessage->setData(pData, dataSize);
+#if USE_KAT3_ZERO_COPY_DATA
+			pNewTileMessage->setData(pData, dataSize, ImageDataBufferDeleter);
+#else
 			pNewTileMessage->setByteSkip(skipSize);
+#endif
 	
 #if USE_PIPE_PER_CHANNEL
 			rChannel.pDataPipe->send(*pNewTileMessage);
 #else
 			m_pDataPipe->send(*pNewTileMessage);
 #endif
-	
+
+#if USE_KAT3_ZERO_COPY_DATA
+#else
 			delete [] pData;
 			pData = NULL;
-	
+#endif	
 			delete pNewTileMessage;
 			pNewTileMessage = NULL;
 			
