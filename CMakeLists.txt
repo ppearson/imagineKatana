@@ -6,9 +6,9 @@ project (imagineKatana)
 
 include(ExternalProject)
 
-SET(KATANA_V3 0)
+SET(KATANA_V3 1)
 IF (${KATANA_V3} MATCHES "1")
-    SET(KATANA_PLUGIN_API_PATH "/opt/Katana3.0v1.010012b/plugin_apis")
+    SET(KATANA_PLUGIN_API_PATH "/opt/Katana3.0v1/plugin_apis")
     ADD_DEFINITIONS(-DKATANA_V3)
 ELSE()
     SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
