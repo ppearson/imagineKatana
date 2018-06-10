@@ -36,14 +36,12 @@ ImagineRender::ImagineRender(FnKat::FnScenegraphIterator rootIterator, FnKat::Gr
 	m_ambientOcclusion(false), m_fastLiveRenders(false), m_motionBlur(false),
 	m_ROIActive(false)
 {
-#if ENABLE_PREVIEW_RENDERS
 	m_pOutputImage = NULL;
 	m_pDataPipe = NULL;
 	m_pFrame = NULL;
 
 	m_enableIDPicking = true;
 	m_pIDState = NULL;
-#endif
 
 	m_pRaytracer = NULL;
 
@@ -720,8 +718,6 @@ void ImagineRender::startDiskRenderer()
 
 void ImagineRender::startInteractiveRenderer(bool liveRender)
 {
-#if ENABLE_PREVIEW_RENDERS
-
 	unsigned int imageFlags = COMPONENT_RGBA | COMPONENT_SAMPLES;
 	imageFlags |= m_extraAOVsFlags;
 
@@ -802,15 +798,12 @@ void ImagineRender::startInteractiveRenderer(bool liveRender)
 
 //		m_rendererOtherMemory = m_pRaytracer->getRendererMemoryUsage();
 	}
-#endif
 }
 
 void ImagineRender::renderFinished()
 {
 	// TODO: see if this is getting called on re-render...
-#if ENABLE_PREVIEW_RENDERS
 	sendFullFrameToMonitor();
-#endif
 
 	m_logger.info("Render complete.");
 

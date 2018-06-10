@@ -3,12 +3,8 @@
 
 #include <FnRender/plugin/RenderBase.h>
 
-#define ENABLE_PREVIEW_RENDERS 1
-
-#if ENABLE_PREVIEW_RENDERS
 #include <FnDisplayDriver/FnKatanaDisplayDriver.h>
 #include "image/output_image.h"
-#endif
 
 #include "misc_helpers.h"
 #include "live_render_helpers.h"
@@ -148,7 +144,6 @@ protected:
 	std::string					m_katanaHost;
 	unsigned int				m_katanaPort;
 
-#if ENABLE_PREVIEW_RENDERS
 	Imagine::OutputImage*		m_pOutputImage;
 	FnKat::KatanaPipe*			m_pDataPipe;
 	FnKat::NewFrameMessage*		m_pFrame;
@@ -159,7 +154,6 @@ protected:
 	int							m_interactiveFrameID;
 	std::string					m_interactivePrimaryChannelName;
 	std::vector<RenderChannel>	m_aInteractiveChannels;
-#endif
 
 	//
 	CreationSettings			m_creationSettings;

@@ -21,8 +21,10 @@ using namespace Imagine;
 
 #if KATANA_V3
 #define USE_KAT3_ZERO_COPY_DATA 1
+#define USE_KAT3_RGBA_ORDER 0 // using this currently breaks id buffer when registered as 1 float channel...
 #else
 #define USE_KAT3_ZERO_COPY_DATA 0
+#define USE_KAT3_RGBA_ORDER 0
 #endif
 
 bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
@@ -51,9 +53,6 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 	// customise channels we're going to do from settings...
 	bool doExtaChannels = true;
-
-	//
-#if ENABLE_PREVIEW_RENDERS
 	
 #if INCREMENTAL_CHANNEL_IDS
 	int channelID = 0;
@@ -96,7 +95,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 		if (doExtaChannels && channelType == "n")
 		{
-			m_aInteractiveChannels.push_back(RenderChannel(channelBufferName, channelType, 3, 4, m_interactiveFrameID, localChannelID));
+			m_aInteractiveChannels.push_back(RenderChannel(channelBufferName, channelType, 3, 3, m_interactiveFrameID, localChannelID));
 			m_renderSettings.add("output_normals", true);
 			m_extraAOVsFlags |= COMPONENT_NORMAL;
 		}
@@ -242,7 +241,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		pMainFrame = m_pFrame;
 #endif
 		
-#ifdef KATANA_V3_TODO
+#if USE_KAT3_RGBA_ORDER
 		// this technically speaking leaks, but there's not really that much point freeing it on renderBase::stop(), as the process dies anyway...
 		rChannel.pChannelMessage = new FnKat::NewChannelMessage_v2(*pMainFrame, localChannelID, FnKat::NewChannelMessage_v2::RGBA,
 																   m_renderHeight, m_renderWidth, originX, originY, 1.0f, 1.0f);
@@ -279,7 +278,6 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		channelIndex++;		
 	}
 
-#endif
 	return true;
 }
 
@@ -400,9 +398,11 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 			{
 				const Colour4f* pSrcRow = imageCopy.colourRowPtr(y + i);
 				const Colour4f* pSrcPixel = pSrcRow + x;
-		
+				
+#if USE_KAT3_RGBA_ORDER
+				memcpy(pDstRow, &pSrcPixel->r, width * skipSize);
+#else
 				unsigned char* pDstPixel = pDstRow;
-		
 				for (unsigned int j = 0; j < width; j++)
 				{
 					// copy each component manually, as we need to swap the A channel to be beginning for Katana...
@@ -417,34 +417,19 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		
 					pSrcPixel += 1;
 				}
+#endif
 		
 				pDstRow += width * skipSize;
 			}
 		}
 		else if (rChannel.type == "n")
-		{
-			static float zero = 1.0f;
-			
+		{		
 			for (unsigned int i = 0; i < height; i++)
 			{
 				const Colour3f* pSrcRow = imageCopy.normalRowPtr(y + i);
 				const Colour3f* pSrcPixel = pSrcRow + x;
 	
-				unsigned char* pDstPixel = pDstRow;
-	
-				for (unsigned int j = 0; j < width; j++)
-				{
-					memcpy(pDstPixel, &zero, sizeof(float));
-					pDstPixel += sizeof(float);
-					memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
-					pDstPixel += sizeof(float);
-					memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
-					pDstPixel += sizeof(float);
-					memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
-					pDstPixel += sizeof(float);
-	
-					pSrcPixel += 1;
-				}
+				memcpy(pDstRow, &pSrcPixel->r, width * skipSize);
 	
 				pDstRow += width * skipSize;
 			}
@@ -467,6 +452,8 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 				
 				// Sending a single channel with just the ID also seems to work...
 	
+				memcpy(pDstRow, pSrcPixel, width * skipSize);
+/*				
 				for (unsigned int j = 0; j < width; j++)
 				{
 					memcpy(pDstPixel, pSrcPixel, sizeof(float));
@@ -474,7 +461,7 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 		
 					pSrcPixel += 1;
 				}
-	
+*/
 				pDstRow += width * skipSize;
 			}
 		}
@@ -505,7 +492,6 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 
 void ImagineRender::sendFullFrameToMonitor()
 {
-#if ENABLE_PREVIEW_RENDERS
 	bool doFinal = true;
 	if (doFinal && m_pOutputImage)
 	{
@@ -548,7 +534,9 @@ void ImagineRender::sendFullFrameToMonitor()
 					const Colour4f* pSrcPixel = pSrcRow;
 			
 					unsigned char* pDstPixel = pDstRow;
-			
+#if USE_KAT3_RGBA_ORDER
+					memcpy(pDstRow, &pSrcPixel->r, origWidth * skipSize);
+#else			
 					for (unsigned int j = 0; j < origWidth; j++)
 					{
 						// copy each component manually, as we need to swap the A channel to be beginning for Katana...
@@ -563,34 +551,19 @@ void ImagineRender::sendFullFrameToMonitor()
 			
 						pSrcPixel += 1;
 					}
+#endif
 			
 					pDstRow += origWidth * skipSize;
 				}
 			}
 			else if (rChannel.type == "n")
-			{
-				static float zero = 0.0f;
-				
+			{				
 				for (unsigned int i = 0; i < origHeight; i++)
 				{
 					const Colour3f* pSrcRow = imageCopy.normalRowPtr(i);
 					const Colour3f* pSrcPixel = pSrcRow;
 		
-					unsigned char* pDstPixel = pDstRow;
-		
-					for (unsigned int j = 0; j < origWidth; j++)
-					{
-						memcpy(pDstPixel, &zero, sizeof(float));
-						pDstPixel += sizeof(float);
-						memcpy(pDstPixel, &pSrcPixel->r, sizeof(float));
-						pDstPixel += sizeof(float);
-						memcpy(pDstPixel, &pSrcPixel->g, sizeof(float));
-						pDstPixel += sizeof(float);
-						memcpy(pDstPixel, &pSrcPixel->b, sizeof(float));
-						pDstPixel += sizeof(float);
-		
-						pSrcPixel += 1;
-					}
+					memcpy(pDstRow, &pSrcPixel->r, origWidth * skipSize);
 		
 					pDstRow += origWidth * skipSize;
 				}
@@ -628,8 +601,9 @@ void ImagineRender::sendFullFrameToMonitor()
 #if USE_KAT3_ZERO_COPY_DATA
 			pNewTileMessage->setData(pData, dataSize, ImageDataBufferDeleter);
 #else
-			pNewTileMessage->setByteSkip(skipSize);
+			pNewTileMessage->setData(pData, dataSize);
 #endif
+			pNewTileMessage->setByteSkip(skipSize);
 	
 #if USE_PIPE_PER_CHANNEL
 			rChannel.pDataPipe->send(*pNewTileMessage);
@@ -672,5 +646,4 @@ void ImagineRender::sendFullFrameToMonitor()
 		delete m_pOutputImage;
 		m_pOutputImage = NULL;
 	}
-#endif
 }
