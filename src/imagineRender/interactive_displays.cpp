@@ -21,11 +21,13 @@ using namespace Imagine;
 
 #if KATANA_V3
 #define USE_KAT3_ZERO_COPY_DATA 1
-#define USE_KAT3_RGBA_ORDER 0 // using this currently breaks id buffer when registered as 1 float channel...
+#define USE_KAT3_RGBA_ORDER 1 // using this currently breaks id buffer when registered as 1 float channel...
 #else
 #define USE_KAT3_ZERO_COPY_DATA 0
 #define USE_KAT3_RGBA_ORDER 0
 #endif
+
+#define USE_1CHANNEL_ID_BUFFER 1
 
 bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSettings& settings)
 {
@@ -45,10 +47,10 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	std::string strPort = m_rawKatanaHost.substr(portSep + 1);
 	m_katanaPort = atol(strPort.c_str());
 
-	// perversely, Katana requires the port number retrieved above to be incremented by 100,
+	// Katana requires the port number retrieved above to be incremented by 100,
 	// despite the fact that KatanaPipe::connect() seems to handle doing that itself for the control
 	// port (which is +100 the data port). Not doing this causes Katana to segfault on the connect()
-	// call, leaving renderBoot orphaned doing the render in the background...
+	// call, leaving renderboot orphaned doing the render in the background...
 	m_katanaPort += 100;
 
 	// customise channels we're going to do from settings...
@@ -95,6 +97,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 
 		if (doExtaChannels && channelType == "n")
 		{
+			// Katana does seem to support 3 channel "channels", and sets a 1.0 alpha for all the image in this case.
 			m_aInteractiveChannels.push_back(RenderChannel(channelBufferName, channelType, 3, 3, m_interactiveFrameID, localChannelID));
 			m_renderSettings.add("output_normals", true);
 			m_extraAOVsFlags |= COMPONENT_NORMAL;
@@ -116,7 +119,20 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 		std::string channelType = "id";
 		
 		// IDs have to be the same here...
+		
+		// Despite Katana accepting 3-channel channels in the N case (above), and automatically filling in a constant 1.0 alpha for it,
+		// the ID channel seems to be handled separately, and can only be a 1- or 4-channel channel.
+#if USE_1CHANNEL_ID_BUFFER
+		// if it's a single channel, Katana will accept it as if the destination literally is a single float channel * image dimensions,
+		// as long as Katana 3.0's new RGBA order isn't enabled - if it is, then it doesn't work, indicating Katana is still backing this
+		// channel internally as a 4-channel buffer?!
 		m_aInteractiveChannels.push_back(RenderChannel(channelName, channelType, 1, 1, m_interactiveFrameID, m_interactiveFrameID));
+#else
+		
+		// Can't seem to get IDs to work at all with 3-channel buffers - putting the ID in R, G or B doesn't work.
+		// With 4-channel buffers it works.
+		m_aInteractiveChannels.push_back(RenderChannel(channelName, channelType, 1, 4, m_interactiveFrameID, m_interactiveFrameID));
+#endif
 		m_extraAOVsFlags |= COMPONENT_ID;
 
 		m_renderSettings.add("output_ids", true);		
@@ -441,8 +457,6 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 			{
 				const float* pSrcRow = imageCopy.idRowPtr(y + i);
 				const float* pSrcPixel = pSrcRow + x;
-	
-				unsigned char* pDstPixel = pDstRow;
 				
 				// it's ambiguous what Katana expects here - it *seems* to accept 1, 3 and 4 channel images,
 				// but it's not clear where it wants the single channel items for the ID in the latter two cases. The Arnold plugin sets
@@ -450,18 +464,30 @@ void ImagineRender::tileDone(const TileInfo& tileInfo, unsigned int threadID)
 				
 				// We seem to be able to successfully send the ID as the first channel and filler values for RGB in these cases...
 				
+#if USE_1CHANNEL_ID_BUFFER
 				// Sending a single channel with just the ID also seems to work...
-	
+				// As long as we don't use the new RGBA order in Katana 3, in which case it doesn't.
 				memcpy(pDstRow, pSrcPixel, width * skipSize);
-/*				
+#else
+				unsigned char* pDstPixel = pDstRow;
+			#if USE_KAT3_RGBA_ORDER
+				pDstPixel += sizeof(float) * 3;
+			#endif
+				
 				for (unsigned int j = 0; j < width; j++)
 				{
+					memcpy(pDstPixel, pSrcPixel, sizeof(float));
+					pDstPixel += sizeof(float);
+					memcpy(pDstPixel, pSrcPixel, sizeof(float));
+					pDstPixel += sizeof(float);
+					memcpy(pDstPixel, pSrcPixel, sizeof(float));
+					pDstPixel += sizeof(float);
 					memcpy(pDstPixel, pSrcPixel, sizeof(float));
 					pDstPixel += sizeof(float);
 		
 					pSrcPixel += 1;
 				}
-*/
+#endif
 				pDstRow += width * skipSize;
 			}
 		}
@@ -575,25 +601,42 @@ void ImagineRender::sendFullFrameToMonitor()
 				{
 					const float* pSrcRow = imageCopy.idRowPtr(i);
 					const float* pSrcPixel = pSrcRow;
-		
-					unsigned char* pDstPixel = pDstRow;
 					
 					// it's ambiguous what Katana expects here - it *seems* to accept 1, 3 and 4 channel images,
 					// but it's not clear where it wants the single channel items for the ID in the latter two cases. The Arnold plugin sets
 					// the first channel (A) to 1.0, and then fills in any float ID value from that.
 					
-					// We seem to be able to successfully send the ID as the first channel and filler values for RGB in these cases...
-					
-					// Sending a single channel with just the ID also seems to work...
+					// We seem to be able to successfully send the ID as the first channel and filler values for RGB in these cases for 4-channel buffers,
+					// which produce the correct result, as long as Katana 3's new RGBA order isn't used.
 		
+#if USE_1CHANNEL_ID_BUFFER
+					// Sending a single channel with just the ID also seems to work...
+					// As long as we don't use the new RGBA order in Katana 3, in which case it doesn't.
+					memcpy(pDstRow, pSrcPixel, origWidth * skipSize);
+#else
+					unsigned char* pDstPixel = pDstRow;
+				#if USE_KAT3_RGBA_ORDER
+//					pDstPixel += sizeof(float) * 3;
+				#endif
+					
+					// setting all RGBA pixels to the ID value in the case of using Katana 3's RGBA order doesn't work either...
+					// Saving out the catalog's image for the ID buffer shows the correct ID value is in the R channel (all other values are 0.0) for
+					// the case of ARGB order (default, and pre-Katana 3), but with RGBA order registered for the chanel, the ID value is in the
+					// A channel (all other values are 0.0), despite all RGBA input values being set to the ID, and picking doesn't work correctly.
 					for (unsigned int j = 0; j < origWidth; j++)
 					{
 						memcpy(pDstPixel, pSrcPixel, sizeof(float));
 						pDstPixel += sizeof(float);
-
-						pSrcPixel ++;
-					}
-		
+						memcpy(pDstPixel, pSrcPixel, sizeof(float));
+						pDstPixel += sizeof(float);
+						memcpy(pDstPixel, pSrcPixel, sizeof(float));
+						pDstPixel += sizeof(float);
+						memcpy(pDstPixel, pSrcPixel, sizeof(float));
+						pDstPixel += sizeof(float);
+			
+						pSrcPixel += 1;
+					}	
+#endif
 					pDstRow += origWidth * skipSize;
 				}
 			}
