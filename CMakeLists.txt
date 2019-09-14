@@ -8,7 +8,7 @@ include(ExternalProject)
 
 SET(KATANA_V3 1)
 IF (${KATANA_V3} MATCHES "1")
-    SET(KATANA_PLUGIN_API_PATH "/opt/Katana3.0v1/plugin_apis")
+    SET(KATANA_PLUGIN_API_PATH "/opt/Katana3.0v6/plugin_apis")
     ADD_DEFINITIONS(-DKATANA_V3)
 ELSE()
     SET(KATANA_PLUGIN_API_PATH "/opt/katana_2.5.3/plugin_apis")
@@ -26,21 +26,23 @@ if(CMAKE_FIRST_RUN)
 	message(STATUS "Setting Build Type to: ${CMAKE_BUILD_TYPE}")
 endif()
 
-IF(${MODERN_GCC} MATCHES "1")
-	SET(ARCH "corei7")
-	SET(SSE_FLAGS "-msse -msse2 -msse3 -mssse3 -msse4")
-ELSE()
-	SET(ARCH "corei7")
-	SET(SSE_FLAGS "-msse -msse2 -msse3 -mssse3 -msse4")
-ENDIF(${MODERN_GCC} MATCHES "1")
-
-#SET(GENERAL_COMPILER_FLAGS "-fsanitize=address -mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
-SET(GENERAL_COMPILER_FLAGS "-mfpmath=sse -fPIC -ffast-math ${SSE_FLAGS}")
-
 SET(CXX11 1)
 IF(${CXX11} MATCHES 1)
-	SET(GENERAL_COMPILER_FLAGS "${GENERAL_COMPILER_FLAGS} -std=c++11")
+	SET(CMAKE_CXX_STANDARD 11)
+	SET(CMAKE_CXX_STANDARD_REQUIRED on)
+	SET(QMAKE_CXXFLAGS "-std=c++11")
+	SET(GENERAL_COMPILER_FLAGS "-std=c++11")
 ENDIF(${CXX11} MATCHES 1)
+
+#SET(ARCH "corei7")
+SET(ARCH "native")
+# -msse and -msse2 are enabled by default for 64-bit, but let's be explicit anyway...
+# Note: with "-march=native" set, the below is somewhat pointless, as the correct things are generally
+   #       set anyway...
+SET(ARCH_FLAGS "-march=${ARCH} -mfpmath=sse -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4.2")
+
+#SET(GENERAL_COMPILER_FLAGS " ${GENERAL_COMPILER_FLAGS} -fsanitize=address -mfpmath=sse -fPIC -ffast-math ${ARCH_FLAGS}")
+SET(GENERAL_COMPILER_FLAGS "${GENERAL_COMPILER_FLAGS} -mfpmath=sse -fPIC -ffast-math ${ARCH_FLAGS}")
 
 # -fvisibility-inlines-hidden -fvisibility=hidden
 
@@ -260,3 +262,4 @@ ADD_LIBRARY(imagineViewerModifier SHARED ${imagineViewerModifier_SOURCES})
 ADD_DEPENDENCIES(imagineViewerModifier katanaAPI)
 SET_TARGET_PROPERTIES(imagineViewerModifier PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(imagineViewerModifier katanaAPI ${OPENGL_LIBRARY})
+

@@ -1,3 +1,21 @@
+/*
+ ImagineKatana
+ Copyright 2014-2019 Peter Pearson.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ---------
+*/
+
 #include "material_helper.h"
 
 #include <stdio.h>
@@ -45,7 +63,7 @@ MaterialHelper::MaterialHelper(Imagine::Logger& logger) : m_logger(logger), m_pD
 	m_pDefaultMaterialMatte->setMatte(true);
 }
 
-Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIterator iterator, const FnKat::GroupAttribute& imagineStatements, bool fallbackToDefault)
+Material* MaterialHelper::getOrCreateMaterialForLocation(const FnKat::FnScenegraphIterator& iterator, const FnKat::GroupAttribute& imagineStatements, bool fallbackToDefault)
 {
 	FnKat::GroupAttribute materialAttrib = getMaterialForLocation(iterator);
 
@@ -90,7 +108,7 @@ Material* MaterialHelper::getOrCreateMaterialForLocation(FnKat::FnScenegraphIter
 	return pMaterial;
 }
 
-FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(FnKat::FnScenegraphIterator iterator) const
+FnKat::GroupAttribute MaterialHelper::getMaterialForLocation(const FnKat::FnScenegraphIterator& iterator) const
 {
 	// Note: this only gets the exact material attributes we asked for if it's not a Network Material - if
 	//       it is a Network Material, we get everything bundled together, so it's possible nodes and shaders
@@ -329,11 +347,11 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 				FnKat::StringAttribute connItemAttr = connectionsAttr.getChildByIndex(j);
 
-				if (connItemAttr.isValid() && connItemAttr.getValue("", false).find("@") != std::string::npos)
+				if (connItemAttr.isValid() && connItemAttr.getValue("", false).find('@') != std::string::npos)
 				{
 					std::string connectedItem = connItemAttr.getValue("", false);
 
-					size_t atPos = connectedItem.find("@");
+					size_t atPos = connectedItem.find('@');
 
 					std::string portName = connectedItem.substr(0, atPos);
 					std::string connectionNodeName = connectedItem.substr(atPos + 1);
@@ -384,11 +402,11 @@ Material* MaterialHelper::createNetworkMaterial(const FnKat::GroupAttribute& att
 
 				FnKat::StringAttribute connItemAttr = connectionsAttr.getChildByIndex(j);
 
-				if (connItemAttr.isValid() && connItemAttr.getValue("", false).find("@") != std::string::npos)
+				if (connItemAttr.isValid() && connItemAttr.getValue("", false).find('@') != std::string::npos)
 				{
 					std::string connectedItem = connItemAttr.getValue("", false);
 
-					size_t atPos = connectedItem.find("@");
+					size_t atPos = connectedItem.find('@');
 
 					std::string portName = connectedItem.substr(0, atPos);
 					std::string connectionNodeName = connectedItem.substr(atPos + 1);

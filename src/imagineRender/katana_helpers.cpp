@@ -1,3 +1,21 @@
+/*
+ ImagineKatana
+ Copyright 2014-2019 Peter Pearson.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ---------
+*/
+
 #include "katana_helpers.h"
 
 #include <stdio.h>
@@ -16,14 +34,14 @@ KatanaHelpers::KatanaHelpers()
 {
 }
 
-FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(FnKat::FnScenegraphIterator iterator, int depthLimit)
+FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(const FnKat::FnScenegraphIterator& iterator, int depthLimit)
 {
 	int limit = depthLimit;
 
 	std::vector<FnKat::GroupAttribute> aXFormAttributes;
 
 	FnKat::FnScenegraphIterator localIt = iterator;
-
+	
 	while (localIt.isValid() && limit > 0)
 	{
 		FnKat::GroupAttribute localXFormAttribute = localIt.getAttribute("xform");
@@ -62,7 +80,7 @@ FnKat::GroupAttribute KatanaHelpers::buildLocationXformList(FnKat::FnScenegraphI
 	return gb.build();
 }
 
-Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(FnKat::GroupAttribute xformAttr)
+Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(const FnKat::GroupAttribute& xformAttr)
 {
 	FnKat::RenderOutputUtils::XFormMatrixVector xforms;
 
@@ -79,14 +97,14 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 	return xforms;
 }
 
-Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(FnKat::FnScenegraphIterator iterator)
+Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixStatic(const FnKat::FnScenegraphIterator& iterator)
 {
 	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
 
 	return getXFormMatrixStatic(xformAttr);
 }
 
-Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixMB(FnKat::FnScenegraphIterator iterator,
+Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMatrixMB(const FnKat::FnScenegraphIterator& iterator,
 																					  bool clampWithinShutter, float shutterOpen, float shutterClose)
 {
 	FnKat::GroupAttribute xformAttr = iterator.getGlobalXFormGroup();
@@ -109,7 +127,7 @@ Foundry::Katana::RenderOutputUtils::XFormMatrixVector KatanaHelpers::getXFormMat
 	return finalValues;
 }
 
-void KatanaHelpers::getRelevantSampleTimes(FnKat::DataAttribute attribute, std::vector<float>& aSampleTimes, float shutterOpen, float shutterClose)
+void KatanaHelpers::getRelevantSampleTimes(const FnKat::DataAttribute& attribute, std::vector<float>& aSampleTimes, float shutterOpen, float shutterClose)
 {
 	// we need to do this ourself...
 	std::vector<float> attributeSampleTimes;

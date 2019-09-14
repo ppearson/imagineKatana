@@ -1,3 +1,21 @@
+/*
+ ImagineKatana
+ Copyright 2014-2019 Peter Pearson.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ---------
+*/
+
 #include "imagine_render.h"
 
 using namespace Imagine;
@@ -21,7 +39,7 @@ using namespace Imagine;
 
 #if KATANA_V3
 #define USE_KAT3_ZERO_COPY_DATA 1
-#define USE_KAT3_RGBA_ORDER 1 // using this currently breaks id buffer when registered as 1 float channel...
+#define USE_KAT3_RGBA_ORDER 0 // using this currently breaks id buffer when registered as 1 float channel...
 #else
 #define USE_KAT3_ZERO_COPY_DATA 0
 #define USE_KAT3_RGBA_ORDER 0
@@ -34,7 +52,7 @@ bool ImagineRender::setupPreviewDataChannel(Foundry::Katana::Render::RenderSetti
 	m_interactiveFrameID = -1;
 	m_rawKatanaHost = getKatanaHost();
 
-	size_t portSep = m_rawKatanaHost.find(":");
+	size_t portSep = m_rawKatanaHost.find(':');
 
 	if (portSep == std::string::npos)
 	{

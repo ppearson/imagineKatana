@@ -1,3 +1,21 @@
+/*
+ ImagineKatana
+ Copyright 2014-2019 Peter Pearson.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ---------
+*/
+
 #include "sg_location_processor.h"
 
 #include <stdio.h>
@@ -53,7 +71,7 @@ void SGLocationProcessor::getFinalMaterials(std::vector<Material*>& aMaterials)
 	aMaterials = m_materialHelper.getMaterialsVector();
 }
 
-void SGLocationProcessor::addObjectToScene(Object* pObject, FnKat::FnScenegraphIterator sgIterator)
+void SGLocationProcessor::addObjectToScene(Object* pObject, const FnKat::FnScenegraphIterator& sgIterator)
 {
 	if (m_isLiveRender)
 	{
@@ -73,7 +91,7 @@ void SGLocationProcessor::registerGeometryInstance(Imagine::GeometryInstance* pG
 	m_scene.getGeometryManager().addRawGeometryInstance(pGeoInstance);
 }
 
-void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
+void SGLocationProcessor::processLocationRecursive(const FnKat::FnScenegraphIterator& iterator, unsigned int currentDepth)
 {
 	std::string type = iterator.getType();
 
@@ -154,7 +172,7 @@ void SGLocationProcessor::processLocationRecursive(FnKat::FnScenegraphIterator i
 
 #define FAST 0
 
-void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD)
+void SGLocationProcessor::processGeometryPolymeshCompact(const FnKat::FnScenegraphIterator& iterator, bool asSubD)
 {
 	// get the geometry attributes group
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -236,7 +254,7 @@ void SGLocationProcessor::processGeometryPolymeshCompact(FnKat::FnScenegraphIter
 	addObjectToScene(pNewMeshObject, iterator);
 }
 
-void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth)
+void SGLocationProcessor::processSpecialisedType(const FnKat::FnScenegraphIterator& iterator, unsigned int currentDepth)
 {
 	CompoundObject* pCO = createCompoundObjectFromLocation(iterator, currentDepth);
 
@@ -276,7 +294,7 @@ void SGLocationProcessor::processSpecialisedType(FnKat::FnScenegraphIterator ite
 	addObjectToScene(pCO, iterator);
 }
 
-CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
+CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocation(const FnKat::FnScenegraphIterator& iterator, bool asSubD,
 																						const FnKat::GroupAttribute& imagineStatements)
 {
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -710,7 +728,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	return pNewGeoInstance;
 }
 
-CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocationDiscard(FnKat::FnScenegraphIterator iterator, bool asSubD,
+CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromLocationDiscard(const FnKat::FnScenegraphIterator& iterator, bool asSubD,
 																						const FnKat::GroupAttribute& imagineStatements)
 {
 	FnKat::GroupAttribute geometryAttribute = iterator.getAttribute("geometry");
@@ -850,7 +868,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 	return NULL;
 }
 
-CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth)
+CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(const FnKat::FnScenegraphIterator& iterator, unsigned int baseLevelDepth)
 {
 	std::vector<Object*> aObjects;
 
@@ -897,7 +915,7 @@ CompoundObject* SGLocationProcessor::createCompoundObjectFromLocation(FnKat::FnS
 	return pNewCO;
 }
 
-void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Object*>& aObjects,
+void SGLocationProcessor::createCompoundObjectFromLocationRecursive(const FnKat::FnScenegraphIterator& iterator, std::vector<Object*>& aObjects,
 																	unsigned int baseLevelDepth, unsigned int currentDepth)
 {
 	std::string type = iterator.getType();
@@ -1018,7 +1036,7 @@ void SGLocationProcessor::createCompoundObjectFromLocationRecursive(FnKat::FnSce
 }
 
 // this builds and adds to the instance lookup map any instance locations at the instance source path
-SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSourceItem(FnKat::FnScenegraphIterator iterator, const std::string& instanceSourcePath)
+SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSourceItem(const FnKat::FnScenegraphIterator& iterator, const std::string& instanceSourcePath)
 {
 	InstanceInfo nullInfo; // NULL by default
 	
@@ -1092,7 +1110,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 
 		bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
 
-		FnKat::GroupAttribute imagineStatements = iterator.getAttribute("imagineStatements", true);
+		FnKat::GroupAttribute imagineStatements = itInstanceSource.getAttribute("imagineStatements", true);
 
 		CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
 
@@ -1105,6 +1123,19 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 		ii.m_compound = false;
 		ii.pGeoInstance = pNewInstance;
 		ii.pSingleItemMaterial = pInstanceSourceMaterial;
+		
+		// see if there's an xform on the source item
+		FnKat::GroupAttribute xformAttr = itInstanceSource.getAttribute("xform", true);
+		if (xformAttr.isValid())
+		{
+			FnKat::GroupAttribute xformAttr = KatanaHelpers::buildLocationXformList(itInstanceSource, hasSubLeaf ? 2 : 1);
+	
+			FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(xformAttr);
+	
+			const double* pMatrix = xforms[0].getValues();
+			ii.haveXForm = true;
+			ii.xform.setFromArray(pMatrix, true);
+		}
 
 		m_aInstances[instanceSourcePath] = ii;
 
@@ -1147,7 +1178,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 	return nullInfo;
 }
 
-void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processInstance(const FnKat::FnScenegraphIterator& iterator)
 {
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
@@ -1224,33 +1255,50 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	}
 
 	// do transform
-
-	if (!m_creationSettings.m_motionBlur)
+	
+	if (!instanceInfo.haveXForm)
 	{
-		// do transform
-		FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
-
-		const double* pMatrix = xform[0].getValues();
-		pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
-	}
-	else
-	{
-		// see if we've got multiple xform samples
-		FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixMB(iterator, true, m_creationSettings.m_shutterOpen,
-																							 m_creationSettings.m_shutterClose);
-		if (xforms.size() == 1)
+		if (!m_creationSettings.m_motionBlur)
 		{
-			// we haven't, so just assign transform normally...
-			const double* pMatrix = xforms[0].getValues();
+			// do transform
+			FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
+	
+			const double* pMatrix = xform[0].getValues();
 			pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
 		}
 		else
 		{
-			const double* pMatrix0 = xforms[0].getValues();
-			const double* pMatrix1 = xforms[1].getValues();
-			bool decompose = m_creationSettings.m_decomposeXForms;
-			pNewObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
+			// see if we've got multiple xform samples
+			FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixMB(iterator, true, m_creationSettings.m_shutterOpen,
+																								 m_creationSettings.m_shutterClose);
+			if (xforms.size() == 1)
+			{
+				// we haven't, so just assign transform normally...
+				const double* pMatrix = xforms[0].getValues();
+				pNewObject->transform().setCachedMatrix(pMatrix, true); // invert the matrix for transpose
+			}
+			else
+			{
+				const double* pMatrix0 = xforms[0].getValues();
+				const double* pMatrix1 = xforms[1].getValues();
+				bool decompose = m_creationSettings.m_decomposeXForms;
+				pNewObject->transform().setAnimatedCachedMatrix(pMatrix0, pMatrix1, true, decompose); // invert the matrix for transpose
+			}
 		}
+	}
+	else
+	{
+		// if the instance source has a transform, we need to concat that transform last, so we don't screw up the
+		// transform order...
+		
+		// TODO: motion blur support
+		FnKat::RenderOutputUtils::XFormMatrixVector xform = KatanaHelpers::getXFormMatrixStatic(iterator);
+
+		const double* pMatrix = xform[0].getValues();
+		Matrix4 transformValues;
+		transformValues.setFromArray(pMatrix, true);
+		transformValues = Matrix4::multiply(transformValues, instanceInfo.xform);
+		pNewObject->transform().setCachedMatrix(transformValues);
 	}
 
 	if (m_pIDState)
@@ -1262,7 +1310,7 @@ void SGLocationProcessor::processInstance(FnKat::FnScenegraphIterator iterator)
 	addObjectToScene(pNewObject, iterator);
 }
 
-void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processInstanceArray(const FnKat::FnScenegraphIterator& iterator)
 {
 	FnKat::StringAttribute instanceSourceAttribute = iterator.getAttribute("geometry.instanceSource");
 	if (!instanceSourceAttribute.isValid())
@@ -1420,18 +1468,29 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 			pNewObject->setFlag(OBJECT_FLAG_INSTANCE);
 		}
 		
-		// it shaves a tiny bit of expansion time off specialising doing this, so...
-		if (isIdentityBaseTransform)
+		if (!instanceInfo.haveXForm)
 		{
-			// if our location has no overall xform, we can just set individual matrix directly, which is slightly faster
-			// than doing a concat transform with an identity matrix when processing millions of instances
-			
-			pNewObject->transform().setCachedMatrix(tempValues, true);
+			// it shaves a tiny bit of expansion time off specialising doing this, so...
+			if (isIdentityBaseTransform)
+			{
+				// if our location has no overall xform, we can just set individual matrix directly, which is slightly faster
+				// than doing a concat transform with an identity matrix when processing millions of instances
+				
+				pNewObject->transform().setCachedMatrix(tempValues, true);
+			}
+			else
+			{
+				// we have to do the concatenation of transforms ourselves...
+				Matrix4 finalTransform = Matrix4::multiply(baseTransform, Matrix4(tempValues));
+				pNewObject->transform().setCachedMatrix(finalTransform);
+			}
 		}
 		else
 		{
-			// we have to do the concatenation of transforms ourselves...
+			// if the instance source has a transform, we need to concat that transform last, so we don't screw up the
+			// transform order...
 			Matrix4 finalTransform = Matrix4::multiply(baseTransform, Matrix4(tempValues));
+			finalTransform = Matrix4::multiply(finalTransform, instanceInfo.xform);
 			pNewObject->transform().setCachedMatrix(finalTransform);
 		}
 		
@@ -1446,7 +1505,7 @@ void SGLocationProcessor::processInstanceArray(FnKat::FnScenegraphIterator itera
 	}
 }
 
-void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processSphere(const FnKat::FnScenegraphIterator& iterator)
 {
 	float radius = 1.0f;
 
@@ -1510,7 +1569,7 @@ void SGLocationProcessor::processSphere(FnKat::FnScenegraphIterator iterator)
 	addObjectToScene(pSphere, iterator);
 }
 
-void SGLocationProcessor::processLight(FnKat::FnScenegraphIterator iterator)
+void SGLocationProcessor::processLight(const FnKat::FnScenegraphIterator& iterator)
 {
 	FnKat::GroupAttribute lightMaterialAttrib = m_materialHelper.getMaterialForLocation(iterator);
 	
@@ -1652,7 +1711,7 @@ unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, st
 	return numUVValues;
 }
 
-unsigned int SGLocationProcessor::sendObjectID(FnKat::FnScenegraphIterator iterator)
+unsigned int SGLocationProcessor::sendObjectID(const FnKat::FnScenegraphIterator& iterator)
 {
 	int64_t objectID = m_pIDState->getNextID();
 

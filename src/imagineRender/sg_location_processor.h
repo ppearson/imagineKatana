@@ -1,3 +1,21 @@
+/*
+ ImagineKatana
+ Copyright 2014-2019 Peter Pearson.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ---------
+*/
+
 #ifndef SG_LOCATION_PROCESSOR_H
 #define SG_LOCATION_PROCESSOR_H
 
@@ -34,7 +52,7 @@ public:
 
 	struct InstanceInfo
 	{
-		InstanceInfo() : m_compound(false), pGeoInstance(NULL), pSingleItemMaterial(NULL)
+		InstanceInfo() : m_compound(false), pGeoInstance(NULL), haveXForm(false), pSingleItemMaterial(NULL)
 		{
 			
 		}
@@ -46,6 +64,9 @@ public:
 			Imagine::GeometryInstance*			pGeoInstance;
 			Imagine::CompoundObject*			pCompoundObject;
 		};
+		
+		bool									haveXForm;
+		Imagine::Matrix4						xform;
 		
 		// TODO: could used tagged pointer here for the compound flag...
 		Imagine::Material*						pSingleItemMaterial;
@@ -60,40 +81,40 @@ public:
 
 protected:
 	
-	void addObjectToScene(Imagine::Object* pObject, FnKat::FnScenegraphIterator sgIterator);
+	void addObjectToScene(Imagine::Object* pObject, const FnKat::FnScenegraphIterator& sgIterator);
 	
 	void registerGeometryInstance(Imagine::GeometryInstance* pGeoInstance);
 
-	void processLocationRecursive(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
+	void processLocationRecursive(const FnKat::FnScenegraphIterator& iterator, unsigned int currentDepth);
 
-	void processGeometryPolymeshCompact(FnKat::FnScenegraphIterator iterator, bool asSubD);
+	void processGeometryPolymeshCompact(const FnKat::FnScenegraphIterator& iterator, bool asSubD);
 
-	void processSpecialisedType(FnKat::FnScenegraphIterator iterator, unsigned int currentDepth);
+	void processSpecialisedType(const FnKat::FnScenegraphIterator& iterator, unsigned int currentDepth);
 
-	Imagine::CompactGeometryInstance* createCompactGeometryInstanceFromLocation(FnKat::FnScenegraphIterator iterator, bool asSubD,
+	Imagine::CompactGeometryInstance* createCompactGeometryInstanceFromLocation(const FnKat::FnScenegraphIterator& iterator, bool asSubD,
 																	   const FnKat::GroupAttribute& imagineStatements);
-	Imagine::CompactGeometryInstance* createCompactGeometryInstanceFromLocationDiscard(FnKat::FnScenegraphIterator iterator, bool asSubD,
+	Imagine::CompactGeometryInstance* createCompactGeometryInstanceFromLocationDiscard(const FnKat::FnScenegraphIterator& iterator, bool asSubD,
 																	   const FnKat::GroupAttribute& imagineStatements);
 
-	Imagine::CompoundObject* createCompoundObjectFromLocation(FnKat::FnScenegraphIterator iterator, unsigned int baseLevelDepth);
+	Imagine::CompoundObject* createCompoundObjectFromLocation(const FnKat::FnScenegraphIterator& iterator, unsigned int baseLevelDepth);
 
-	void createCompoundObjectFromLocationRecursive(FnKat::FnScenegraphIterator iterator, std::vector<Imagine::Object*>& aObjects,
+	void createCompoundObjectFromLocationRecursive(const FnKat::FnScenegraphIterator& iterator, std::vector<Imagine::Object*>& aObjects,
 												   unsigned int baseLevelDepth, unsigned int currentDepth);
 
-	InstanceInfo findOrBuildInstanceSourceItem(FnKat::FnScenegraphIterator iterator, const std::string& instanceSourcePath);
-	void processInstance(FnKat::FnScenegraphIterator iterator);
-	void processInstanceArray(FnKat::FnScenegraphIterator iterator);
+	InstanceInfo findOrBuildInstanceSourceItem(const FnKat::FnScenegraphIterator& iterator, const std::string& instanceSourcePath);
+	void processInstance(const FnKat::FnScenegraphIterator& iterator);
+	void processInstanceArray(const FnKat::FnScenegraphIterator& iterator);
 	
-	void processSphere(FnKat::FnScenegraphIterator iterator);
+	void processSphere(const FnKat::FnScenegraphIterator& iterator);
 
-	void processLight(FnKat::FnScenegraphIterator iterator);
+	void processLight(const FnKat::FnScenegraphIterator& iterator);
 
 	static unsigned char getRenderVisibilityFlags(const FnKat::GroupAttribute& imagineStatements);
 	static void processVisibilityAttributes(const FnKat::GroupAttribute& imagineStatements, Imagine::Object* pObject);
 
 	unsigned int processUVs(FnKat::FloatConstVector& uvlist, std::vector<Imagine::UV>& aUVs);
 	
-	unsigned int sendObjectID(FnKat::FnScenegraphIterator iterator);
+	unsigned int sendObjectID(const FnKat::FnScenegraphIterator& iterator);
 	
 	unsigned int getCustomGeoFlags();
 	

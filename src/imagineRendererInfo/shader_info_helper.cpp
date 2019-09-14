@@ -1,3 +1,21 @@
+/*
+ ImagineKatana
+ Copyright 2014-2019 Peter Pearson.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ You may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ ---------
+*/
+
 #include "shader_info_helper.h"
 
 #include <vector>
@@ -65,7 +83,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 								  const FnKat::GroupAttribute inputAttr)
 {
 	std::vector<std::string> typeTags;
-	std::string location = name;
+	const std::string& location = name;
 	std::string fullPath;
 
 	FnKat::Attribute containerHintsAttribute;
@@ -254,7 +272,7 @@ void ShaderInfoHelper::buildStandardShaderParams(const ImagineRendererInfo& iri,
 	helper.addFloatSliderParam("transparency", 0.0f);
 	helper.addFloatSliderParam("transmission", 0.0f);
 
-	helper.addBoolParam("double_sided", 0);
+	helper.addBoolParam("double_sided", false);
 }
 					// for the moment, hopefully we're only going to be connecting Ops
 void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -289,7 +307,7 @@ void ShaderInfoHelper::buildStandardImageShaderParams(const ImagineRendererInfo&
 	helper.addFloatSliderParam("transparency", 0.0f);
 	helper.addFloatSliderParam("transmittance", 1.0f);
 
-	helper.addBoolParam("double_sided", 0);
+	helper.addBoolParam("double_sided", false);
 }
 
 void ShaderInfoHelper::buildGlassShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -320,7 +338,7 @@ void ShaderInfoHelper::buildMetalShaderParams(const ImagineRendererInfo& iri, Fn
 
 	helper.addStringPopupParam("microfacet_type", "beckmann", microfacetTypeOptions, 3);
 
-	helper.addBoolParam("double_sided", 0);
+	helper.addBoolParam("double_sided", false);
 }
 
 void ShaderInfoHelper::buildPlasticShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -343,7 +361,7 @@ void ShaderInfoHelper::buildBrushedMetalShaderParams(const ImagineRendererInfo& 
 	helper.addFloatSliderParam("roughness_x", 0.1f);
 	helper.addFloatSliderParam("roughness_y", 0.02f);
 
-	helper.addBoolParam("double_sided", 0);
+	helper.addBoolParam("double_sided", false);
 }
 
 void ShaderInfoHelper::buildMetallicPaintShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo)
@@ -420,13 +438,13 @@ void ShaderInfoHelper::buildLuminousShaderParams(const ImagineRendererInfo& iri,
 	helper.addColourParam("colour", Col3f(1.0f, 1.0f, 1.0f));
 	helper.addFloatSliderParam("intensity", 1.0f, 0.0f, 20.0f);
 
-	helper.addBoolParam("register_as_light", 0);
+	helper.addBoolParam("register_as_light", false);
 
 	helper.addFloatSliderParam("light_intensity", 1.0f, 0.0f, 10.0f);
 	helper.addFloatSliderParam("light_exposure", 3.0f, 0.0f, 20.0f);
 
-	helper.addBoolParam("light_quadratic_falloff", 1);
-	helper.addBoolParam("light_weight_by_surface_area", 1);
+	helper.addBoolParam("light_quadratic_falloff", true);
+	helper.addBoolParam("light_weight_by_surface_area", true);
 }
 
 void ShaderInfoHelper::buildCommonLightShaderParams(const ImagineRendererInfo& iri, FnKat::GroupBuilder& rendererObjectInfo,
