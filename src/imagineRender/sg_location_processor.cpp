@@ -314,7 +314,7 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 		FnKat::IntAttribute flipFacesAttribute = imagineStatements.getChildByName("flip_faces");
 		if (flipFacesAttribute.isValid())
 		{
-			flipFaces = flipFacesAttribute.getValue(0, false);
+			flipFaces = flipFacesAttribute.getValue(0, false) == 1;
 		}
 	}
 	

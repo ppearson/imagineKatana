@@ -681,7 +681,7 @@ Material* MaterialHelper::createStandardMaterial(const FnKat::GroupAttribute& sh
 	float refractionIndex = ah.getFloatParam("refraction_index", 1.49f);
 
 	int fresnelEnabled = ah.getIntParam("fresnel", 1);
-	if (fresnelEnabled)
+	if (fresnelEnabled == 1)
 	{
 		pNewStandardMaterial->setFresnelEnabled(true);
 
@@ -1030,7 +1030,7 @@ Material* MaterialHelper::createTranslucentMaterial(const FnKat::GroupAttribute&
 	float transmittanceRoughness = ah.getFloatParam("transmittance_roughness", 0.8f);
 	pNewMaterial->setTransmittanceRoughness(transmittanceRoughness);
 
-	bool surfaceColourAsTransmittance = ah.getIntParam("use_surf_col_as_trans", 0);
+	bool surfaceColourAsTransmittance = ah.getIntParam("use_surf_col_as_trans", 0) == 1;
 	pNewMaterial->setUseSurfaceColourAsTransmittance(surfaceColourAsTransmittance);
 
 	std::string entryExitType = ah.getStringParam("entry_exit_type");

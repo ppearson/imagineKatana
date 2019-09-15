@@ -135,7 +135,7 @@ bool ImagineRender::configureRenderSettings(Foundry::Katana::Render::RenderSetti
 	FnKat::IntAttribute flipTAttribute = imagineGSAttribute.getChildByName("flip_t");
 	m_creationSettings.m_flipT = false;
 	if (flipTAttribute.isValid())
-		m_creationSettings.m_flipT = flipTAttribute.getValue(0, false);
+		m_creationSettings.m_flipT = flipTAttribute.getValue(0, false) == 1;
 
 	FnKat::IntAttribute enableSubDAttribute = imagineGSAttribute.getChildByName("enable_subdivision");
 	m_creationSettings.m_enableSubdivision = false;
