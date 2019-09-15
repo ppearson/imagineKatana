@@ -1686,7 +1686,7 @@ unsigned int SGLocationProcessor::processUVs(FnKat::FloatConstVector& uvlist, st
 		{
 			UV& uv = *itUV++;
 			uv.u = uvlist[i];
-			uv.v = 1.0 - uvlist[i + 1];
+			uv.v = 1.0f - uvlist[i + 1];
 		}
 	}
 	else

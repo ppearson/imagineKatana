@@ -65,8 +65,8 @@ public:
 		std::string			type;
 		unsigned int		numSrcChannels; // number of channels in the OutputImage buffer within Imagine
 		unsigned int		numDstChannels; // Katana always seems to need 3/4 channels, so we can't use above as there's often a mis-match
-		int					channelID;
 		int					frameID;
+		int					channelID;
 
 		FnKat::NewFrameMessage*		pFrameMessage;
 		FnKat::NewChannelMessage*	pChannelMessage;

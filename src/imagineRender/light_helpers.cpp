@@ -157,7 +157,8 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	float width = ah.getFloatParam("width", 1.0f);
 	float depth = ah.getFloatParam("depth", 1.0f);
 
-	int shapeType = ah.getFloatParam("shape_type", 0);
+	std::string shapeType = ah.getStringParam("shape_type", "quad");
+	int shapeTypeEnum = getAreaLightShapeTypeEnumValFromString(shapeType);
 
 	bool isScale = ah.getIntParam("scale", 1) == 1;
 
@@ -170,7 +171,7 @@ Light* LightHelpers::createAreaLight(const FnKat::GroupAttribute& shaderParamsAt
 	pNewLight->setDimensions(width, depth);
 	pNewLight->setScale(isScale);
 
-	pNewLight->setShapeType((AreaLight::ShapeType)shapeType);
+	pNewLight->setShapeType((AreaLight::ShapeType)shapeTypeEnum);
 
 	return pNewLight;
 }
@@ -308,4 +309,18 @@ int LightHelpers::getShadowTypeEnumValFromString(const std::string& shadowType)
 		return 2;
 	else
 		return 0;
+}
+
+int LightHelpers::getAreaLightShapeTypeEnumValFromString(const std::string& shapeType)
+{
+	if (shapeType == "quad")
+		return 0;
+	else if (shapeType == "disc")
+		return 1;
+	else if (shapeType == "sphere")
+		return 2;
+	else if (shapeType == "cylinder")
+		return 3;
+	
+	return 0;
 }

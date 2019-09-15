@@ -103,7 +103,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 
 	std::string buildName;
 	std::string typeName; // for network materials
-	if (name.find("/") == std::string::npos)
+	if (name.find('/') == std::string::npos)
 	{
 		// just a single standard material
 		buildName = name;
@@ -111,7 +111,7 @@ bool ShaderInfoHelper::buildShaderInfo(const ImagineRendererInfo& iri, FnKat::Gr
 	else
 	{
 		// ImagineShadingNode item, so split out the two items from the name
-		size_t sepPos = name.find("/");
+		size_t sepPos = name.find('/');
 		typeName = name.substr(0, sepPos);
 		buildName = name.substr(sepPos + 1);
 	}

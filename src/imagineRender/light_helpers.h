@@ -45,6 +45,7 @@ public:
 
 	static int getFalloffEnumValFromString(const std::string& falloff);
 	static int getShadowTypeEnumValFromString(const std::string& shadowType);
+	static int getAreaLightShapeTypeEnumValFromString(const std::string& shapeType);
 };
 
 #endif // LIGHT_HELPERS_H
