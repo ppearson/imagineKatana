@@ -717,7 +717,7 @@ void ImagineRender::startDiskRenderer()
 	m_rendererOtherMemory = raytracer.getRendererMemoryUsage();
 
 	renderImage.normaliseProgressive();
-
+/*
 	if (m_diskRenderConvertFromLinear)
 	{
 		// TODO: this doesn't really make sense as we're writing to .exr which should be in linear anyway, but doing this
@@ -728,8 +728,13 @@ void ImagineRender::startDiskRenderer()
 	{
 		renderImage.applyExposure(1.0f);
 	}
-
-	pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags);
+*/
+	renderImage.applyExposure(1.0f);
+	
+	if (!pWriter->writeImage(m_diskRenderOutputPath, renderImage, imageChannelWriteFlags, writeFlags))
+	{
+		m_logger.error("Error writing image to '%s'.", m_diskRenderOutputPath.c_str());
+	}
 
 	delete pWriter;
 }
