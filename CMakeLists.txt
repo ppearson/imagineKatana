@@ -103,10 +103,9 @@ IF (${STATIC_OPENEXR} MATCHES 1)
     SET(OPENEXR_LIBS_FLAGS2 "-DCMAKE_POSITION_INDEPENDENT_CODE=ON")
 ENDIF(${STATIC_OPENEXR} MATCHES 1)
 
-set(ILMBASE_VERSION 2.0.1)
+set(ILMBASE_VERSION 2.0.99)
 ExternalProject_Add(ILMBASE_LOCAL
 	URL ${CMAKE_SOURCE_DIR}/external/ilmbase-${ILMBASE_VERSION}.tar.bz2
-	PATCH_COMMAND patch -d ../ILMBASE_LOCAL/IlmThread/ < ${CMAKE_SOURCE_DIR}/external/ilmthread.patch
 	BINARY_DIR external/build/ilmbase
 	INSTALL_DIR external/dist/ilmbase
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/external/dist/ilmbase
@@ -118,7 +117,7 @@ ExternalProject_Add(ILMBASE_LOCAL
 
 #
 
-set(OPENEXR_VERSION 2.0.1)
+set(OPENEXR_VERSION 2.0.99)
 ExternalProject_Add(OPENEXR_LOCAL
 	URL ${CMAKE_SOURCE_DIR}/external/openexr-${OPENEXR_VERSION}.tar.bz2
 	BINARY_DIR external/build/openexr
