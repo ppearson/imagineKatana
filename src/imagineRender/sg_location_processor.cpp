@@ -488,21 +488,29 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			FnKat::FloatConstVector normalsData = normalsAttribute.getNearestSample(0.0f);
 
 			unsigned int numItems = normalsData.size();
-
-			std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
 			
-			aNormals.resize(numItems / 3);
-			// convert to Normal items
-
-			unsigned int normalCount = 0;
-			for (unsigned int i = 0; i < numItems; i += 3)
+			if (numItems == 0 || numItems % 3 != 0)
 			{
-				Normal& normal = aNormals[normalCount++];
-
-				// need to reverse the normals as the winding order is opposite
-				normal.x = -normalsData[i];
-				normal.y = -normalsData[i + 1];
-				normal.z = -normalsData[i + 2];
+				getLogger().warning("geometry.vertex.N attribute on location '%s' does not have the expected number of values, ignoring normals...", iterator.getFullName().c_str());
+				geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS;
+			}
+			else
+			{
+				std::vector<Normal>& aNormals = pNewGeoInstance->getNormals();
+				
+				aNormals.resize(numItems / 3);
+				// convert to Normal items
+	
+				unsigned int normalCount = 0;
+				for (unsigned int i = 0; i < numItems; i += 3)
+				{
+					Normal& normal = aNormals[normalCount++];
+	
+					// need to reverse the normals as the winding order is opposite
+					normal.x = -normalsData[i];
+					normal.y = -normalsData[i + 1];
+					normal.z = -normalsData[i + 2];
+				}
 			}
 		}
 		else
@@ -516,27 +524,35 @@ CompactGeometryInstance* SGLocationProcessor::createCompactGeometryInstanceFromL
 			FnKat::FloatConstVector sampleData1 = normalsAttribute.getNearestSample(aSampleTimes[aSampleTimes.size() - 1]);
 
 			unsigned int numItems = sampleData0.size();
-
-			aNormals.reserve((numItems / 3) * 2);
-
-			// convert to Normal items
-			for (unsigned int i = 0; i < numItems; i += 3)
+			
+			if (numItems == 0 || numItems % 3 != 0)
 			{
-				// first sample
-				float x = sampleData0[i];
-				float y = sampleData0[i + 1];
-				float z = sampleData0[i + 2];
-
-				// we need to reverse the normals as the winding order is opposite...
-				aNormals.push_back(Normal(-x, -y, -z));
-
-				// second sample
-				x = sampleData1[i];
-				y = sampleData1[i + 1];
-				z = sampleData1[i + 2];
-
-				// we need to reverse the normals as the winding order is opposite...
-				aNormals.push_back(Normal(-x, -y, -z));
+				getLogger().warning("geometry.vertex.N attribute on location '%s' does not have the expected number of values, ignoring normals...", iterator.getFullName().c_str());
+				geoBuildFlags |= GeometryInstance::GEO_BUILD_CALC_VERT_NORMALS;
+			}
+			else
+			{
+				aNormals.reserve((numItems / 3) * 2);
+	
+				// convert to Normal items
+				for (unsigned int i = 0; i < numItems; i += 3)
+				{
+					// first sample
+					float x = sampleData0[i];
+					float y = sampleData0[i + 1];
+					float z = sampleData0[i + 2];
+	
+					// we need to reverse the normals as the winding order is opposite...
+					aNormals.push_back(Normal(-x, -y, -z));
+	
+					// second sample
+					x = sampleData1[i];
+					y = sampleData1[i + 1];
+					z = sampleData1[i + 2];
+	
+					// we need to reverse the normals as the winding order is opposite...
+					aNormals.push_back(Normal(-x, -y, -z));
+				}
 			}
 		}
 	}
@@ -1075,28 +1091,28 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 	}
 		
 	// do the expensive lookup of the item...
-	FnKat::FnScenegraphIterator itInstanceSource;
+	FnKat::FnScenegraphIterator itInstanceSourceItem;
 	
 	if (m_creationSettings.m_followRelativeInstanceSources)
 	{
-		itInstanceSource = iterator.getRoot().getByPath(absInstanceSourcePath);
+		itInstanceSourceItem = iterator.getRoot().getByPath(absInstanceSourcePath);
 	}
 	else
 	{
-		itInstanceSource = iterator.getRoot().getByPath(instanceSourcePath);
+		itInstanceSourceItem = iterator.getRoot().getByPath(instanceSourcePath);
 	}
 	
-	if (!itInstanceSource.isValid())
+	if (!itInstanceSourceItem.isValid())
 	{
 		// TODO: maybe add a placeholder to the map so that we don't try to uselessly attempt to find
 		// it using getByPath() (which is expensive) in the future?
 		return nullInfo;
 	}
 
-	bool isSingleLeaf = !itInstanceSource.getFirstChild().isValid();
+	bool isSingleLeaf = !itInstanceSourceItem.getFirstChild().isValid();
 
 	// check two levels down, as that's more conventional...
-	FnKat::FnScenegraphIterator itSubItem = itInstanceSource.getFirstChild();
+	FnKat::FnScenegraphIterator itSubItem = itInstanceSourceItem.getFirstChild();
 	bool hasSubLeaf = !isSingleLeaf && (itSubItem.isValid() && !itSubItem.getNextSibling().isValid() && !itSubItem.getFirstChild().isValid());
 	// if it's simply pointing to a mesh (so a leaf without a hierarchy)
 	if (isSingleLeaf || hasSubLeaf)
@@ -1105,30 +1121,40 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 
 		if (hasSubLeaf)
 		{
-			itInstanceSource = itSubItem;
+			itInstanceSourceItem = itSubItem;
 		}
 
-		bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSource.getType() == "subdmesh";
-
-		FnKat::GroupAttribute imagineStatements = itInstanceSource.getAttribute("imagineStatements", true);
-
-		CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSource, isSubD, imagineStatements);
-
-		unsigned int customFlags = getCustomGeoFlags();
-		pNewInstance->setCustomFlags(customFlags);
-
-		Material* pInstanceSourceMaterial = m_materialHelper.getOrCreateMaterialForLocation(itInstanceSource, imagineStatements);
+		bool isSubD = m_creationSettings.m_enableSubdivision && itInstanceSourceItem.getType() == "subdmesh";
+		
+		FnKat::GroupAttribute imagineStatements = itInstanceSourceItem.getAttribute("imagineStatements", true);
+		
+		// try and build the item, on the assumptions it's likely (but might be other things: TODO) a mesh
+		CompactGeometryInstance* pNewInstance = createCompactGeometryInstanceFromLocation(itInstanceSourceItem, isSubD, imagineStatements);
+		
+		// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
+		// TODO: handle other types like spheres, pointclouds, instances, etc...
+		
+		// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
+		// based off the location name isn't continually done, so make sure that's done before we return.
 
 		InstanceInfo ii;
-		ii.m_compound = false;
+		
+		if (!pNewInstance)
+		{
+			m_aInstances[instanceSourcePath] = ii;
+			return nullInfo;
+		}
+		
+		Material* pInstanceSourceMaterial = m_materialHelper.getOrCreateMaterialForLocation(itInstanceSourceItem, imagineStatements);
+		
 		ii.pGeoInstance = pNewInstance;
 		ii.pSingleItemMaterial = pInstanceSourceMaterial;
 		
 		// see if there's an xform on the source item
-		FnKat::GroupAttribute xformAttr = itInstanceSource.getAttribute("xform", true);
+		FnKat::GroupAttribute xformAttr = itInstanceSourceItem.getAttribute("xform", true);
 		if (xformAttr.isValid())
 		{
-			FnKat::GroupAttribute xformAttr = KatanaHelpers::buildLocationXformList(itInstanceSource, hasSubLeaf ? 2 : 1);
+			FnKat::GroupAttribute xformAttr = KatanaHelpers::buildLocationXformList(itInstanceSourceItem, hasSubLeaf ? 2 : 1);
 	
 			FnKat::RenderOutputUtils::XFormMatrixVector xforms = KatanaHelpers::getXFormMatrixStatic(xformAttr);
 	
@@ -1138,15 +1164,9 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 		}
 
 		m_aInstances[instanceSourcePath] = ii;
-
-		// if we don't have a valid GeometryInstance, don't bother creating a mesh as there's no corresponding geometry.
-		// However it's worth adding the NULL item to the instances map so that the expensive lookup of the SG iterator
-		// based off the location name isn't continually done, so make sure that's done before we return.
-
-		if (!pNewInstance)
-		{
-			return nullInfo;
-		}
+		
+		unsigned int customFlags = getCustomGeoFlags();
+		pNewInstance->setCustomFlags(customFlags);
 
 		registerGeometryInstance(pNewInstance);
 
@@ -1158,7 +1178,7 @@ SGLocationProcessor::InstanceInfo SGLocationProcessor::findOrBuildInstanceSource
 
 		// -1 isn't right, but it works due to the fact that it effectively strips off the base level transform, which
 		// is what we want...
-		CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSource, -1);
+		CompoundObject* pCO = createCompoundObjectFromLocation(itInstanceSourceItem, -1);
 
 		if (!pCO)
 		{
