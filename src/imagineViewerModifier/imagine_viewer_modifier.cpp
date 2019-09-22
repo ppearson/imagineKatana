@@ -137,10 +137,10 @@ void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
 		if (m_areaLightType == eAreaLightRect)
 		{
 			glBegin(GL_POLYGON);
-				glVertex3f(-halfWidth, 0.0f, -halfDepth);
-				glVertex3f(halfWidth, 0.0f, -halfDepth);
-				glVertex3f(halfWidth, 0.0f, halfDepth);
-				glVertex3f(-halfWidth, 0.0f, halfDepth);
+				glVertex3f(-halfWidth, -halfDepth, 0.0f);
+				glVertex3f(-halfWidth,  halfDepth, 0.0f);
+				glVertex3f( halfWidth,  halfDepth, 0.0f);
+				glVertex3f( halfWidth, -halfDepth, 0.0f);
 			glEnd();
 
 			drawDirection = true;
@@ -150,14 +150,14 @@ void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
 			static const unsigned int kNumSegments = 20;
 			const float discAngleInc = kPI * 2.0f / (float)kNumSegments;
 			glBegin(GL_POLYGON);
-			float Y = 0.0f;
+			float Z = 0.0f;
 			for (unsigned int i = 0; i < kNumSegments; i++)
 			{
 				float X = cosf(discAngleInc * (float)i);
-				float Z = sinf(discAngleInc * (float)i);
+				float Y = sinf(discAngleInc * (float)i);
 
 				X *= halfWidth;
-				Z *= halfDepth;
+				Y *= halfDepth;
 
 				glVertex3f(X, Y, Z);
 			}
@@ -171,9 +171,9 @@ void ImagineViewerModifier::draw(Foundry::Katana::ViewerModifierInput& input)
 		{
 			glBegin(GL_LINES);
 				glVertex3f(0.0f, 0.0f, 0.0f);
-				glVertex3f(0.0f, -1.0f, 0.0f);
-				glVertex3f(0.0f, -1.0f, 0.0f);
-				glVertex3f(0.0f, -0.75, 0.25);
+				glVertex3f(0.0f, 0.0f, -1.0f);
+				glVertex3f(0.0f, 0.0f, -1.0f);
+				glVertex3f(0.0f, 0.25f, -0.75f);
 			glEnd();
 		}
 	}
